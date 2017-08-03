@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="Cache-Control" content="no-transform">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta content="yes" name="apple-mobile-web-app-capable">
+  <meta content="black" name="apple-mobile-web-app-status-bar-style">
+  <meta content="telephone=no" name="format-detection">
+  <meta name="keywords" content="C++ python 大并发网络 逆向">
+  <meta name="description" content="重剑无锋，大巧不工">
+  <meta name="author" content="恋恋风辰">
+
+  
+  <title>windows环境利用semophore机制进行线程同步</title>
+  
+
+  <link rel="alternate" href="/atom.xml" title="恋恋风辰的个人博客" type="application/atom+xml">
+  <link rel="canonical" href="http://www.limerence2017.com/2017/08/03/winsemphore/index.html">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="//at.alicdn.com/t/font_pb2xepysv85gsyvi.css">
+  <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+</head>
+
+
+  <body>
+    <aside class="aside">
+  <nav class="aside-menu">
+    <ul class="aside-list">
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-wendang"></i><a href="/index.html" class="aside-menu-link" title="首页">首页</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-wendang1"></i><a href="/archives/index.html" class="aside-menu-link" title="所有文章">所有文章</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-biaoqian1"></i><a href="/tags/index.html" class="aside-menu-link" title="文章分类">文章分类</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-lianjie"></i><a href="/links/index.html" class="aside-menu-link" title="我和我的小伙伴">我和我的小伙伴</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-guanyu"></i><a href="/about/index.html" class="aside-menu-link" title="作者简介">作者简介</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-rss"></i><a href="/atom.xml" class="aside-menu-link" title="RSS">RSS</a></li>
+        
+      
+    </ul>
+  </nav>
+
+  <article class="aside-show">
+    
+      <form class="search-from" id="search-from">
+  <input class="search-text" id="search-text" type="text" name="searchText" value="" autocomplete="off">
+  <button class="search-btn" id="search-btn" type="button"><i class="search-btn-icon iconfont icon-sousuo-sousuo"></i></button>
+</form>
+
+      <article class="search-data" id="search-data">
+  <button class="search-close" id="search-close"><i class="search-close-icon iconfont icon-houdongfangiconfont10"></i></button>
+
+  <div class="search-wrapper" id="search-wrapper"></div>
+</article>
+
+    
+    <div class="aside-show-wrapper">
+      <figure class="aside-avatar">
+        <img src="/img/avatar.png" alt="avatar" class="aside-avatar-img">
+        <figcaption class="aside-avatar-caption">
+          恋恋风辰
+          
+          <strong class="aside-avatar-STRONG">个人博客</strong>
+          
+        </figcaption>
+      </figure>
+      <p class="aside-show-description">重剑无锋，大巧不工。</p>
+      <ul class="aside-show-info">
+        <li class="aside-show-item">
+          <a href="javascript: void(0);" class="aside-show-link" title="微信" target="_blank"><i class="aside-show-icon iconfont icon-iconfontweixin"></i></a>
+          <div class="aside-show-outside aside-show-outside_1">
+            <img class="aside-show-IMG aside-show-IMG_1" src="/img/weixin.png" alt="微信">
+          </div>
+        </li>
+        <li class="aside-show-item"><a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" class="aside-show-link" title="知乎" target="_blank"><i class="aside-show-icon iconfont icon-zhihu"></i></a></li>
+        <li class="aside-show-item"><a href="https://github.com/secondtonone1" class="aside-show-link" title="github" target="_blank"><i class="aside-show-icon iconfont icon-github"></i></a></li>
+        <li class="aside-show-item">
+          <a href="javascript: void(0);" class="aside-show-link" title="QQ" target="_blank"><i class="aside-show-icon iconfont icon-qq"></i></a>
+          <div class="aside-show-outside">
+            <img class="aside-show-IMG" src="/img/qq.png" alt="QQ">
+          </div>
+        </li>
+      </ul>
+    </div>
+  </article>
+</aside>
+
+
+    <article class="main" id="main">
+      <article class="post min-height">
+  
+  <header class="post-header">
+    
+    <h1 class="post-title">windows环境利用semophore机制进行线程同步</h1>
+    <p class="post-meta">
+      <span class="post-time">2017-08-03</span>
+      
+      <a href="/categories/tech/" title="技术开发" class="post-categories">技术开发</a>
+      
+      
+      <a href="/tags/C/"" title="C++" class="post-tags"><i class="post-tags-icon iconfont icon-biaoqian"></i>C++</a>
+      
+      <a href="/tags/Windows环境编程/"" title="Windows环境编程" class="post-tags"><i class="post-tags-icon iconfont icon-biaoqian"></i>Windows环境编程</a>
+      
+    </p>
+    
+  </header>
+  <div class="post-content"><p><code>semophore</code>是信号量的意思，常用于<code>PV操作</code>，所谓PV操作就是pend(等待，直到有资源可用，并且消耗资源)V就是释放资源。<br><code>semophore和mutex区别</code>，<code>mutex</code>本意为互斥，用于线程独占资源，常用于临界区访问锁住mutex，当线程A对mutex加锁后，其他线程不能反问临界资源，也不能加锁，直到线程A解锁，其他线程才能访问。而semophore则可以在不同的线程之间进行pv操作，semophore可以设置最多有多少个<code>信号量</code>，以及初始的信号量，当调用<code>V操作</code>的时候信号量数量增加一个，调用<code>P操作</code>时候信号量数量减少一个，但是不能超过最多的信号量。信号量是一个非负数。<a id="more"></a><br>打个比方，一辆车只有一把钥匙，mutex就是这把钥匙，谁有这把钥匙才能开车，开完车把钥匙归还或者给下一个等待的人。现在有一辆公交车，最多容纳二十个人，二十就是信号量的最大值，每个人就是一个信号量，当人满的时候其他的人就不能上车，直到有人下车，其他人才能上车。  </p>
+<p><code>semophore主要适用于windows环境下的同步</code>  </p>
+<h2 id="下面介绍下semophore"><a href="#下面介绍下semophore" class="headerlink" title="下面介绍下semophore"></a>下面介绍下semophore</h2><h3 id="1-创建信号量"><a href="#1-创建信号量" class="headerlink" title="1 创建信号量"></a>1 <code>创建信号量</code></h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="function">HANDLE WINAPI <span class="title">CreateSemaphore</span><span class="params">(              </span></span></div><div class="line"><span class="function"><span class="params">  _In_opt_  LPSECURITY_ATTRIBUTES lpSemaphoreAttributes </span></span></div><div class="line"><span class="function"><span class="params">  _In_      LONG lInitialCount, </span></span></div><div class="line"><span class="function"><span class="params">  _In_      LONG lMaximumCount, </span></span></div><div class="line"><span class="function"><span class="params">  _In_opt_  LPCTSTR lpName </span></span></div><div class="line"><span class="function"><span class="params">)</span></span>; </div><div class="line">第一个参数：安全属性，如果为<span class="literal">NULL</span>则是默认安全属性 </div><div class="line">第二个参数：信号量的初始值，要&gt;=<span class="number">0</span>且&lt;=第三个参数 </div><div class="line">第三个参数：信号量的最大值 </div><div class="line">第四个参数：信号量的名称 </div><div class="line">返回值：指向信号量的句柄，如果创建的信号量和已有的信号量重名，那么返回已经存在的信号量句柄</div></pre></td></tr></table></figure>
+<h3 id="2打开其他进程中的信号量"><a href="#2打开其他进程中的信号量" class="headerlink" title="2打开其他进程中的信号量"></a>2<code>打开其他进程中的信号量</code></h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="function">HANDLE WINAPI <span class="title">OpenSemaphore</span><span class="params">(  </span></span></div><div class="line"><span class="function"><span class="params">  _In_  DWORD dwDesiredAccess,  </span></span></div><div class="line"><span class="function"><span class="params">  _In_  BOOL bInheritHandle,  </span></span></div><div class="line"><span class="function"><span class="params">  _In_  LPCTSTR lpName  </span></span></div><div class="line"><span class="function"><span class="params">)</span></span>;</div></pre></td></tr></table></figure>
+<p><code>dwDesiredAccess</code>：指定想要的访问权限，SEMAPHORE_ALL_ACCESS 请求对事件对象的完全访问，SEMAPHORE_MODIFY_STATE 修改状态权限，使用ReleaseSemaphore函数需要该权限；<br><code>bInheritHandle</code>：是否希望子进程继承信号量对象的句柄，一般设置为false；<br><code>lpName</code>：要打开的信号量对象的名称；  </p>
+<h3 id="3等待信号量"><a href="#3等待信号量" class="headerlink" title="3等待信号量"></a>3<code>等待信号量</code></h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="function">DWORD WINAPI <span class="title">WaitForSingleObject</span><span class="params">(  </span></span></div><div class="line"><span class="function"><span class="params">  _In_  HANDLE hHandle,  </span></span></div><div class="line"><span class="function"><span class="params">  _In_  DWORD dwMilliseconds  </span></span></div><div class="line"><span class="function"><span class="params">)</span></span>;</div></pre></td></tr></table></figure>
+<p><code>hHandle</code>：指向内核对象的句柄；<br><code>dwMilliseconds</code>：线程最大等待多长时间，直到该对象被触发。经常使用INFINITE，表示阻塞等待。<br><code>WaitForSingleObject</code>为等待资源的函数，等待内核对象被触发的通用函数，在这里用于等待信号量，我们之前说过信号量的资源数是非负整数，当信号量数量大于0，那么该函数会将信号量-1，并且返回，线程继续执行后续操作。如果信号量资源数为0，那么该线程处于等待状态，阻塞等待信号量被激活。  </p>
+<h3 id="4-释放信号量"><a href="#4-释放信号量" class="headerlink" title="4 释放信号量"></a>4 <code>释放信号量</code></h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="function">BOOL WINAPI <span class="title">ReleaseSemaphore</span><span class="params">(  </span></span></div><div class="line"><span class="function"><span class="params">  _In_       HANDLE hSemaphore,  </span></span></div><div class="line"><span class="function"><span class="params">  _In_       LONG lReleaseCount,  </span></span></div><div class="line"><span class="function"><span class="params">  _Out_opt_  LPLONG lpPreviousCount  </span></span></div><div class="line"><span class="function"><span class="params">)</span></span>;</div></pre></td></tr></table></figure>
+<p><code>hSemaphore</code>：信号量内核对象的句柄；<br>lReleaseCount：释放自己使用的资源数目，加到信号量的当前资源计数上，通常会传1，当然是根据线程使用的资源数目而定。<br>lpPreviousCount：返回当前资源计数的原始值，应用程序很少会用到这个值，所以一般置为NULL；<br>当一个线程使用完信号量对象控制的有限资源后，应该调用ReleaseSemaphore，释放使用的资源，使信号量对象的当前资源计数得到恢复。</p>
+<h3 id="5关闭内核对象的句柄"><a href="#5关闭内核对象的句柄" class="headerlink" title="5关闭内核对象的句柄"></a>5<code>关闭内核对象的句柄</code></h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="function">BOOL WINAPI <span class="title">CloseHandle</span><span class="params">(  </span></span></div><div class="line"><span class="function"><span class="params">  _In_  HANDLE hObject  </span></span></div><div class="line"><span class="function"><span class="params">)</span></span>;</div></pre></td></tr></table></figure>
+<p><code>hObject</code>：指向内核对象的句柄和其他内核对象一样，无论以什么方式创建内核对象，我们都必须通过调用CloseHandle向系统表明结束使用内核对象。如果传入的句柄有效，系统将获得内核对象数据结构的地址，并将结构中的使用计数减1，如果使用计数0，就会将内核对象销毁，从内存空间中擦除。<br>下面写一个例子，三个线程，分别为如数1,2,3，要求每个线程输出10此，以1,2,3分别输出。<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//先定义三个信号量句柄：</span></div><div class="line"></div><div class="line">HANDLE hsem1,hsem2,hsem3;</div><div class="line"> </div><div class="line"></div><div class="line"><span class="comment">//线程回调函数：</span></div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">unsigned</span> __<span class="function">stdcall <span class="title">threadFunA</span><span class="params">(<span class="keyword">void</span> *)</span></span></div><div class="line"><span class="function"></span>&#123;</div><div class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)&#123;</div><div class="line">        WaitForSingleObject(hsem1, INFINITE);<span class="comment">//等待信号量</span></div><div class="line">        <span class="built_in">cout</span>&lt;&lt;<span class="string">"first thread function"</span>&lt;&lt;<span class="built_in">endl</span>;</div><div class="line">        ReleaseSemaphore(hsem2, <span class="number">1</span>, <span class="literal">NULL</span>);<span class="comment">//释放信号量2</span></div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> <span class="number">1</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">//该函数内部调用等待第一个信号量，如果获得资源，则打印日志，并且释放资源2</span></div><div class="line"></div><div class="line"><span class="comment">//同样的道理，完成第二个，第三个线程回调函数</span></div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">unsigned</span> __<span class="function">stdcall <span class="title">threadFunB</span><span class="params">(<span class="keyword">void</span> *)</span></span></div><div class="line"><span class="function"></span>&#123;</div><div class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)&#123;</div><div class="line">        WaitForSingleObject(hsem2, INFINITE);<span class="comment">//等待信号量</span></div><div class="line">        <span class="built_in">cout</span>&lt;&lt;<span class="string">"second thread function"</span>&lt;&lt;<span class="built_in">endl</span>;</div><div class="line">        ReleaseSemaphore(hsem3, <span class="number">1</span>, <span class="literal">NULL</span>);<span class="comment">//释放信号量3</span></div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> <span class="number">2</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"> <span class="keyword">unsigned</span>  __<span class="function">stdcall <span class="title">threadFunC</span><span class="params">(<span class="keyword">void</span> *)</span></span></div><div class="line"><span class="function"> </span>&#123;</div><div class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)&#123;</div><div class="line">        WaitForSingleObject(hsem3, INFINITE);<span class="comment">//等待信号量</span></div><div class="line">        <span class="built_in">cout</span>&lt;&lt;<span class="string">"third thread function"</span>&lt;&lt;<span class="built_in">endl</span>;</div><div class="line">        ReleaseSemaphore(hsem1, <span class="number">1</span>, <span class="literal">NULL</span>);<span class="comment">//释放信号量</span></div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> <span class="number">3</span>;</div><div class="line"> &#125;</div><div class="line"></div><div class="line"><span class="comment">//接下来在主函数创建三个线程，并且初始化第一个信号量的初始资源数为1，</span></div><div class="line"></div><div class="line"><span class="comment">//第二个和第三个信号量初始资源数都是0，他们的最大资源数为1.</span></div><div class="line"></div><div class="line"></div><div class="line"><span class="comment">//创建信号量</span></div><div class="line">    hsem1 = CreateSemaphore(<span class="literal">NULL</span>, <span class="number">1</span>, <span class="number">1</span>, <span class="literal">NULL</span>);</div><div class="line">    hsem2 = CreateSemaphore(<span class="literal">NULL</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="literal">NULL</span>);</div><div class="line">    hsem3 = CreateSemaphore(<span class="literal">NULL</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="literal">NULL</span>);</div><div class="line"></div><div class="line">    HANDLE hth1, hth2, hth3;</div><div class="line"> </div><div class="line">    <span class="comment">//创建线程</span></div><div class="line">    hth1 = (HANDLE)_beginthreadex(<span class="literal">NULL</span>, <span class="number">0</span>, threadFunA, <span class="literal">NULL</span>, <span class="number">0</span>, <span class="literal">NULL</span>);</div><div class="line">    hth2 = (HANDLE)_beginthreadex(<span class="literal">NULL</span>, <span class="number">0</span>, threadFunB, <span class="literal">NULL</span>, <span class="number">0</span>, <span class="literal">NULL</span>);</div><div class="line">    hth3 = (HANDLE)_beginthreadex(<span class="literal">NULL</span>, <span class="number">0</span>, threadFunC, <span class="literal">NULL</span>, <span class="number">0</span>, <span class="literal">NULL</span>);</div><div class="line"> </div><div class="line"></div><div class="line"><span class="comment">//当线程调用完回调函数才能让主线程退出，linux系统对应的api为pthread_join()，</span></div><div class="line"></div><div class="line"><span class="comment">//我们这里windows api为 WaitForSingleObject</span></div><div class="line"></div><div class="line"><span class="comment">//等待子线程结束</span></div><div class="line">    WaitForSingleObject(hth1, INFINITE);</div><div class="line">    WaitForSingleObject(hth2, INFINITE);</div><div class="line">    WaitForSingleObject(hth3, INFINITE);</div><div class="line"> </div><div class="line"></div><div class="line"> <span class="comment">//最后释放线程的句柄和信号量的句柄</span></div><div class="line"></div><div class="line"></div><div class="line"> <span class="comment">//一定要记得关闭线程句柄</span></div><div class="line">    CloseHandle(hth1);</div><div class="line">    CloseHandle(hth2);</div><div class="line">    CloseHandle(hth3);</div><div class="line">    CloseHandle(hsem1);</div><div class="line">    CloseHandle(hsem2);</div><div class="line">    CloseHandle(hsem3);</div></pre></td></tr></table></figure></p>
+<p>打印输出如下：<br><img src="/2017/08/03/winsemphore/1.png" alt="1"><br>结果显示三个线程是按顺序输出的。所以信号量常用来同步线程。<br>源代码下载地址：<a href="http://download.csdn.net/detail/secondtonone1/9654799" target="_blank" rel="external">semophore测试</a></p>
+</div>
+    
+      <p class="post-copyright">若无特别说明，本文系原创，<a class="post-copyright-link" href="https://creativecommons.org/licenses/by/4.0/deed.zh" title="署名-非商业性使用 4.0 (CC BY-NC 4.0)" target="_blank">署名-非商业性使用 4.0 (CC BY-NC 4.0)</a>协议，转载文章请注明来自<a class="post-copyright-link" href="/" title="恋恋风辰的个人博客" target="_blank">恋恋风辰的个人博客</a>，或链接上原文地址：<a class="post-copyright-link" href="http://www.limerence2017.com/2017/08/03/winsemphore/" title="http://www.limerence2017.com/2017/08/03/winsemphore/" target="_blank">http://www.limerence2017.com/2017/08/03/winsemphore/</a></p>
+
+      
+      <div class="toc-wrapper">
+        <div class="toc-scroll">
+          <div class="toc-middle">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#下面介绍下semophore"><span class="toc-text">下面介绍下semophore</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-创建信号量"><span class="toc-text">1 创建信号量</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2打开其他进程中的信号量"><span class="toc-text">2打开其他进程中的信号量</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3等待信号量"><span class="toc-text">3等待信号量</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-释放信号量"><span class="toc-text">4 释放信号量</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5关闭内核对象的句柄"><span class="toc-text">5关闭内核对象的句柄</span></a></li></ol></li></ol>
+          </div>
+        </div>
+      </div>
+    
+  
+</article>
+
+      <footer class="footer">
+  <p class="footer-text">驱动于 <a href="https://hexo.io/zh-cn/" class="footer-link" title="Hexo">Hexo</a>，主题由 <a href="/about" class="footer-link" title="恋恋风辰">恋恋风辰</a> 设计移植而来</p>
+  <p class="footer-text">&copy; 2016 - 2017 <a href="/about" class="footer-link" title="恋恋风辰">恋恋风辰</a> 保留部分版权</p>
+</footer>
+
+    </article>
+
+    <script src="/js/to-top.js"></script>
+    <script src="/js/search.js"></script>
+  </body>
+</html>

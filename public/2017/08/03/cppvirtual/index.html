@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="Cache-Control" content="no-transform">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta content="yes" name="apple-mobile-web-app-capable">
+  <meta content="black" name="apple-mobile-web-app-status-bar-style">
+  <meta content="telephone=no" name="format-detection">
+  <meta name="keywords" content="C++ python 大并发网络 逆向">
+  <meta name="description" content="重剑无锋，大巧不工">
+  <meta name="author" content="恋恋风辰">
+
+  
+  <title>C++类成员空间分配和虚函数表</title>
+  
+
+  <link rel="alternate" href="/atom.xml" title="恋恋风辰的个人博客" type="application/atom+xml">
+  <link rel="canonical" href="http://www.limerence2017.com/2017/08/03/cppvirtual/index.html">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="//at.alicdn.com/t/font_pb2xepysv85gsyvi.css">
+  <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+</head>
+
+
+  <body>
+    <aside class="aside">
+  <nav class="aside-menu">
+    <ul class="aside-list">
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-wendang"></i><a href="/index.html" class="aside-menu-link" title="首页">首页</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-wendang1"></i><a href="/archives/index.html" class="aside-menu-link" title="所有文章">所有文章</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-biaoqian1"></i><a href="/tags/index.html" class="aside-menu-link" title="文章分类">文章分类</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-lianjie"></i><a href="/links/index.html" class="aside-menu-link" title="我和我的小伙伴">我和我的小伙伴</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-guanyu"></i><a href="/about/index.html" class="aside-menu-link" title="作者简介">作者简介</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-rss"></i><a href="/atom.xml" class="aside-menu-link" title="RSS">RSS</a></li>
+        
+      
+    </ul>
+  </nav>
+
+  <article class="aside-show">
+    
+      <form class="search-from" id="search-from">
+  <input class="search-text" id="search-text" type="text" name="searchText" value="" autocomplete="off">
+  <button class="search-btn" id="search-btn" type="button"><i class="search-btn-icon iconfont icon-sousuo-sousuo"></i></button>
+</form>
+
+      <article class="search-data" id="search-data">
+  <button class="search-close" id="search-close"><i class="search-close-icon iconfont icon-houdongfangiconfont10"></i></button>
+
+  <div class="search-wrapper" id="search-wrapper"></div>
+</article>
+
+    
+    <div class="aside-show-wrapper">
+      <figure class="aside-avatar">
+        <img src="/img/avatar.png" alt="avatar" class="aside-avatar-img">
+        <figcaption class="aside-avatar-caption">
+          恋恋风辰
+          
+          <strong class="aside-avatar-STRONG">个人博客</strong>
+          
+        </figcaption>
+      </figure>
+      <p class="aside-show-description">重剑无锋，大巧不工。</p>
+      <ul class="aside-show-info">
+        <li class="aside-show-item">
+          <a href="javascript: void(0);" class="aside-show-link" title="微信" target="_blank"><i class="aside-show-icon iconfont icon-iconfontweixin"></i></a>
+          <div class="aside-show-outside aside-show-outside_1">
+            <img class="aside-show-IMG aside-show-IMG_1" src="/img/weixin.png" alt="微信">
+          </div>
+        </li>
+        <li class="aside-show-item"><a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" class="aside-show-link" title="知乎" target="_blank"><i class="aside-show-icon iconfont icon-zhihu"></i></a></li>
+        <li class="aside-show-item"><a href="https://github.com/secondtonone1" class="aside-show-link" title="github" target="_blank"><i class="aside-show-icon iconfont icon-github"></i></a></li>
+        <li class="aside-show-item">
+          <a href="javascript: void(0);" class="aside-show-link" title="QQ" target="_blank"><i class="aside-show-icon iconfont icon-qq"></i></a>
+          <div class="aside-show-outside">
+            <img class="aside-show-IMG" src="/img/qq.png" alt="QQ">
+          </div>
+        </li>
+      </ul>
+    </div>
+  </article>
+</aside>
+
+
+    <article class="main" id="main">
+      <article class="post min-height">
+  
+  <header class="post-header">
+    
+    <h1 class="post-title">C++类成员空间分配和虚函数表</h1>
+    <p class="post-meta">
+      <span class="post-time">2017-08-03</span>
+      
+      <a href="/categories/tech/" title="技术开发" class="post-categories">技术开发</a>
+      
+      
+      <a href="/tags/C/"" title="C++" class="post-tags"><i class="post-tags-icon iconfont icon-biaoqian"></i>C++</a>
+      
+    </p>
+    
+  </header>
+  <div class="post-content"><p>最近在自学python，看到继承和类，就顺便复习了C++的类和继承等方面的知识。<br>先看Base基类<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Base</span> &#123;</span></div><div class="line"></div><div class="line"><span class="keyword">private</span>:</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">display</span><span class="params">()</span> </span>&#123; <span class="built_in">cout</span>&lt;&lt;<span class="string">"Base display()"</span>&lt;&lt;<span class="built_in">endl</span>; &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">say</span><span class="params">()</span></span>&#123; <span class="built_in">cout</span>&lt;&lt;<span class="string">"Base say()"</span>&lt;&lt;<span class="built_in">endl</span>; &#125;</div><div class="line"></div><div class="line"><span class="keyword">public</span>:</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">func</span><span class="params">()</span></span>&#123;<span class="built_in">cout</span> &lt;&lt; <span class="string">"Base func()"</span> &lt;&lt; <span class="built_in">endl</span>; &#125;</div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">exec</span><span class="params">()</span></span>&#123; display(); say(); &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">f1</span><span class="params">(<span class="built_in">string</span> a)</span> </span>&#123; <span class="built_in">cout</span>&lt;&lt;<span class="string">"Base f1(string)"</span>&lt;&lt;<span class="built_in">endl</span>; &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">f1</span><span class="params">(<span class="keyword">int</span> a)</span> </span>&#123; <span class="built_in">cout</span>&lt;&lt;<span class="string">"Base f1(int)"</span>&lt;&lt;<span class="built_in">endl</span>; &#125;   <span class="comment">//overload</span></div><div class="line"></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<a id="more"></a>
+<p>Base类中定义私有的虚函数display， 普通成员函数say，公共的虚函数func， 普通的成员函数exec，重载了f1函数。下面是DeriveA类，继承于Base类<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">DeriveA</span>:</span><span class="keyword">public</span> Base&#123;</div><div class="line"></div><div class="line"><span class="keyword">public</span>:</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">display</span><span class="params">()</span> </span>&#123; <span class="built_in">cout</span>&lt;&lt;<span class="string">"DeriveA display()"</span>&lt;&lt;<span class="built_in">endl</span>; &#125;         <span class="comment">//override</span></div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">f1</span><span class="params">(<span class="keyword">int</span> a,<span class="keyword">int</span> b)</span> </span>&#123; <span class="built_in">cout</span>&lt;&lt;<span class="string">"DeriveA f1(int,int)"</span>&lt;&lt;<span class="built_in">endl</span>; &#125;   <span class="comment">//redefining</span></div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">say</span><span class="params">()</span> </span>&#123; <span class="built_in">cout</span>&lt;&lt;<span class="string">"DeriveA say()"</span>&lt;&lt;<span class="built_in">endl</span>; &#125;   <span class="comment">//redefining</span></div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">func</span><span class="params">()</span></span>&#123;<span class="built_in">cout</span> &lt;&lt; <span class="string">"DeriveA func()"</span> &lt;&lt; <span class="built_in">endl</span>; &#125;</div><div class="line"></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>DeriveA类继承了Base类，重写(覆盖)了虚函数display和func，并且将display权限修改为public。重定义了f1函数和say函数，但是修改了f1的参数列表。下面是基础的几个测试<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">DeriveA a;</div><div class="line">Base *b=&amp;a;</div><div class="line">   b-&gt;func();</div><div class="line">   a.func();</div><div class="line">   b-&gt;f1(<span class="string">"abc"</span>);</div><div class="line">   b-&gt;f1(<span class="number">3</span>);</div><div class="line">   a.f1(<span class="number">3</span>,<span class="number">5</span>);</div></pre></td></tr></table></figure></p>
+<p>输出结果:<br><img src="/2017/08/03/cppvirtual/cppvirtual1.png" alt="cppvirtual1"><br>func函数在Base类中为虚函数，DeriveA继承Base后，根据多态机制实现了动态调用。所谓多态机制就是用基类指针指向子类对象，基类指针调用虚函数func，会动态调用实际的子类对象的func函数。由于display函数在Base类中为虚函数，所以不可以通过b-&gt;display()调用。由于DeriveA重新定义(redefining)了f1函数，f1函数参数类型修改了，所以只能使用a.f1(int,int)这种调用，而采用a.f1(string)或者采用a.f1(int)这种调用都会出错，编译阶段就会出错。因为DeriveA类对f1重新定义了，基类的f1函数不可通过对象直接调用。同样的道理对于基类指针或对象，无论基类指针指向子类还是基类对象，调用f1只能调用基类定义的两个f1(int)， f1(string)两个函数，<br>如果采用b-&gt;f1(3,5)，编译器在编译阶段就会提出错误。想实现子类对象调用基类的函数可在函数体内加上作用于Base::函数名(参数，…)<br>DeriveA类修改f1函数，先调用基类的f1在调用自己的f1<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">DeriveA</span>:</span><span class="keyword">public</span> Base&#123;</div><div class="line"></div><div class="line"><span class="keyword">public</span>:</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">display</span><span class="params">()</span> </span>&#123; <span class="built_in">cout</span>&lt;&lt;<span class="string">"DeriveA display()"</span>&lt;&lt;<span class="built_in">endl</span>; &#125;   <span class="comment">//override</span></div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">f1</span><span class="params">(<span class="keyword">int</span> a,<span class="keyword">int</span> b)</span> </span>&#123; </div><div class="line">        Base::f1(<span class="number">2</span>);</div><div class="line">        Base::f1(<span class="string">"test"</span>);</div><div class="line">        <span class="built_in">cout</span>&lt;&lt;<span class="string">"DeriveA f1(int,int)"</span>&lt;&lt;<span class="built_in">endl</span>; &#125;   <span class="comment">//redefining</span></div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">say</span><span class="params">()</span> </span>&#123; <span class="built_in">cout</span>&lt;&lt;<span class="string">"DeriveA say()"</span>&lt;&lt;<span class="built_in">endl</span>; &#125;   <span class="comment">//redefining</span></div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">func</span><span class="params">()</span></span>&#123;</div><div class="line">        </div><div class="line">        <span class="built_in">cout</span> &lt;&lt; <span class="string">"DeriveA func()"</span> &lt;&lt; <span class="built_in">endl</span>; &#125;</div><div class="line"></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>打印输出a.f1(3,5);<br>结果如下：<br><img src="/2017/08/03/cppvirtual/cppvirtual2.png" alt="cppvirtual2"><br>先调用了基类的两个f1函数，之后调用DeriveA的f1函数<br>下面调用如下函数<br>b-&gt;exec();<br>a.exec();<br>结果如下：<br><img src="/2017/08/03/cppvirtual/cppvirtual3.png" alt="cppvirtual3"><br>为什么两个结果一样呢？<br>先看b-&gt;exec()；由于b是Base类型变量，那么调用的Base类的exec函数，exec函数内部调用Base类的display()和say() 函数。由于b为指向DeriveA类的基类指针，根据多态机制，调用Base类的display()函数时，会动态调用DeriveA类的display()函数。调用Base类的say()函数时，由于say()函数不是虚函数，所以不触发多态机制。<br>因此b-&gt;exec()函数的结果为调用DeriveA的display，调用Base的say函数。由于DeriveA类继承于Base类，但是没有实现自己的exec()函数，即没有实现重定义，那么当执行a.exec()时，调用的时Base类的exec()函数，原理和上边一样，调用Base类中的display()函数和say()函数，由于display()函数为虚函数，a为DeriveA类对象，调用基类的虚函数display()，根据多态机制，实际调用的是DeriveA类的display()函数。<br>执行下边代码<br>a.say()<br>结果如下：<br><img src="/2017/08/03/cppvirtual/4.png" alt="4"><br>下面修改DeriveA类的内容，在DeriveA类内部实现自己的exec()函数<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">DeriveA</span>:</span><span class="keyword">public</span> Base&#123;</div><div class="line"></div><div class="line"><span class="keyword">public</span>:</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">exec</span><span class="params">()</span></span>&#123; display(); say(); &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">display</span><span class="params">()</span> </span>&#123; <span class="built_in">cout</span>&lt;&lt;<span class="string">"DeriveA display()"</span>&lt;&lt;<span class="built_in">endl</span>; &#125;   <span class="comment">//override</span></div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">f1</span><span class="params">(<span class="keyword">int</span> a,<span class="keyword">int</span> b)</span> </span>&#123; </div><div class="line">        <span class="built_in">cout</span>&lt;&lt;<span class="string">"DeriveA f1(int,int)"</span>&lt;&lt;<span class="built_in">endl</span>; &#125;   <span class="comment">//redefining</span></div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">say</span><span class="params">()</span> </span>&#123; <span class="built_in">cout</span>&lt;&lt;<span class="string">"DeriveA say()"</span>&lt;&lt;<span class="built_in">endl</span>; &#125;   <span class="comment">//redefining</span></div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">func</span><span class="params">()</span></span>&#123;</div><div class="line">        </div><div class="line">        <span class="built_in">cout</span> &lt;&lt; <span class="string">"DeriveA func()"</span> &lt;&lt; <span class="built_in">endl</span>; &#125;</div><div class="line"></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>执行下边代码，<br>b-&gt;exec()；<br>a.exec():<br>结果如下:<br><img src="/2017/08/03/cppvirtual/5.png" alt="5"><br>因为DeriveA类重定义了exec函数，那么a.exec()函数调用的是DeriveA类的exec()函数，从而调用的都是DeriveA类的display()和say()函数。  </p>
+<h2 id="继承类和基类成员函数调用规则总结："><a href="#继承类和基类成员函数调用规则总结：" class="headerlink" title="继承类和基类成员函数调用规则总结："></a>继承类和基类成员函数调用规则总结：</h2><p>DeriveA a;<br>  Base *b=&a;  </p>
+<ol>
+<li><p><code>基类指针指向子类对象，该指针调用某个成员函数，先考虑该函数是否为虚函数，如果为虚函数，且子类有覆盖(重写)，会触发多态机制，动态调用子类的重写函数：
+如 b-&gt;func()， 输出为DeriveA func()</code></p>
+</li>
+<li><p><code>基类指针指向子类对象，该指针调用某个成员函数，先考虑该函数是否为虚函数，如果为虚函数，子类没有覆盖(没有重写)，不会触发多态机制，调用基类的虚函数：</code></p>
+</li>
+<li><p><code>基类指针指向子类对象，该指针调用某个成员函数，如果该函数不为虚函数，无论该函数是否被子类重定义(redefined)，只调用基类的该成员函数。如DeriveA类内部不实现exec()函数，那么b-&gt;exec()调用的是Base类的exec()函数。</code></p>
+</li>
+<li><p><code>在第3条基础上，基类有成员函数exec()， 子类没有成员函数exec()，在基类的exec() 内部调用虚函数display()， 且子类覆盖了display()函数，那么根据多态机制，调用子类的display()。如果display()虚函数没有被重写，则调用基类的display()函数，同第2条。如果exec()内部调用普通函数say()， 无论子类是否重定义say()，都会调用基类的say()函数，同3</code></p>
+</li>
+<li><p><code>Base类中实现exec()函数，而子类DeriveA类内部不实现exec()函数，DeriveA类对象调用exec()函数，实际调用的为Base类内部的exec()函数。如果exec()内部调用虚函数或者普通成员函数，情况如同第4条。</code></p>
+</li>
+<li><p><code>Base类中实现exec()函数，而子类DeriveA类重定义exec()函数，那么DeriveA类对象调用的是DeriveA类的exec()函数。如果exec()函数内部调用DeriveA类的其他成员函数，那么调用的都是DeriveA类的成员函数。</code></p>
+</li>
+<li><p><code>子类重定义了基类的成员函数，那么子类对象调用该成员函数，要根据子类重定义的形参列表。如a.f1(3,5);</code>  </p>
+<h2 id="虚函数使用和定义规则"><a href="#虚函数使用和定义规则" class="headerlink" title="虚函数使用和定义规则:"></a>虚函数使用和定义规则:</h2></li>
+</ol>
+<ol>
+<li><p><code>非类的成员函数不能定义为虚函数，类的成员函数中静态成员函数和构造函数也不能定义为虚函数，但可以将析构函数定义为虚函数。实际上，优秀的程序员常常把基类的析构函数定义为虚函数。</code>因为，将基类的析构函数定义为虚函数后，当利用delete删除一个指向派生类定义的对象指针时，系统会调用相应的类的析构函数。而不将析构函数定义为虚函数时，只调用基类的析构函数。</p>
+</li>
+<li><p><code>只需要在声明函数的类体中使用关键字“virtual”将函数声明为虚函数，而定义函数时不需要使用关键字“virtual”。</code></p>
+</li>
+<li><p><code>如果声明了某个成员函数为虚函数，则在该类中不能出现和这个成员函数同名并且返回值、参数个数、参数类型都相同的非虚函数。在以该类为基类的派生类中，也不能出现这种非虚的同名同返回值同参数个数同参数类型函数。</code></p>
+</li>
+</ol>
+<h2 id="类的静态函数和构造函数不可以定义为虚函数"><a href="#类的静态函数和构造函数不可以定义为虚函数" class="headerlink" title="类的静态函数和构造函数不可以定义为虚函数:"></a>类的静态函数和构造函数不可以定义为虚函数:</h2><ol>
+<li><p>静态函数的目的是通过类名+函数名访问类的static变量，或者通过对象调用staic函数实现对static成员变量的读写，要求内存中只有一份数据。而虚函数在子类中重写，并且通过多态机制实现动态调用，在内存中需要保存不同的重写版本。</p>
+</li>
+<li><p>构造函数的作用是构造对象，而虚函数的调用是在对象已经构造完成，并且通过调用时动态绑定。动态绑定是因为每个类对象内部都有一个指针，指向虚函数表的首地址。而且虚函数，类的成员函数，static成员函数都不是存储在类对象中，而是在内存中只保留一份。</p>
+<h2 id="知其然、知其所以然（虚函数表原理）："><a href="#知其然、知其所以然（虚函数表原理）：" class="headerlink" title="知其然、知其所以然（虚函数表原理）："></a>知其然、知其所以然（虚函数表原理）：</h2><p>虚函数存储在虚函数表中，每个类对象都包含一个指向该虚函数表首地址的指针。定义Baseclass类  </p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Baseclass</span> &#123;</span> </div><div class="line"></div><div class="line"><span class="keyword">public</span>: </div><div class="line">    Baseclass():a(<span class="number">1024</span>)&#123;&#125;</div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">f</span><span class="params">()</span> </span>&#123; <span class="built_in">cout</span> &lt;&lt; <span class="string">"Base::f"</span> &lt;&lt; <span class="built_in">endl</span>; &#125; </div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">g</span><span class="params">()</span> </span>&#123; <span class="built_in">cout</span> &lt;&lt; <span class="string">"Base::g"</span> &lt;&lt; <span class="built_in">endl</span>; &#125; </div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">h</span><span class="params">()</span> </span>&#123; <span class="built_in">cout</span> &lt;&lt; <span class="string">"Base::h"</span> &lt;&lt; <span class="built_in">endl</span>; &#125; </div><div class="line">    <span class="keyword">int</span> a;</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>从虚函数表中依次取出函数执行：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">Baseclass b; </div><div class="line"></div><div class="line">   <span class="built_in">cout</span> &lt;&lt;<span class="string">"类对象大小"</span> &lt;&lt;  <span class="keyword">sizeof</span>(b) &lt;&lt; <span class="built_in">endl</span>;</div><div class="line"></div><div class="line">   <span class="keyword">int</span> * p = (<span class="keyword">int</span> *)(&amp;b) ;</div><div class="line">   <span class="built_in">cout</span> &lt;&lt; <span class="string">"指向虚函数表的指针的地址"</span>&lt;&lt; p &lt;&lt; <span class="built_in">endl</span>;</div><div class="line">   <span class="built_in">cout</span> &lt;&lt;<span class="string">"成员a地址"</span>&lt;&lt; p+<span class="number">1</span> &lt;&lt; <span class="built_in">endl</span>;</div><div class="line">   <span class="built_in">cout</span> &lt;&lt;<span class="string">"成员a的数值"</span> &lt;&lt; *(p + <span class="number">1</span>) &lt;&lt; <span class="built_in">endl</span>;</div><div class="line">   <span class="built_in">cout</span> &lt;&lt; <span class="string">"虚函数表首地址"</span> &lt;&lt;(<span class="keyword">int</span> *)(*p)  &lt;&lt; <span class="built_in">endl</span>;</div><div class="line"></div><div class="line">   Func pFun =(Func) *(<span class="keyword">int</span> *)(*p);</div><div class="line">   pFun();</div><div class="line"></div><div class="line">    pFun =(Func) *((<span class="keyword">int</span> *)(*p) + <span class="number">1</span>);</div><div class="line">   pFun();</div><div class="line"></div><div class="line">    pFun =(Func) *((<span class="keyword">int</span> *)(*p) + <span class="number">2</span>);</div><div class="line">   pFun();</div></pre></td></tr></table></figure></p>
+<p>输出结果如下:<br><img src="/2017/08/03/cppvirtual/6.png" alt="6"><br>可见类对象大小为8字节，4字节正好是指向虚函数表指针的大小。剩余4字节为成员变量a的大小。画个图示意虚函数表结构：<br><img src="/2017/08/03/cppvirtual/7.png" alt="7"><br>p指向的就是类对象的首地址，同时也是虚函数表指针(指向虚函数表的指针)的地址，<em>p指向虚函数表，由于指针是4字节，(int </em>)(<em>p)虚函数表首地址，也是第一个函数指针的地址。<br>Derive类继承于Base类，但是没有覆盖(重写)Base类的虚函数，Derive d; 的虚函数表如下：<br><img src="/2017/08/03/cppvirtual/8.png" alt="8"><br>Derive类继承于Base类，并且覆盖(重写)Base类的虚函数，Derive d; 的虚函数表如下：<br><img src="/2017/08/03/cppvirtual/9.png" alt="9"><br>可以看到d的虚函数表中第一个单元为Derive::f()，覆盖了原有的Base::f()。<br>Derive d;<br>Base </em> p = &d;<br>p指向d的首地址，其实就是d的虚函数表指针的地址，p-&gt;f()实际会调用虚函数表中的Derive::f()，从而实现多态。<br>多重继承结构如下：<br><img src="/2017/08/03/cppvirtual/10.png" alt="10"><br>虚函数表原理后可以篡改部分程序功能，其实很多外挂就是钩子函数回调注入的。<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Baseclass</span> &#123;</span> </div><div class="line"></div><div class="line"><span class="keyword">public</span>: </div><div class="line">    Baseclass():a(<span class="number">1024</span>)&#123;&#125;</div><div class="line"><span class="keyword">private</span>:</div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">f</span><span class="params">()</span> </span>&#123; <span class="built_in">cout</span> &lt;&lt; <span class="string">"Base::f"</span> &lt;&lt; <span class="built_in">endl</span>; &#125; </div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">g</span><span class="params">()</span> </span>&#123; <span class="built_in">cout</span> &lt;&lt; <span class="string">"Base::g"</span> &lt;&lt; <span class="built_in">endl</span>; &#125; </div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">h</span><span class="params">()</span> </span>&#123; <span class="built_in">cout</span> &lt;&lt; <span class="string">"Base::h"</span> &lt;&lt; <span class="built_in">endl</span>; &#125; </div><div class="line"></div><div class="line">    <span class="keyword">int</span> a;</div><div class="line">&#125;; </div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Deriveclass</span>:</span><span class="keyword">public</span> Baseclass&#123;</div><div class="line"><span class="keyword">public</span>:</div><div class="line">    Deriveclass():Baseclass()&#123;&#125;</div><div class="line"></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>由于 Baseclass内部的虚函数是私有的，所以Deriveclass类变量是不能直接访问这些函数的。但是可以通过虚函数寻址，并且通过回调函数方式调用。<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">Deriveclass d;</div><div class="line">    Func pFunc = (Func)*((<span class="keyword">int</span> *)(*(<span class="keyword">int</span> *)(&amp;d)));</div><div class="line">    pFunc();</div></pre></td></tr></table></figure></p>
+<p>结果如下：<br><img src="/2017/08/03/cppvirtual/11.png" alt="11"></p>
+<h2 id="C-类对象的大小为多大？"><a href="#C-类对象的大小为多大？" class="headerlink" title="C++类对象的大小为多大？"></a>C++类对象的大小为多大？</h2><p><code>一个类中，虚函数、成员函数（包括静态与非静态）和静态数据成员都是不占用类对象的存储空间的。对象大小=   vptr(可能不止一个)   +   所有非静态数据成员大小   +   Aligin字节大小（依赖于不同的编译器对齐和补齐）</code><br>定义几个类，然后输出他们大小。<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span>   <span class="title">A</span>    </span></div><div class="line"><span class="class">&#123;</span>    </div><div class="line">&#125;;    </div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span>   <span class="title">B</span>    </span></div><div class="line"><span class="class">&#123;</span>    </div><div class="line">    <span class="keyword">char</span>   ch;    </div><div class="line">    <span class="function"><span class="keyword">void</span>   <span class="title">func</span><span class="params">()</span>    </span></div><div class="line"><span class="function">    </span>&#123;    </div><div class="line">    &#125;    </div><div class="line">&#125;;    </div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span>   <span class="title">C</span>    </span></div><div class="line"><span class="class">&#123;</span>    </div><div class="line">    <span class="keyword">char</span>   ch1;    <span class="comment">//占用1字节 </span></div><div class="line">    <span class="keyword">char</span>   ch2;   <span class="comment">//占用1字节 </span></div><div class="line">    <span class="function"><span class="keyword">virtual</span>   <span class="keyword">void</span>   <span class="title">func</span><span class="params">()</span>    </span></div><div class="line"><span class="function">    </span>&#123;    </div><div class="line">    &#125;    </div><div class="line">&#125;;    </div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span>   <span class="title">D</span>    </span></div><div class="line"><span class="class">&#123;</span>    </div><div class="line">    <span class="keyword">int</span>   in;    </div><div class="line">    <span class="function"><span class="keyword">virtual</span>   <span class="keyword">void</span>   <span class="title">func</span><span class="params">()</span>    </span></div><div class="line"><span class="function">    </span>&#123;    </div><div class="line">    &#125;    </div><div class="line">&#125;;    </div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">E</span></span></div><div class="line"><span class="class">&#123;</span></div><div class="line">    <span class="keyword">char</span> m;</div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">func</span><span class="params">()</span></span></div><div class="line"><span class="function">    </span>&#123;</div><div class="line">    </div><div class="line">    &#125;</div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>输出大小：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">A   a;  </div><div class="line">  B   b; </div><div class="line">  C   c;  </div><div class="line">  D   d; </div><div class="line">  E    e;</div><div class="line">  <span class="built_in">cout</span>&lt;&lt;<span class="string">"a对象大小： "</span>&lt;&lt; <span class="keyword">sizeof</span>(a)&lt;&lt;<span class="built_in">endl</span>; </div><div class="line">  <span class="built_in">cout</span>&lt;&lt;<span class="string">"b对象大小： "</span>&lt;&lt; <span class="keyword">sizeof</span>(b)&lt;&lt;<span class="built_in">endl</span>; </div><div class="line">  <span class="built_in">cout</span>&lt;&lt;<span class="string">"c对象大小： "</span> &lt;&lt;<span class="keyword">sizeof</span>(c)&lt;&lt;<span class="built_in">endl</span>; </div><div class="line">  <span class="built_in">cout</span>&lt;&lt;<span class="string">"d对象大小： "</span>&lt;&lt; <span class="keyword">sizeof</span>(d)&lt;&lt;<span class="built_in">endl</span>; </div><div class="line">  <span class="built_in">cout</span> &lt;&lt;<span class="string">"e对象大小： "</span> &lt;&lt;<span class="keyword">sizeof</span>(e) &lt;&lt;<span class="built_in">endl</span>;</div></pre></td></tr></table></figure></p>
+<p>结果如下：<br> <img src="/2017/08/03/cppvirtual/12.png" alt="12">  </p>
+<h2 id="类和结构体对象对齐和补齐原则？"><a href="#类和结构体对象对齐和补齐原则？" class="headerlink" title="类和结构体对象对齐和补齐原则？"></a>类和结构体对象对齐和补齐原则？</h2><p><code>对齐：类(结构体)对象每个成员分配内存的起始地址为其所占空间的整数倍。</code><br><code>补齐：类(结构体)对象所占用的总大小为其内部最大成员所占空间的整数倍。</code>  </p>
+<p>空类定义的对象a  大小为1因为每个对象是独一无二的，编译器为了标识不同对象，要分配一字节的大小作为标识码。<br>对象b 大小为1是因为成员函数在内存中只存储一份，不会存储在对象中。<br>对象c大小为8， 是因为前四个字节存储虚函数表的指针，第5个字节存储成员变量ch1，第6个字节存储成员变量ch2，这样c的大小为6，根据补齐原则，需要补充2字节，使对象大小为8，8是最大字节4的整数倍。<br>对象d大小为8，不需要补齐和对齐。<br>对象e大小为8，前四个字节存储虚函数表指针，第5个字节存储成员m，需要补齐三个字节，总共八个字节，为4字节的倍数。<br>看看下边这几个类<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">F</span>&#123;</span> </div><div class="line">    <span class="keyword">static</span> <span class="keyword">int</span> num; </div><div class="line">&#125;; </div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">G</span>&#123;</span> </div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">print</span><span class="params">()</span></span>&#123;&#125; </div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span>  <span class="title">print1</span><span class="params">()</span></span>&#123;&#125; </div><div class="line">&#125;; </div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">H</span>&#123;</span> </div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">print</span><span class="params">()</span></span>&#123;&#125; </div><div class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">print1</span><span class="params">()</span></span>&#123;&#125; </div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>打印并输出大小:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">F f;</div><div class="line"><span class="built_in">cout</span>&lt;&lt;<span class="string">"f 对象大小： "</span>&lt;&lt; <span class="keyword">sizeof</span>(f)&lt;&lt;<span class="built_in">endl</span>;</div><div class="line">G g;</div><div class="line"><span class="built_in">cout</span>&lt;&lt;<span class="string">"g 对象大小： "</span>&lt;&lt; <span class="keyword">sizeof</span>(g)&lt;&lt;<span class="built_in">endl</span>;</div><div class="line">H h;</div><div class="line"><span class="built_in">cout</span>&lt;&lt;<span class="string">"h 对象大小： "</span>&lt;&lt; <span class="keyword">sizeof</span>(h)&lt;&lt;<span class="built_in">endl</span>;</div></pre></td></tr></table></figure></p>
+<p>结果：<br><img src="/2017/08/03/cppvirtual/13.png" alt="13"><br>静态成员变量，虚函数和static成员函数都不会占用对象的空间，f大小为1,是因为要开辟一个字节保存对象标识信息。<br>g大小为4是开辟四字节给虚函数表指针。h大小为1字节也是开辟一个字节保存对象标识信息  </p>
+<h2 id="什么要采取对齐和补齐分配策略？"><a href="#什么要采取对齐和补齐分配策略？" class="headerlink" title="什么要采取对齐和补齐分配策略？"></a>什么要采取对齐和补齐分配策略？</h2><p>这个要从计算机CPU存取指令说起，<br><img src="/2017/08/03/cppvirtual/14.png" alt="14"><br>每个字节单元为8bit，从地址0到地址3总共四个字节，为32bit。<br> class  A{</p>
+<p>  char  m;</p>
+<p>  char  b;</p>
+<p>};</p>
+<p>A a;  对于a 将a.m分配在地址0开始的一个字节中，将a.b分配在地址1开始的额一个字节中。这样a的大小为2，cpu取数据可以执行一条指令就完成了。<br>class B{</p>
+<p>  int m;</p>
+<p>  char n;</p>
+<p>};</p>
+<p>B b; 对于b将b.m分配在地址为0开始的四个字节(0~3)，对于b.n分配在开始地址为4的一字节空间。如果再定一个B b2;，不采取补齐策略，b2.m将被分起始地址为5的</p>
+<p>4字节空间(5~8)，b2.n就被分在了起始地址为9的一字节空间。cpu取数据需要分3次，先取出0~3地址空间的数据(b.m)，再取出地址4~7数据(b.n和b2.m的前三个字节)</p>
+<p>最后取出地址为8~11的数据(b2.m的最后一个字节以及b2.n)。取出数据后还要拆分和组合，极大地降低了效率。所以需要采取补齐策略。补齐策略数据分配如下：</p>
+<p>地址0~3存储b.m， 地址4~7存储b.n，由于b.n只占用1个字节，地址5~7不存储数据，用于补齐。  </p>
+<p>地址8~11存储b2.m，地址12~15存储b2.n，13~15同样不存储数据用于补齐。  </p>
+<p>这样cpu读取四次可以将数据读取出来，进行简单的组合不需要切割数据就可以完成快速处理。  </p>
+<p>class C{</p>
+<p>   char n;</p>
+<p>   int  m;</p>
+<p>}</p>
+<p> C c； c.n存储周期0开始的一个字节中，如果不采取对齐策略，那么c.m会存储在1~4字节中，这样cpu需要读去两次，并且需要进行切割(0~4地址中数据包含c.n和c.m的前三个字节)，以及组合地址4开始的一个字节(存储c.m的最后一个字节)。<br> 如果采取对齐策略，那么地址0~3存储c.n，地址4~7存储c.m，cpu同样读取两次，但是仅需要组合就可以去除对象的所有数据。<br> 这就是为什么存储数据需要采取对齐和补齐的策略。<br>到此为止C++虚函数和类成员的存储知识复习完，谢谢关注我的公众号：<br><img src="/2017/08/03/cppvirtual/wxgzh.jpg" alt="wxgzh">  </p>
+</div>
+    
+      <p class="post-copyright">若无特别说明，本文系原创，<a class="post-copyright-link" href="https://creativecommons.org/licenses/by/4.0/deed.zh" title="署名-非商业性使用 4.0 (CC BY-NC 4.0)" target="_blank">署名-非商业性使用 4.0 (CC BY-NC 4.0)</a>协议，转载文章请注明来自<a class="post-copyright-link" href="/" title="恋恋风辰的个人博客" target="_blank">恋恋风辰的个人博客</a>，或链接上原文地址：<a class="post-copyright-link" href="http://www.limerence2017.com/2017/08/03/cppvirtual/" title="http://www.limerence2017.com/2017/08/03/cppvirtual/" target="_blank">http://www.limerence2017.com/2017/08/03/cppvirtual/</a></p>
+
+      
+      <div class="toc-wrapper">
+        <div class="toc-scroll">
+          <div class="toc-middle">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#继承类和基类成员函数调用规则总结："><span class="toc-text">继承类和基类成员函数调用规则总结：</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#虚函数使用和定义规则"><span class="toc-text">虚函数使用和定义规则:</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#类的静态函数和构造函数不可以定义为虚函数"><span class="toc-text">类的静态函数和构造函数不可以定义为虚函数:</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#知其然、知其所以然（虚函数表原理）："><span class="toc-text">知其然、知其所以然（虚函数表原理）：</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#C-类对象的大小为多大？"><span class="toc-text">C++类对象的大小为多大？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#类和结构体对象对齐和补齐原则？"><span class="toc-text">类和结构体对象对齐和补齐原则？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#什么要采取对齐和补齐分配策略？"><span class="toc-text">什么要采取对齐和补齐分配策略？</span></a></li></ol>
+          </div>
+        </div>
+      </div>
+    
+  
+</article>
+
+      <footer class="footer">
+  <p class="footer-text">驱动于 <a href="https://hexo.io/zh-cn/" class="footer-link" title="Hexo">Hexo</a>，主题由 <a href="/about" class="footer-link" title="恋恋风辰">恋恋风辰</a> 设计移植而来</p>
+  <p class="footer-text">&copy; 2016 - 2017 <a href="/about" class="footer-link" title="恋恋风辰">恋恋风辰</a> 保留部分版权</p>
+</footer>
+
+    </article>
+
+    <script src="/js/to-top.js"></script>
+    <script src="/js/search.js"></script>
+  </body>
+</html>

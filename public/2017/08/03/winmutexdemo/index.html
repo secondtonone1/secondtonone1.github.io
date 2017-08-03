@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="Cache-Control" content="no-transform">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta content="yes" name="apple-mobile-web-app-capable">
+  <meta content="black" name="apple-mobile-web-app-status-bar-style">
+  <meta content="telephone=no" name="format-detection">
+  <meta name="keywords" content="C++ python 大并发网络 逆向">
+  <meta name="description" content="重剑无锋，大巧不工">
+  <meta name="author" content="恋恋风辰">
+
+  
+  <title>Windows互斥锁demo和分析</title>
+  
+
+  <link rel="alternate" href="/atom.xml" title="恋恋风辰的个人博客" type="application/atom+xml">
+  <link rel="canonical" href="http://www.limerence2017.com/2017/08/03/winmutexdemo/index.html">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="//at.alicdn.com/t/font_pb2xepysv85gsyvi.css">
+  <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+</head>
+
+
+  <body>
+    <aside class="aside">
+  <nav class="aside-menu">
+    <ul class="aside-list">
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-wendang"></i><a href="/index.html" class="aside-menu-link" title="首页">首页</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-wendang1"></i><a href="/archives/index.html" class="aside-menu-link" title="所有文章">所有文章</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-biaoqian1"></i><a href="/tags/index.html" class="aside-menu-link" title="文章分类">文章分类</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-lianjie"></i><a href="/links/index.html" class="aside-menu-link" title="我和我的小伙伴">我和我的小伙伴</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-guanyu"></i><a href="/about/index.html" class="aside-menu-link" title="作者简介">作者简介</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-rss"></i><a href="/atom.xml" class="aside-menu-link" title="RSS">RSS</a></li>
+        
+      
+    </ul>
+  </nav>
+
+  <article class="aside-show">
+    
+      <form class="search-from" id="search-from">
+  <input class="search-text" id="search-text" type="text" name="searchText" value="" autocomplete="off">
+  <button class="search-btn" id="search-btn" type="button"><i class="search-btn-icon iconfont icon-sousuo-sousuo"></i></button>
+</form>
+
+      <article class="search-data" id="search-data">
+  <button class="search-close" id="search-close"><i class="search-close-icon iconfont icon-houdongfangiconfont10"></i></button>
+
+  <div class="search-wrapper" id="search-wrapper"></div>
+</article>
+
+    
+    <div class="aside-show-wrapper">
+      <figure class="aside-avatar">
+        <img src="/img/avatar.png" alt="avatar" class="aside-avatar-img">
+        <figcaption class="aside-avatar-caption">
+          恋恋风辰
+          
+          <strong class="aside-avatar-STRONG">个人博客</strong>
+          
+        </figcaption>
+      </figure>
+      <p class="aside-show-description">重剑无锋，大巧不工。</p>
+      <ul class="aside-show-info">
+        <li class="aside-show-item">
+          <a href="javascript: void(0);" class="aside-show-link" title="微信" target="_blank"><i class="aside-show-icon iconfont icon-iconfontweixin"></i></a>
+          <div class="aside-show-outside aside-show-outside_1">
+            <img class="aside-show-IMG aside-show-IMG_1" src="/img/weixin.png" alt="微信">
+          </div>
+        </li>
+        <li class="aside-show-item"><a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" class="aside-show-link" title="知乎" target="_blank"><i class="aside-show-icon iconfont icon-zhihu"></i></a></li>
+        <li class="aside-show-item"><a href="https://github.com/secondtonone1" class="aside-show-link" title="github" target="_blank"><i class="aside-show-icon iconfont icon-github"></i></a></li>
+        <li class="aside-show-item">
+          <a href="javascript: void(0);" class="aside-show-link" title="QQ" target="_blank"><i class="aside-show-icon iconfont icon-qq"></i></a>
+          <div class="aside-show-outside">
+            <img class="aside-show-IMG" src="/img/qq.png" alt="QQ">
+          </div>
+        </li>
+      </ul>
+    </div>
+  </article>
+</aside>
+
+
+    <article class="main" id="main">
+      <article class="post min-height">
+  
+  <header class="post-header">
+    
+    <h1 class="post-title">Windows互斥锁demo和分析</h1>
+    <p class="post-meta">
+      <span class="post-time">2017-08-03</span>
+      
+      <a href="/categories/tech/" title="技术开发" class="post-categories">技术开发</a>
+      
+      
+      <a href="/tags/C/"" title="C++" class="post-tags"><i class="post-tags-icon iconfont icon-biaoqian"></i>C++</a>
+      
+      <a href="/tags/Windows环境编程/"" title="Windows环境编程" class="post-tags"><i class="post-tags-icon iconfont icon-biaoqian"></i>Windows环境编程</a>
+      
+    </p>
+    
+  </header>
+  <div class="post-content"><h2 id="一：windows创建锁接口"><a href="#一：windows创建锁接口" class="headerlink" title="一：windows创建锁接口"></a>一：windows创建锁接口</h2><p>创建互斥锁的方法是调用函数<code>CreateMutex</code><br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="function">HANDLE <span class="title">CreateMutex</span><span class="params">(</span></span></div><div class="line"><span class="function"><span class="params">LPSECURITY_ATTRIBUTESlpMutexAttributes, <span class="comment">// 指向安全属性的指针</span></span></span></div><div class="line"><span class="function"><span class="params">BOOLbInitialOwner, <span class="comment">// 初始化互斥对象的所有者</span></span></span></div><div class="line"><span class="function"><span class="params">LPCTSTRlpName <span class="comment">// 指向互斥对象名的指针</span></span></span></div><div class="line"><span class="function"><span class="params">)</span></span>;</div></pre></td></tr></table></figure></p>
+<p>第一个参数是一个指向<code>SECURITY_ATTRIBUTES</code>结构体的指针，一般的情况下，可以是nullptr。</p>
+<p>第二个参数类型为BOOL，表示<code>互斥锁创建出来后是否被当前线程持有</code>。</p>
+<p>第三个参数类型为字符串（const TCHAR*），是这个<code>互斥锁的名字</code>，如果是nullptr，则互斥锁是匿名的。</p>
+<p>例子：</p>
+<p><code>HANDLE hMutex = CreateMutex(nullptr, FALSE, nullptr);</code><br><a id="more"></a>  </p>
+<h2 id="二：windows持有锁接口："><a href="#二：windows持有锁接口：" class="headerlink" title="二：windows持有锁接口："></a>二：windows持有锁接口：</h2><p>DWORD <code>WaitForSingleObject</code>(</p>
+<p>HANDLE hHandle,<br>DWORD dwMilliseconds<br>);</p>
+<p>这个函数的作用比较多。这里只介绍第一个参数为互斥锁句柄时的作用。</p>
+<p>它的作用是等待，直到一定时间之后，或者，其他线程均不持有hMutex。第二个参数是等待的时间（单位：毫秒），如果该参数为INFINITE，则该函数会一直等待下去。</p>
+<h2 id="三：释放锁"><a href="#三：释放锁" class="headerlink" title="三：释放锁"></a>三：释放锁</h2><p>BOOL WINAPI <code>ReleaseMutex</code>(<br>HANDLE hMutex<br>);</p>
+<h2 id="四：销毁"><a href="#四：销毁" class="headerlink" title="四：销毁"></a>四：销毁</h2><p>BOOL <code>CloseHandle</code>(<br>HANDLE hObject<br>);</p>
+<p>下面是网上的一个案例，根据我自己做服务器的需求，模仿者写了一个：</p>
+<p>‘’’ cpp<br>//各种类型的锁的基类<br>class BaseLock<br>{<br>public:<br>    BaseLock(){}<br>    virtual ~BaseLock(){}<br>    virtual void lock() const = 0 ;<br>    virtual void unlock() const = 0 ;<br>};</p>
+<p>//互斥锁继承基类<br>class Mutex :public BaseLock<br>{<br>public:<br>    Mutex();<br>    ~Mutex();<br>    virtual void lock() const;<br>    virtual void unlock() const;<br>private:</p>
+<p>#if defined _WIN32<br>    HANDLE m_hMutex;</p>
+<p>#endif<br>};</p>
+<p>//互斥锁实现文件：</p>
+<p>//在构造函数里创建锁<br>Mutex::Mutex()<br>{</p>
+<pre><code>#if defined _WIN32
+    m_hMutex = ::CreateMutex(NULL, FALSE, NULL);
+#endif
+</code></pre><p>}</p>
+<p>//析构函数里销毁锁<br>Mutex::~ Mutex()<br>{</p>
+<pre><code>#if defined _WIN32
+    ::CloseHandle(m_hMutex);
+#endif
+</code></pre><p>}</p>
+<p>//互斥锁上锁<br>void Mutex::lock() const<br>{</p>
+<pre><code>#if defined _WIN32
+  DWORD d = WaitForSingleObject(m_hMutex, INFINITE);
+#endif
+</code></pre><p>}</p>
+<p>//互斥锁解锁<br>void Mutex::unlock() const<br>{</p>
+<pre><code>#if defined _WIN32
+  ::ReleaseMutex(m_hMutex);
+#endif
+</code></pre><p>}</p>
+<p>class CLock<br>{<br>public:<br>    CLock(const BaseLock &amp; baseLock):m_cBaseLock(baseLock){<br>        //构造函数里通过基类锁调用加锁函数(多态)<br>        m_cBaseLock.lock();<br>    }<br>    ~CLock(){<br>        //析构函数先解锁<br>        m_cBaseLock.unlock();<br>    }<br>private:<br>    //常引用变量，需要在初始化列表初始<br>    //多态机制<br>    const BaseLock&amp; m_cBaseLock;<br>};<br>‘’’</p>
+<p>CLock是留给外界使用的接口类，可以实现自动加锁和解锁。构造函数传入不同类型的锁，目前只实现了互斥锁，通过基类类型的引用成员可以实现多态调用不同的lock和unlock，而CLock析构函数因为会调用基类的unlock，从而实现不同类型的解锁。那么读者可能会有疑问互斥锁什么时候会销毁？互斥锁的销毁写在互斥锁类的析构函数里，当调用互斥锁的析构函数就会自动销毁这把锁了。什么时候调用互斥锁的析构函数呢？之前有介绍过，析构函数的调用顺序，先析构子类对象，然后析构子类对象中包含的其他类型的对象，最后析构基类对象，所以整个流程是先调用Mutex的构造函数，将Mutex构造的对象传入CLock的构造函数，这样实现自动加锁，当CLock析构的时候先析构CLock对象，之后析构CLock类里的BaseLock对象，因为是多态，会自动根据虚析构函数调用子类也就是MutexLock的析构函数，完成销毁锁的操作。</p>
+<p>下面是我服务器中的一段代码截取，算是这个锁的示例</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">void</span> NetWorker::pushNodeInStream(TcpHandler * tcpHandler)</div><div class="line">&#123;</div><div class="line">        <span class="comment">//加锁处理消息加入到instream里</span></div><div class="line">        Mutex mutexlock;</div><div class="line">        <span class="function">CLock <span class="title">mylock</span><span class="params">(mutexlock)</span></span>;    </div><div class="line">        <span class="built_in">list</span>&lt;MsgNode *&gt; * msgList = tcpHandler-&gt;getListMsgs();</div><div class="line"></div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>因为函数<code>}</code>会释放局部变量，那么就会调用CLock析构函数，接着调用Mutex析构函数。依次完成解锁和销毁锁的操作。我的服务器还在制作当中，基本框架制作完毕会做一些服务器设计的研究。</p>
+</div>
+    
+      <p class="post-copyright">若无特别说明，本文系原创，<a class="post-copyright-link" href="https://creativecommons.org/licenses/by/4.0/deed.zh" title="署名-非商业性使用 4.0 (CC BY-NC 4.0)" target="_blank">署名-非商业性使用 4.0 (CC BY-NC 4.0)</a>协议，转载文章请注明来自<a class="post-copyright-link" href="/" title="恋恋风辰的个人博客" target="_blank">恋恋风辰的个人博客</a>，或链接上原文地址：<a class="post-copyright-link" href="http://www.limerence2017.com/2017/08/03/winmutexdemo/" title="http://www.limerence2017.com/2017/08/03/winmutexdemo/" target="_blank">http://www.limerence2017.com/2017/08/03/winmutexdemo/</a></p>
+
+      
+      <div class="toc-wrapper">
+        <div class="toc-scroll">
+          <div class="toc-middle">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#一：windows创建锁接口"><span class="toc-text">一：windows创建锁接口</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#二：windows持有锁接口："><span class="toc-text">二：windows持有锁接口：</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#三：释放锁"><span class="toc-text">三：释放锁</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#四：销毁"><span class="toc-text">四：销毁</span></a></li></ol>
+          </div>
+        </div>
+      </div>
+    
+  
+</article>
+
+      <footer class="footer">
+  <p class="footer-text">驱动于 <a href="https://hexo.io/zh-cn/" class="footer-link" title="Hexo">Hexo</a>，主题由 <a href="/about" class="footer-link" title="恋恋风辰">恋恋风辰</a> 设计移植而来</p>
+  <p class="footer-text">&copy; 2016 - 2017 <a href="/about" class="footer-link" title="恋恋风辰">恋恋风辰</a> 保留部分版权</p>
+</footer>
+
+    </article>
+
+    <script src="/js/to-top.js"></script>
+    <script src="/js/search.js"></script>
+  </body>
+</html>

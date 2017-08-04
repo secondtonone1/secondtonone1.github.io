@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="Cache-Control" content="no-transform">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta content="yes" name="apple-mobile-web-app-capable">
+  <meta content="black" name="apple-mobile-web-app-status-bar-style">
+  <meta content="telephone=no" name="format-detection">
+  <meta name="keywords" content="C++ python 大并发网络 逆向">
+  <meta name="description" content="重剑无锋，大巧不工">
+  <meta name="author" content="恋恋风辰">
+
+  
+  <title>ECONNRESET和WSAECONNRESET怎么产生的以及如何避免</title>
+  
+
+  <link rel="alternate" href="/atom.xml" title="恋恋风辰的个人博客" type="application/atom+xml">
+  <link rel="canonical" href="http://www.limerence2017.com/2017/08/04/econreset/index.html">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="//at.alicdn.com/t/font_pb2xepysv85gsyvi.css">
+  <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+</head>
+
+
+  <body>
+    <aside class="aside">
+  <nav class="aside-menu">
+    <ul class="aside-list">
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-wendang"></i><a href="/index.html" class="aside-menu-link" title="首页">首页</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-wendang1"></i><a href="/archives/index.html" class="aside-menu-link" title="所有文章">所有文章</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-biaoqian1"></i><a href="/tags/index.html" class="aside-menu-link" title="文章分类">文章分类</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-lianjie"></i><a href="/links/index.html" class="aside-menu-link" title="我和我的小伙伴">我和我的小伙伴</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-guanyu"></i><a href="/about/index.html" class="aside-menu-link" title="作者简介">作者简介</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-rss"></i><a href="/atom.xml" class="aside-menu-link" title="RSS">RSS</a></li>
+        
+      
+    </ul>
+  </nav>
+
+  <article class="aside-show">
+    
+      <form class="search-from" id="search-from">
+  <input class="search-text" id="search-text" type="text" name="searchText" value="" autocomplete="off">
+  <button class="search-btn" id="search-btn" type="button"><i class="search-btn-icon iconfont icon-sousuo-sousuo"></i></button>
+</form>
+
+      <article class="search-data" id="search-data">
+  <button class="search-close" id="search-close"><i class="search-close-icon iconfont icon-houdongfangiconfont10"></i></button>
+
+  <div class="search-wrapper" id="search-wrapper"></div>
+</article>
+
+    
+    <div class="aside-show-wrapper">
+      <figure class="aside-avatar">
+        <img src="/img/avatar.png" alt="avatar" class="aside-avatar-img">
+        <figcaption class="aside-avatar-caption">
+          恋恋风辰
+          
+          <strong class="aside-avatar-STRONG">个人博客</strong>
+          
+        </figcaption>
+      </figure>
+      <p class="aside-show-description">重剑无锋，大巧不工。</p>
+      <ul class="aside-show-info">
+        <li class="aside-show-item">
+          <a href="javascript: void(0);" class="aside-show-link" title="微信" target="_blank"><i class="aside-show-icon iconfont icon-iconfontweixin"></i></a>
+          <div class="aside-show-outside aside-show-outside_1">
+            <img class="aside-show-IMG aside-show-IMG_1" src="/img/weixin.png" alt="微信">
+          </div>
+        </li>
+        <li class="aside-show-item"><a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" class="aside-show-link" title="知乎" target="_blank"><i class="aside-show-icon iconfont icon-zhihu"></i></a></li>
+        <li class="aside-show-item"><a href="https://github.com/secondtonone1" class="aside-show-link" title="github" target="_blank"><i class="aside-show-icon iconfont icon-github"></i></a></li>
+        <li class="aside-show-item">
+          <a href="javascript: void(0);" class="aside-show-link" title="QQ" target="_blank"><i class="aside-show-icon iconfont icon-qq"></i></a>
+          <div class="aside-show-outside">
+            <img class="aside-show-IMG" src="/img/qq.png" alt="QQ">
+          </div>
+        </li>
+      </ul>
+    </div>
+  </article>
+</aside>
+
+
+    <article class="main" id="main">
+      <article class="post min-height">
+  
+  <header class="post-header">
+    
+    <h1 class="post-title">ECONNRESET和WSAECONNRESET怎么产生的以及如何避免</h1>
+    <p class="post-meta">
+      <span class="post-time">2017-08-04</span>
+      
+      <a href="/categories/tech/" title="技术开发" class="post-categories">技术开发</a>
+      
+      
+      <a href="/tags/网络编程/"" title="网络编程" class="post-tags"><i class="post-tags-icon iconfont icon-biaoqian"></i>网络编程</a>
+      
+    </p>
+    
+  </header>
+  <div class="post-content"><p><code>ECONNRESET</code>是linux环境网络编程产生的错误，错误码为104，</p>
+<p><code>WSAECONNRESET</code>是windows环境网络编程产生的错误，错误码为10054</p>
+<p>两者产生的原因都一样，分以下几种情况：</p>
+<p>1<code>接收端recv或者read， 对端已经关闭连接，recv/read返回该错误</code></p>
+<p>2 对端重启连接，还未建立连接</p>
+<p>3 <code>发送端已经断开连接，但是调用send会触发这个错误</code></p>
+<p>第二点第三点都可以通过判断返回值解决，第一点在一些看似正常情况下也会触发该错误。比如对端close(fd)，接收端调用recv并没有返回0，而是-1，打印错误码为104或</p>
+<p>10054，按道理讲这种情况按照返回值为0处理是可以的，但是尽量将代码写的规范一些，避免不必要的错误。<br><a id="more"></a></p>
+<p>为什么close(fd)会导致接收端读到复位RST，也就是收到错误的104呢？</p>
+<p>因为close(fd)只是将文件描述符关闭，并没有关闭tcp建立起来的连接，断开连接需要四次握手，倘若发送端发送缓冲区有数据未发送完或者接受缓冲区有数据未读完，调用close(fd)，那么连接并没有关闭，这样，接收端收到的就是所谓的104或10054错误了。如何避免这个错误呢，就需要我们判断发送端发送和接受操作是否进行完，也就是判断缓冲区是否有数据，如果有数据需要等待数据处理完毕在关闭，否则会出现上述错误。</p>
+<p>有一个做法是通过调用shutdown(s,SHUT_WR);<br>关闭发送端的写端，这样发送端不发送数据，然后调用close这次会发送关闭连接的FIN标志，接收端接收到FIN，那么recv或者read返回的就是0.</p>
+<p>int shutdown(int sockfd,int how);<br>　　Sockfd是需要关闭的socket的描述符。参数 how允许为shutdown操作选择以下几种方式：<br>    SHUT_RD：关闭连接的读端。也就是该套接字不再接受数据，任何当前在套接字接受缓冲区的数据将被丢弃。</p>
+<p>　　进程将不能对该套接字发出任何读操作。</p>
+<p>　　对 TCP套接字该调用之后接受到的任何数据将被确认然后无声的丢弃掉。<br>    SHUT_WR:关闭连接的写端，进程不能在对此套接字发出写操作<br>    SHUT_RDWR:相当于调用shutdown两次：首先是以SHUT_RD,然后以SHUT_WR</p>
+<p>下面摘用网上的一段话来说明二者的区别：<br>close—–关闭本进程的socket id，但链接还是开着的，用这个socket id的其它进程还能用这个链接，能读或写这个socket id<br>shutdown–则破坏了socket 链接，读的时候可能侦探到EOF结束符，写的时候可能会收到一个SIGPIPE信号，这个信号可能直到<br>socket buffer被填充了才收到。</p>
+<p> close(sockfd);使用close中止一个连接，但它只是减少描述符的参考数，并不直接关闭连接，只有当描述符的参考数为0时才关闭连接。</p>
+<p>而且shutdown只是处理连接关闭，并不能回收描述符，所以最终还是要调用close(fd)才能回收描述符，在所有描述符引用次数为0时发送</p>
+<p>FIN消息给对端。</p>
+<p>出了采取shutdown的方式，还可以通过设置socket属性，调用close时，检测在socket完成缓冲区读写后，才关闭连接</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">linger</span> &#123;</span></div><div class="line"> </div><div class="line">     <span class="keyword">int</span> l_onoff; <span class="comment">/* 0 = off, nozero = on */</span></div><div class="line"> </div><div class="line">     <span class="keyword">int</span> l_linger; <span class="comment">/* linger time */</span></div><div class="line"> </div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>有下列三种情况：<br>1、设置 l_onoff为0，则该选项关闭，l_linger的值被忽略，等于内核缺省情况，close调用会立即返回给调用者，如果可能将会传输任何未发送的数据；</p>
+<p>2、设置 l_onoff为非0，l_linger为0，则套接口关闭时TCP夭折连接，TCP将丢弃保留在套接口发送缓冲区中的任何数据并发送一个RST给对方，而不是通常的四分组终止序列，这避免了TIME_WAIT状态；</p>
+<p>3、设置 l_onoff 为非0，l_linger为非0，当套接口关闭时内核将拖延一段时间（由l_linger决定）。如果套接口缓冲区中仍残留数据，进程将处于睡眠状态，直 到（a）所有数据发送完且被对方确认，之后进行正常的终止序列（描述字访问计数为0）或（b）延迟时间到。</p>
+<p>下面是代码：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">int</span> z;</div><div class="line"> <span class="keyword">int</span> s;      </div><div class="line"> <span class="class"><span class="keyword">struct</span> <span class="title">linger</span> <span class="title">so_linger</span>;</span></div><div class="line">  </div><div class="line"> so_linger.l_onoff = <span class="number">1</span></div><div class="line"> so_linger.l_linger = <span class="number">30</span>;</div><div class="line"> z = setsockopt(s,SOL_SOCKET,SO_LINGER,&amp;so_linger,</div><div class="line">     <span class="keyword">sizeof</span> so_linger);</div><div class="line"> <span class="keyword">if</span> ( z )</div><div class="line">     perror(<span class="string">"setsockopt(2)"</span>);</div><div class="line">     close(s);</div></pre></td></tr></table></figure></p>
+<p>到目前为止，我觉得比较好的主动关闭方式是：</p>
+<p>关闭端：</p>
+<p>1确保发送缓存区没有数据未发送，调用shutdown(fd,SHUTWR);</p>
+<p>2如果能接收到数据，继续接受，直到接收到对方的FIN，也就是</p>
+<p>read返回0或者-1</p>
+<p>3如果接收到关闭信号，那么调用close正常关闭。</p>
+</div>
+    
+      <p class="post-copyright">若无特别说明，本文系原创，<a class="post-copyright-link" href="https://creativecommons.org/licenses/by/4.0/deed.zh" title="署名-非商业性使用 4.0 (CC BY-NC 4.0)" target="_blank">署名-非商业性使用 4.0 (CC BY-NC 4.0)</a>协议，转载文章请注明来自<a class="post-copyright-link" href="/" title="恋恋风辰的个人博客" target="_blank">恋恋风辰的个人博客</a>，或链接上原文地址：<a class="post-copyright-link" href="http://www.limerence2017.com/2017/08/04/econreset/" title="http://www.limerence2017.com/2017/08/04/econreset/" target="_blank">http://www.limerence2017.com/2017/08/04/econreset/</a></p>
+
+      
+      <div class="toc-wrapper">
+        <div class="toc-scroll">
+          <div class="toc-middle">
+            
+          </div>
+        </div>
+      </div>
+    
+  
+</article>
+
+      <footer class="footer">
+  <p class="footer-text">驱动于 <a href="https://hexo.io/zh-cn/" class="footer-link" title="Hexo">Hexo</a>，主题由 <a href="/about" class="footer-link" title="恋恋风辰">恋恋风辰</a> 设计移植而来</p>
+  <p class="footer-text">&copy; 2016 - 2017 <a href="/about" class="footer-link" title="恋恋风辰">恋恋风辰</a> 保留部分版权</p>
+</footer>
+
+    </article>
+
+    <script src="/js/to-top.js"></script>
+    <script src="/js/search.js"></script>
+  </body>
+</html>

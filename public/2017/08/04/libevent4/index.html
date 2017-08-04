@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="Cache-Control" content="no-transform">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta content="yes" name="apple-mobile-web-app-capable">
+  <meta content="black" name="apple-mobile-web-app-status-bar-style">
+  <meta content="telephone=no" name="format-detection">
+  <meta name="keywords" content="C++ python 大并发网络 逆向">
+  <meta name="description" content="重剑无锋，大巧不工">
+  <meta name="author" content="恋恋风辰">
+
+  
+  <title>Libevent学习笔记(四) bufferevent 的 concepts and basics</title>
+  
+
+  <link rel="alternate" href="/atom.xml" title="恋恋风辰的个人博客" type="application/atom+xml">
+  <link rel="canonical" href="http://www.limerence2017.com/2017/08/04/libevent4/index.html">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="//at.alicdn.com/t/font_pb2xepysv85gsyvi.css">
+  <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+</head>
+
+
+  <body>
+    <aside class="aside">
+  <nav class="aside-menu">
+    <ul class="aside-list">
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-wendang"></i><a href="/index.html" class="aside-menu-link" title="首页">首页</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-wendang1"></i><a href="/archives/index.html" class="aside-menu-link" title="所有文章">所有文章</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-biaoqian1"></i><a href="/tags/index.html" class="aside-menu-link" title="文章分类">文章分类</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-lianjie"></i><a href="/links/index.html" class="aside-menu-link" title="我和我的小伙伴">我和我的小伙伴</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-guanyu"></i><a href="/about/index.html" class="aside-menu-link" title="作者简介">作者简介</a></li>
+        
+      
+        
+        <li class="aside-item"><i class="aside-menu-icon iconfont icon-rss"></i><a href="/atom.xml" class="aside-menu-link" title="RSS">RSS</a></li>
+        
+      
+    </ul>
+  </nav>
+
+  <article class="aside-show">
+    
+      <form class="search-from" id="search-from">
+  <input class="search-text" id="search-text" type="text" name="searchText" value="" autocomplete="off">
+  <button class="search-btn" id="search-btn" type="button"><i class="search-btn-icon iconfont icon-sousuo-sousuo"></i></button>
+</form>
+
+      <article class="search-data" id="search-data">
+  <button class="search-close" id="search-close"><i class="search-close-icon iconfont icon-houdongfangiconfont10"></i></button>
+
+  <div class="search-wrapper" id="search-wrapper"></div>
+</article>
+
+    
+    <div class="aside-show-wrapper">
+      <figure class="aside-avatar">
+        <img src="/img/avatar.png" alt="avatar" class="aside-avatar-img">
+        <figcaption class="aside-avatar-caption">
+          恋恋风辰
+          
+          <strong class="aside-avatar-STRONG">个人博客</strong>
+          
+        </figcaption>
+      </figure>
+      <p class="aside-show-description">重剑无锋，大巧不工。</p>
+      <ul class="aside-show-info">
+        <li class="aside-show-item">
+          <a href="javascript: void(0);" class="aside-show-link" title="微信" target="_blank"><i class="aside-show-icon iconfont icon-iconfontweixin"></i></a>
+          <div class="aside-show-outside aside-show-outside_1">
+            <img class="aside-show-IMG aside-show-IMG_1" src="/img/weixin.png" alt="微信">
+          </div>
+        </li>
+        <li class="aside-show-item"><a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" class="aside-show-link" title="知乎" target="_blank"><i class="aside-show-icon iconfont icon-zhihu"></i></a></li>
+        <li class="aside-show-item"><a href="https://github.com/secondtonone1" class="aside-show-link" title="github" target="_blank"><i class="aside-show-icon iconfont icon-github"></i></a></li>
+        <li class="aside-show-item">
+          <a href="javascript: void(0);" class="aside-show-link" title="QQ" target="_blank"><i class="aside-show-icon iconfont icon-qq"></i></a>
+          <div class="aside-show-outside">
+            <img class="aside-show-IMG" src="/img/qq.png" alt="QQ">
+          </div>
+        </li>
+      </ul>
+    </div>
+  </article>
+</aside>
+
+
+    <article class="main" id="main">
+      <article class="post min-height">
+  
+  <header class="post-header">
+    
+    <h1 class="post-title">Libevent学习笔记(四) bufferevent 的 concepts and basics</h1>
+    <p class="post-meta">
+      <span class="post-time">2017-08-04</span>
+      
+      <a href="/categories/tech/" title="技术开发" class="post-categories">技术开发</a>
+      
+      
+      <a href="/tags/网络编程/"" title="网络编程" class="post-tags"><i class="post-tags-icon iconfont icon-biaoqian"></i>网络编程</a>
+      
+      <a href="/tags/Linux环境编程/"" title="Linux环境编程" class="post-tags"><i class="post-tags-icon iconfont icon-biaoqian"></i>Linux环境编程</a>
+      
+    </p>
+    
+  </header>
+  <div class="post-content"><p><code>Bufferevents and evbuffers</code></p>
+<p>Every bufferevent has an input buffer and an output buffer. These are of type “struct evbuffer”. When you have data to write on a bufferevent, you add it to the output buffer; when a bufferevent has data for you to read, you drain it from the input buffer.</p>
+<p>每个<code>bufferevents</code>都会包含一个input的buffer和output的buffer,都是<code>struct evbuffer</code>类型， 如果你有数据想通过bufferevent发送，需要将数据放入output buffer里。如果要从bufferevent中读数据，</p>
+<p>需要从input buffer里读取。</p>
+<p><code>Callbacks and watermarks</code></p>
+<p>Every bufferevent has two data-related callbacks: a read callback and a write callback. By default, the read callback is called whenever any data is read from the underlying transport, and the write callback is called whenever enough data from the output buffer is emptied to the underlying transport. You can override the behavior of these functions by adjusting the read and write “watermarks” of the bufferevent.</p>
+<p>每一个bufferevent都有两个回调函数，一个<code>读回调</code>和一个<code>写回调</code>函数，默认情况下，只要从底层传输读取数据就回触发读回调函数，当output buffer中足够多的数据排出就会触发写回调函数。而我的理解是，这里的足够多，默认情况下是排空，</p>
+<p>用户可以通过调整读写水位来达到控制这些函数触发。<br><a id="more"></a></p>
+<p>下面是libevent源码中的一些注释</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"><span class="comment">   A read or write callback for a bufferevent.</span></div><div class="line"><span class="comment"></span></div><div class="line"><span class="comment">   The read callback is triggered when new data arrives in the input</span></div><div class="line"><span class="comment">   buffer and the amount of readable data exceed the low watermark</span></div><div class="line"><span class="comment">   which is 0 by default.</span></div><div class="line"><span class="comment"></span></div><div class="line"><span class="comment">   The write callback is triggered if the write buffer has been</span></div><div class="line"><span class="comment">   exhausted or fell below its low watermark.</span></div><div class="line"><span class="comment"></span></div><div class="line"><span class="comment">   @param bev the bufferevent that triggered the callback</span></div><div class="line"><span class="comment">   @param ctx the user-specified context for this bufferevent</span></div><div class="line"><span class="comment"> */</span></div></pre></td></tr></table></figure>
+<p>到此为止总结下，bufferevent实际上是libevent为我们准备的一个缓存结构，将接受的数据缓存到input buffer供用户从中读取，用户将发送的数据缓存到output buffer进行发送。bufferevent的input buffer中有数据到来并且可读数据达到或超过读数据的低水位就会触发读回调函数，读数据的低水位默认是0,写回调函数会在outbuffer中的数据低于写的低水位时会触发。bufferevent会自己讲output中的内容发送出去，将接收到的内容放到input中。</p>
+<p>Read low-water mark<br>Whenever a read occurs that leaves the bufferevent’s input buffer at this level or higher, the bufferevent’s read callback is invoked. Defaults to 0, so that every read results in the read callback being invoked.</p>
+<p>只要读事件让bufferevent超过或者到达这个Read low-water 水位或者更高，读回调会被触发。默认情况下 Read low-water 是0，所以每次bufferevent 读数据都会导致读回调触发。</p>
+<p>Read high-water mark<br>If the bufferevent’s input buffer ever gets to this level, the bufferevent stops reading until enough data is drained from the input buffer to take us below it again. Defaults to unlimited, so that we never stop reading because of the size of the input buffer.</p>
+<p>如果bufferevent 的 input buffer达到Read high-water水平，那么bufferevent会停止读，直到有数据从input中被用户取出使input buffer的水位线低于Read high-water， 默认情况下Read high-water是无穷大的，因此我们不会因为input buffer不够停止读。 </p>
+<p>Write low-water mark<br>Whenever a write occurs that takes us to this level or below, we invoke the write callback. Defaults to 0, so that a write callback is not invoked unless the output buffer is emptied.</p>
+<p>当bufferevent写数据导致数据大小低于 Write low-water水平线，就回触发写回调函数。默认这个Write low-water值为0，因此只有当output buffer数据为空时才会触发写回调函数。</p>
+<p>Write high-water mark<br>Not used by a bufferevent directly, this watermark can have special meaning when a bufferevent is used as the underlying transport of another bufferevent. See notes on filtering bufferevents below.</p>
+<p>这个参数不会直接使用，当一个bufferevent作为参数传递给另一个bufferevent时可以做为特殊意义。filtering bufferevents可能会用到。</p>
+<p>A bufferevent also has an “error” or “event” callback that gets invoked to tell the application about non-data-oriented events, like when a connection is closed or an error occurs. The following event flags are defined:</p>
+<p>一个bufferevent也会有类似错误或者特殊事件的回调函数，这类函数触发后通知应用程序一些和数据无关的事件，比如当有连接关闭，或者错误出现可以触发这类函数。</p>
+<p>BEV_EVENT_READING<br>An event occured during a read operation on the bufferevent. See the other flags for which event it was.</p>
+<p>在bufferevent上进行读操作</p>
+<p>BEV_EVENT_WRITING<br>An event occured during a write operation on the bufferevent. See the other flags for which event it was.</p>
+<p>在bufferevent上进行写操作</p>
+<p>BEV_EVENT_ERROR<br>An error occurred during a bufferevent operation. For more information on what the error was, call EVUTIL_SOCKET_ERROR().</p>
+<p>bufferevent操作产生错误，通过EVUTIL_SOCKET_ERROR可以详细查看错误源</p>
+<p>BEV_EVENT_TIMEOUT<br>A timeout expired on the bufferevent.</p>
+<p>超时事件</p>
+<p>BEV_EVENT_EOF<br>We got an end-of-file indication on the bufferevent.</p>
+<p>读到文件结束符</p>
+<p>BEV_EVENT_CONNECTED<br>We finished a requested connection on the bufferevent.</p>
+<p>完成连接</p>
+<p>Deferred callbacks</p>
+<p>By default, a bufferevent callbacks are executed immediately when the corresponding condition happens. (This is true of evbuffer callbacks too; we’ll get to those later.) This immediate invocation can make trouble when dependencies get complex. For example, suppose that there is a callback that moves data into evbuffer A when it grows empty, and another callback that processes data out of evbuffer A when it grows full. Since these calls are all happening on the stack, you might risk a stack overflow if the dependency grows nasty enough.</p>
+<p>To solve this, you can tell a bufferevent (or an evbuffer) that its callbacks should be deferred. When the conditions are met for a deferred callback, rather than invoking it immediately, it is queued as part of the event_loop() call, and invoked after the regular events’ callbacks.</p>
+<p>(Deferred callbacks were introduced in Libevent 2.0.1-alpha.)</p>
+<p>默认情况下，bufferevent回调函数在条件符合时会立即执行。当情况复杂时这种立即出发的方式可能会造成问题，例如，假设有一个回调函数功能是在evbuffer A变空时向evbuffer A中放入数据，</p>
+<p>另一个回调函数是在evbuffer A数据满的时候从中取出数据，由于这些操作是在栈上进行，这种做法会造成造成栈溢出，解决方法就是将回调函数延迟触发，条件满足时，将回调函数作为event_loop的一个部分</p>
+<p>通过有规律的事件回调触发。</p>
+<p>Option flags for bufferevents</p>
+<p>You can use one or more flags when creating a bufferevent to alter its behavior. Recognized flags are:</p>
+<p>创建bufferevent时可以选择如下选项进行个性化设置</p>
+<p>BEV_OPT_CLOSE_ON_FREE<br>When the bufferevent is freed, close the underlying transport. This will close an underlying socket, free an underlying bufferevent, etc.</p>
+<p>当bufferevent被释放，关闭底层传输，这个将会关闭底层socket，释放底层的bufferevent等。</p>
+<p>BEV_OPT_THREADSAFE<br>Automatically allocate locks for the bufferevent, so that it’s safe to use from multiple threads.</p>
+<p>为bufferevent自动上锁，多线程模式会安全。</p>
+<p>BEV_OPT_DEFER_CALLBACKS<br>When this flag is set, the bufferevent defers all of its callbacks, as described above.</p>
+<p>设置bufferevent的callback延迟处理。</p>
+<p>BEV_OPT_UNLOCK_CALLBACKS<br>By default, when the bufferevent is set up to be threadsafe, the bufferevent’s locks are held whenever the any user-provided callback is invoked. Setting this option makes Libevent release the bufferevent’s lock when it’s invoking your callbacks.</p>
+<p>如果设置了线程安全选项，设置这个选项会使得调用我们的回调函数时释放锁。</p>
+<p>Working with socket-based bufferevents</p>
+<p><code>1创建bufferevent，成功返回bufferevent的指针，失败返回空，options是上面提到的选项。</code><br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="function">struct bufferevent *<span class="title">bufferevent_socket_new</span><span class="params">(</span></span></div><div class="line"><span class="function"><span class="params">    struct event_base *base,</span></span></div><div class="line"><span class="function"><span class="params">    <span class="keyword">evutil_socket_t</span> fd,</span></span></div><div class="line"><span class="function"><span class="params">    <span class="keyword">enum</span> bufferevent_options options)</span></span>;</div></pre></td></tr></table></figure></p>
+<p> <code>2连接函数</code></p>
+<p>int bufferevent_socket_connect(struct bufferevent <em>bev,<br>    struct sockaddr </em>address, int addrlen);</p>
+<p>the address and addrlen arguments are as for the standard call connect(). If the bufferevent does not already have a socket set, calling this function allocates a new stream socket for it, and makes it nonblocking.</p>
+<p>If the bufferevent does have a socket already, calling bufferevent_socket_connect() tells Libevent that the socket is not connected, and no reads or writes should be done on the socket until the connect operation has succeeded.</p>
+<p>It is okay to add data to the output buffer before the connect is done.</p>
+<p>如果bufferevent没有设置socket，调用这个函数会为它创建一个非阻塞socket</p>
+<p>如果bufferevent有socket，调用这个函数会通知libevent在连接成功前不能调用读或者写。</p>
+<p>在连接成功前可以向output buffer中添加数据。</p>
+<p>下面是例子：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;event2/event.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;event2/bufferevent.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/socket.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">eventcb</span><span class="params">(struct bufferevent *bev, <span class="keyword">short</span> events, <span class="keyword">void</span> *ptr)</span></span></div><div class="line"><span class="function"></span>&#123;</div><div class="line">    <span class="keyword">if</span> (events &amp; BEV_EVENT_CONNECTED) &#123;</div><div class="line">         <span class="comment">/* We're connected to 127.0.0.1:8080.   Ordinarily we'd do</span></div><div class="line"><span class="comment">            something here, like start reading or writing. */</span></div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (events &amp; BEV_EVENT_ERROR) &#123;</div><div class="line">         <span class="comment">/* An error occured while connecting. */</span></div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">int</span> main_loop(<span class="keyword">void</span>)</div><div class="line">&#123;</div><div class="line">    struct event_base *base;</div><div class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">bufferevent</span> *<span class="title">bev</span>;</span></div><div class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> <span class="title">sin</span>;</span></div><div class="line"></div><div class="line">    base = event_base_new();</div><div class="line"></div><div class="line">    <span class="built_in">memset</span>(&amp;<span class="built_in">sin</span>, <span class="number">0</span>, <span class="keyword">sizeof</span>(<span class="built_in">sin</span>));</div><div class="line">    <span class="built_in">sin</span>.sin_family = AF_INET;</div><div class="line">    <span class="built_in">sin</span>.sin_addr.s_addr = htonl(<span class="number">0x7f000001</span>); <span class="comment">/* 127.0.0.1 */</span></div><div class="line">    <span class="built_in">sin</span>.sin_port = htons(<span class="number">8080</span>); <span class="comment">/* Port 8080 */</span></div><div class="line"></div><div class="line">    bev = bufferevent_socket_new(base, <span class="number">-1</span>, BEV_OPT_CLOSE_ON_FREE);</div><div class="line"></div><div class="line">    bufferevent_setcb(bev, <span class="literal">NULL</span>, <span class="literal">NULL</span>, eventcb, <span class="literal">NULL</span>);</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (bufferevent_socket_connect(bev,</div><div class="line">        (struct sockaddr *)&amp;<span class="built_in">sin</span>, <span class="keyword">sizeof</span>(<span class="built_in">sin</span>)) &lt; <span class="number">0</span>) &#123;</div><div class="line">        <span class="comment">/* Error starting connection */</span></div><div class="line">        bufferevent_free(bev);</div><div class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    event_base_dispatch(base);</div><div class="line">    <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>Note that you only get a BEV_EVENT_CONNECTED event if you launch the connect() attempt using bufferevent_socket_connect(). If you call connect() on your own, the connection gets reported as a write.</p>
+<p>If you want to call connect() yourself, but still get receive a BEV_EVENT_CONNECTED event when the connection succeeds, call bufferevent_socket_connect(bev, NULL, 0) after connect() returns -1 with errno equal to EAGAIN or EINPROGRESS.</p>
+<p>如果通过bufferevent_socket_connect连接，那么返回的事件是BEV_EVENT_CONNECTED ，</p>
+<p>如果通过connect连接，那么返回的是write事件。如果调用了connect，还想捕捉到BEV_EVENT_CONNECTED 事件，可以继续调用bufferevent_socket_connect(bev,NULL, 0),返回值为-1，errno为EAGAIN或者EINPROGRESS</p>
+<p><code>3释放bufferevent</code></p>
+<p>void bufferevent_free(struct bufferevent *bev);<br>This function frees a bufferevent. Bufferevents are internally reference-counted, so if the bufferevent has pending deferred callbacks when you free it, it won’t be deleted until the callbacks are done.</p>
+<p>The bufferevent_free() function does, however, try to free the bufferevent as soon as possible. If there is pending data to write on the bufferevent, it probably won’t be flushed before the bufferevent is freed.</p>
+<p>If the BEV_OPT_CLOSE_ON_FREE flag was set, and this bufferevent has a socket or underlying bufferevent associated with it as its transport, that transport is closed when you free the bufferevent.</p>
+<p>当bufferevent有延迟回调函数没处理，调用bufferevent_free并不会立即释放bufferevent，bufferevent内部是引用计数的，他能做到的是尽快释放，如果bufferevent上存在阻塞的数据还没有写，这部分数据在bufferevent释放前是不会被释放的。</p>
+<p><code>4 其他的一些设置函数</code></p>
+<p>是指bufferevent回调函数，以及获取回调函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">typedef</span> <span class="title">void</span> <span class="params">(*bufferevent_data_cb)</span><span class="params">(struct bufferevent *bev, <span class="keyword">void</span> *ctx)</span></span>;</div><div class="line"><span class="function"><span class="keyword">typedef</span> <span class="title">void</span> <span class="params">(*bufferevent_event_cb)</span><span class="params">(struct bufferevent *bev,</span></span></div><div class="line"><span class="function"><span class="params">    <span class="keyword">short</span> events, <span class="keyword">void</span> *ctx)</span></span>;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">bufferevent_setcb</span><span class="params">(struct bufferevent *bufev,</span></span></div><div class="line"><span class="function"><span class="params">    bufferevent_data_cb readcb, bufferevent_data_cb writecb,</span></span></div><div class="line"><span class="function"><span class="params">    bufferevent_event_cb eventcb, <span class="keyword">void</span> *cbarg)</span></span>;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">bufferevent_getcb</span><span class="params">(struct bufferevent *bufev,</span></span></div><div class="line"><span class="function"><span class="params">    bufferevent_data_cb *readcb_ptr,</span></span></div><div class="line"><span class="function"><span class="params">    bufferevent_data_cb *writecb_ptr,</span></span></div><div class="line"><span class="function"><span class="params">    bufferevent_event_cb *eventcb_ptr,</span></span></div><div class="line"><span class="function"><span class="params">    <span class="keyword">void</span> **cbarg_ptr)</span></span>;</div></pre></td></tr></table></figure>
+<p><code>5 读写生效函数，读写失效函数</code></p>
+<p>void bufferevent_enable(struct bufferevent <em>bufev, short events);<br>void bufferevent_disable(struct bufferevent </em>bufev, short events);</p>
+<p>short bufferevent_get_enabled(struct bufferevent *bufev);<br>You can enable or disable the events EV_READ, EV_WRITE, or EV_READ|EV_WRITE on a bufferevent. When reading or writing is not enabled, the bufferevent will not try to read or write data.</p>
+<p>There is no need to disable writing when the output buffer is empty: the bufferevent automatically stops writing, and restarts again when there is data to write.</p>
+<p>Similarly, there is no need to disable reading when the input buffer is up to its high-water mark: the bufferevent automatically stops reading, and restarts again when there is space to read.</p>
+<p>By default, a newly created bufferevent has writing enabled, but not reading.</p>
+<p>You can call bufferevent_get_enabled() to see which events are currently enabled on the bufferevent.</p>
+<p> 可以设置bufferevent 读，写，或者读和写生效，当读或者写失效，bufferevent将不会尝试读或者写数据。在output为空时没必要让写操作失效，bufferevent会自动停止写，当有数据可写时才再次执行写操作。</p>
+<p>同样的，在input buffer超过高水位时，没必要设置读失效，bufferevent 会自动停止读，而等到有空间(其实是input缓冲区非满)再次开始接收数据。</p>
+<p>默认情况下，新创建的 bufferevent是可写的不可读的。(因为如果设置可读选项，那么会出现busyloop，因为input一直非满)</p>
+<p>用户可以通过bufferevent_get_enabled获取当前哪些事件类型是允许的。</p>
+<p><code>6设置水位接口</code></p>
+<p>void bufferevent_setwatermark(struct bufferevent *bufev, short events,<br>    size_t lowmark, size_t highmark);<br>The bufferevent_setwatermark() function adjusts the read watermarks, the write watermarks, or both, of a single bufferevent. (If EV_READ is set in the events field, the read watermarks are adjusted. If EV_WRITE is set in the events field, the write watermarks are adjusted.)</p>
+<p>A high-water mark of 0 is equivalent to “unlimited”.</p>
+<p>bufferevent_setwatermark函数调整读或者写的水位。</p>
+<p><code>7获取读写缓冲区的内容</code></p>
+<p>struct evbuffer <em>bufferevent_get_input(struct bufferevent </em>bufev);<br>struct evbuffer <em>bufferevent_get_output(struct bufferevent </em>bufev);</p>
+<p><code>8向bufferevent中写数据</code></p>
+<p>int bufferevent_write(struct bufferevent <em>bufev,<br>    const void </em>data, size_t size);<br>int bufferevent_write_buffer(struct bufferevent <em>bufev,<br>    struct evbuffer </em>buf);</p>
+<p>调用bufferevent_write可以向bufev的output 的末尾追加写入。</p>
+<p>bufferevent_write_buffer将buf中的数据移除，写入到bufevoutput中。</p>
+<p>两个函数返回0表示成功，-1表示失败。</p>
+<p><code>9从bufferevent中读数据</code></p>
+<p>size_t bufferevent_read(struct bufferevent <em>bufev, void </em>data, size_t size);<br>int bufferevent_read_buffer(struct bufferevent <em>bufev,<br>    struct evbuffer </em>buf); </p>
+<p>bufferevent_read 从bufev中input buffer 读取size大小数据，存在data中。</p>
+<p>bufferevent_read_buffer从bufev的input buffer中将所有数据取出放入到buf中。</p>
+<p>两个函数返回0表示成功，-1表示失败。</p>
+<p><code>10设置读写事件的超时时间</code></p>
+<p>void bufferevent_set_timeouts(struct bufferevent <em>bufev,<br>    const struct timeval </em>timeout_read, const struct timeval *timeout_write);</p>
+<p><code>11强制刷新读或者写</code></p>
+<p>int bufferevent_flush(struct bufferevent *bufev,<br>    short iotype, enum bufferevent_flush_mode state);</p>
+<p> 强制从底层读取数据，或将数据写入底层。The iotype argument should be EV_READ, EV_WRITE, or EV_READ|EV_WRITE to indicate whether bytes being read, written, or both should be processed.</p>
+</div>
+    
+      <p class="post-copyright">若无特别说明，本文系原创，<a class="post-copyright-link" href="https://creativecommons.org/licenses/by/4.0/deed.zh" title="署名-非商业性使用 4.0 (CC BY-NC 4.0)" target="_blank">署名-非商业性使用 4.0 (CC BY-NC 4.0)</a>协议，转载文章请注明来自<a class="post-copyright-link" href="/" title="恋恋风辰的个人博客" target="_blank">恋恋风辰的个人博客</a>，或链接上原文地址：<a class="post-copyright-link" href="http://www.limerence2017.com/2017/08/04/libevent4/" title="http://www.limerence2017.com/2017/08/04/libevent4/" target="_blank">http://www.limerence2017.com/2017/08/04/libevent4/</a></p>
+
+      
+      <div class="toc-wrapper">
+        <div class="toc-scroll">
+          <div class="toc-middle">
+            
+          </div>
+        </div>
+      </div>
+    
+  
+</article>
+
+      <footer class="footer">
+  <p class="footer-text">驱动于 <a href="https://hexo.io/zh-cn/" class="footer-link" title="Hexo">Hexo</a>，主题由 <a href="/about" class="footer-link" title="恋恋风辰">恋恋风辰</a> 设计移植而来</p>
+  <p class="footer-text">&copy; 2016 - 2017 <a href="/about" class="footer-link" title="恋恋风辰">恋恋风辰</a> 保留部分版权</p>
+</footer>
+
+    </article>
+
+    <script src="/js/to-top.js"></script>
+    <script src="/js/search.js"></script>
+  </body>
+</html>

@@ -6,10 +6,10 @@
 
 
 <html class="theme-next muse use-motion" lang="zh-CN">
-<head>
-  <meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="theme-color" content="#222">
 
 
@@ -20,8 +20,8 @@
 
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
 
 
@@ -40,7 +40,7 @@
 
   
   
-  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
 
 
 
@@ -48,9 +48,9 @@
 
 
 
-<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
 
-<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css">
 
 
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
@@ -68,11 +68,13 @@
 
 
 
-  <meta name="keywords" content="网络编程," />
+  <meta name="keywords" content="网络编程,">
 
 
 
 
+
+  <link rel="alternate" href="/atom.xml" title="恋恋风辰的个人博客" type="application/atom+xml">
 
 
 
@@ -80,18 +82,18 @@
 
 
 <meta name="description" content="网络通信中socket有自己的内核发送缓冲区和内核接受缓冲区，好比是一个水池，当用户发送数据的时候会从用户缓冲区拷贝到socket的内核发送缓冲区，然后从 socket发送缓冲区发出去, 当用户要读取数据时，就是从socket内核读缓冲区读到用户缓冲区。所以TCP中recv, send, read, write等函数并不是真的直接读写 发送报文，而是将数据分别写到socket内核缓冲区，或者从so">
+<meta name="keywords" content="网络编程">
 <meta property="og:type" content="article">
 <meta property="og:title" content="IO多路复用之epoll(一)讲解">
 <meta property="og:url" content="http://www.limerence2017.com/2017/08/07/epoll1/index.html">
 <meta property="og:site_name" content="恋恋风辰的个人博客">
 <meta property="og:description" content="网络通信中socket有自己的内核发送缓冲区和内核接受缓冲区，好比是一个水池，当用户发送数据的时候会从用户缓冲区拷贝到socket的内核发送缓冲区，然后从 socket发送缓冲区发出去, 当用户要读取数据时，就是从socket内核读缓冲区读到用户缓冲区。所以TCP中recv, send, read, write等函数并不是真的直接读写 发送报文，而是将数据分别写到socket内核缓冲区，或者从so">
-<meta property="og:locale" content="zh_CN">
+<meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://www.limerence2017.com/2017/08/07/epoll1/1.jpg">
-<meta property="article:published_time" content="2017-08-07T09:25:29.000Z">
-<meta property="article:modified_time" content="2020-06-22T09:30:58.869Z">
-<meta property="article:author" content="恋恋风辰">
-<meta property="article:tag" content="网络编程">
+<meta property="og:updated_time" content="2020-06-22T09:30:58.869Z">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="IO多路复用之epoll(一)讲解">
+<meta name="twitter:description" content="网络通信中socket有自己的内核发送缓冲区和内核接受缓冲区，好比是一个水池，当用户发送数据的时候会从用户缓冲区拷贝到socket的内核发送缓冲区，然后从 socket发送缓冲区发出去, 当用户要读取数据时，就是从socket内核读缓冲区读到用户缓冲区。所以TCP中recv, send, read, write等函数并不是真的直接读写 发送报文，而是将数据分别写到socket内核缓冲区，或者从so">
 <meta name="twitter:image" content="http://www.limerence2017.com/2017/08/07/epoll1/1.jpg">
 
 
@@ -122,7 +124,7 @@
 
 
 
-  <link rel="canonical" href="http://www.limerence2017.com/2017/08/07/epoll1/"/>
+  <link rel="canonical" href="http://www.limerence2017.com/2017/08/07/epoll1/">
 
 
 
@@ -138,9 +140,9 @@
 
 
 
-<meta name="generator" content="Hexo 4.2.1"></head>
+</head>
 
-<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
 
   
   
@@ -150,13 +152,13 @@
   <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
-    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
       <div class="header-inner"><div class="site-brand-wrapper">
   <div class="site-meta ">
     
 
     <div class="custom-logo-site-title">
-      <a href="/"  class="brand" rel="start">
+      <a href="/" class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
         <span class="site-title">恋恋风辰的个人博客</span>
         <span class="logo-line-after"><i></i></span>
@@ -184,9 +186,9 @@
       
         
         <li class="menu-item menu-item-home">
-          <a href="/%20" rel="section">
+          <a href="/" rel="section">
             
-              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
             
             Home
           </a>
@@ -194,9 +196,9 @@
       
         
         <li class="menu-item menu-item-archives">
-          <a href="/archives/%20" rel="section">
+          <a href="/archives/" rel="section">
             
-              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
             
             Archives
           </a>
@@ -206,7 +208,7 @@
         <li class="menu-item menu-item-categories">
           <a href="/categories" rel="section">
             
-              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>
             
             Categories
           </a>
@@ -216,7 +218,7 @@
         <li class="menu-item menu-item-tags">
           <a href="/tags" rel="section">
             
-              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>
             
             Tags
           </a>
@@ -229,7 +231,7 @@
             <a href="javascript:;" class="popup-trigger">
           
             
-              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>
             
             Search
           </a>
@@ -250,9 +252,7 @@
       <i class="fa fa-times-circle"></i>
     </span>
     <div class="local-search-input-wrapper">
-      <input autocomplete="off"
-             placeholder="Searching..." spellcheck="false"
-             type="text" id="local-search-input">
+      <input autocomplete="off" placeholder="Searching..." spellcheck="false" type="text" id="local-search-input">
     </div>
   </div>
   <div id="local-search-result"></div>
@@ -284,20 +284,20 @@
   
   
 
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
   
   
   
   <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/07/epoll1/">
 
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="恋恋风辰">
       <meta itemprop="description" content="">
       <meta itemprop="image" content="/images/avatar.gif">
     </span>
 
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
       <meta itemprop="name" content="恋恋风辰的个人博客">
     </span>
 
@@ -329,7 +329,7 @@
           </span>
 
           
-            <span class="post-category" >
+            <span class="post-category">
             
               <span class="post-meta-divider">|</span>
             
@@ -340,7 +340,7 @@
                 <span class="post-meta-item-text">In</span>
               
               
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
                   <a href="/categories/netprogram/" itemprop="url" rel="index">
                     <span itemprop="name">网络编程</span>
                   </a>
@@ -385,9 +385,7 @@
 <p>会返回一个<code>EWOULDBLOCK</code> 或者<code>EAGAIN</code>，反之如果读缓冲区内容不为空，那么就会返回读到的字节数。</p>
 <p>对于用户向socket中写数据，存在<code>可写</code>和<code>不可写</code>，如果socket写缓冲区内容满了，此时向socket写缓冲区里写数据会失败，阻塞情况下会等待socket的写缓冲区非满(有空闲空间)，非阻塞情况下回返回-1，根据errono 为<code>EWOULDBLOCK</code>或者<code>EAGAIN</code>，<code>判断写缓冲区满</code></p>
 <p>反之，如果socket写缓冲区此时非满，那么写会成功，返回写入的字节数。</p>
-<p>综上所述，对于读的情况，我们关注socket读缓冲区空还是非空，对于写的情况，我们关注</p>
-<a id="more"></a>
-<p>写缓冲区满还是非满。</p>
+<p>综上所述，对于读的情况，我们关注socket读缓冲区空还是非空，对于写的情况，我们关注<br><a id="more"></a><br>写缓冲区满还是非满。</p>
 <p>讲述epoll 的几个参数含义</p>
 <p><code>EPOLLIN</code>：关联文件用来监听读事件<br><code>EPOLLOUT</code>:关联文件用来监听写事件</p>
 <p><code>POLLRDNORM</code>，有普通数据可读。<br><code>POLLRDBAND</code>，有优先数据可读。<br><code>POLLPRI</code>，有紧迫数据可读。</p>
@@ -401,14 +399,11 @@
 <p>平时大家使用 epoll 时都知道其事件触发模式有默认的 level-trigger 模式和通过 EPOLLET 启用的 edge-trigger 模式两种。<br>从 epoll 发展历史来看，它刚诞生时只有 edge-trigger 模式，后来因容易产生 race-cond 且不易被开发者理解，<br>又增加了 level-trigger 模式并作为默认处理方式。二者的差异在于 level-trigger 模式下只要某个 fd<br>处于 readable/writable 状态，无论什么时候进行 epoll_wait 都会返回该 fd；<br>而 edge-trigger 模式下只有某个 fd 从 unreadable 变为 readable 或从 unwritable 变为 writable 时，<br>epoll_wait 才会返回该 fd。</p>
 <h3 id="然后我们来说说epoll几个函数"><a href="#然后我们来说说epoll几个函数" class="headerlink" title="然后我们来说说epoll几个函数"></a>然后我们来说说epoll几个函数</h3><p>epoll的接口非常简单，一共就三个函数：<br><code>1 int epoll_create(int size);</code><br>创建一个epoll句柄，size用来告诉内核这个监听的数目一共有多大。size为最大监听数量+1，因为创建好epoll句柄后，他就会占用一个fd值，<br>在linux下如果查看/proc/进程/id/fd/，能看到这个fd，使用完epoll后，必须调用close()关闭，否则可能导致fd被耗尽。</p>
 <p><code>2 int epoll_ctl(int epfd, int op, int fd, struct epoll_event * event);</code><br>epoll的事件注册函数，先注册想要监听的事件类型，第一个参数是epoll_create()的返回值，第二个参数表示动作，<br>用三个宏来表示：</p>
-<p><code>EPOLL_CTL_ADD</code>：注册新的fd到epfd中<br><code>EPOLL_CTL_MOD</code>:修改已经注册的fd的监听事件；<br><code>EPOLL_CTL_DEL</code>:从epfd中删除一个fd<br>第三个参数是需要监听的fd，第四个参数是告诉内核需要监听什么事，struct epoll_event结构如下：</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="keyword">union</span> epoll_data &#123;</span><br><span class="line"><span class="keyword">void</span> *ptr;</span><br><span class="line"><span class="keyword">int</span> fd;</span><br><span class="line"><span class="keyword">__uint32_t</span> u32;</span><br><span class="line"><span class="keyword">__uint64_t</span> u64;</span><br><span class="line">&#125; <span class="keyword">epoll_data_t</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">epoll_event</span> &#123;</span></span><br><span class="line"><span class="keyword">__uint32_t</span> events; <span class="comment">/* Epoll events */</span></span><br><span class="line"><span class="keyword">epoll_data_t</span> data; <span class="comment">/* User data variable */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-
+<p><code>EPOLL_CTL_ADD</code>：注册新的fd到epfd中<br><code>EPOLL_CTL_MOD</code>:修改已经注册的fd的监听事件；<br><code>EPOLL_CTL_DEL</code>:从epfd中删除一个fd<br>第三个参数是需要监听的fd，第四个参数是告诉内核需要监听什么事，struct epoll_event结构如下：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="keyword">union</span> epoll_data &#123;</span><br><span class="line"><span class="keyword">void</span> *ptr;</span><br><span class="line"><span class="keyword">int</span> fd;</span><br><span class="line"><span class="keyword">__uint32_t</span> u32;</span><br><span class="line"><span class="keyword">__uint64_t</span> u64;</span><br><span class="line">&#125; <span class="keyword">epoll_data_t</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">epoll_event</span> &#123;</span></span><br><span class="line"><span class="keyword">__uint32_t</span> events; <span class="comment">/* Epoll events */</span></span><br><span class="line"><span class="keyword">epoll_data_t</span> data; <span class="comment">/* User data variable */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
 <p>events可以是以下几个宏的集合：<br><code>EPOLLIN</code> ：表示对应的文件描述符可以读（包括对端SOCKET正常关闭）；<br><code>EPOLLOUT</code>：表示对应的文件描述符可以写；<br><code>EPOLLPRI</code>：表示对应的文件描述符有紧急的数据可读（这里应该表示有带外数据到来）；<br><code>EPOLLERR</code>：表示对应的文件描述符发生错误；<br><code>EPOLLHUP</code>：表示对应的文件描述符被挂断；<br><code>EPOLLET</code>： 将EPOLL设为边缘触发(Edge Triggered)模式，这是相对于水平触发(Level Triggered)来说的。<br><code>EPOLLONESHOT</code>：只监听一次事件，当监听完这次事件之后，如果还需要继续监听这个socket的话，需要再次把这个socket加入到EPOLL队列里</p>
 <p><code>3 int epoll_wait(int epfd, struct epoll_event* events, int maxevents, int tiemout);</code><br>等待事件产生，参数events用来从内核中得到事件的集合，maxevents告知内核这个events有多大，这个maxevents的值不能大于创建epoll_create()<br>的size，参数timeout是超时时间，毫秒，0表示立即返回，-1会永久阻塞。该函数返回需要处理的事件数目，如果返回0，表示已超时。</p>
 <p>下面我查阅相关资料，仿照别人写了一个类似的epoll demo代码，这个是LT的，下一篇写ET的</p>
 <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;netinet/in.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;arpa/inet.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;signal.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/wait.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/epoll.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;errno.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;vector&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;algorithm&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ERR_EXIT(m) \</span></span><br><span class="line"><span class="keyword">do</span> \</span><br><span class="line">&#123; \</span><br><span class="line">perror(m); \</span><br><span class="line"><span class="built_in">exit</span>(EXIT_FAILURE); \</span><br><span class="line">&#125; <span class="keyword">while</span>(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">//先定义一个类型，epoll_event连续的存储空间，可以是数组，也可以是vector</span></span><br><span class="line"><span class="comment">//当然也可以malloc一块连续内存 (struct epoll_event *)malloc(n * sizeof(struct epoll_event));</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="built_in">std</span>::<span class="built_in">vector</span>&lt;struct epoll_event&gt; EventList;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">　　<span class="comment">//打开一个空的描述符</span></span><br><span class="line">　　<span class="keyword">int</span> idlefd = open(<span class="string">"/dev/null"</span>,O_RDONLY|O_CLOEXEC);</span><br><span class="line"></span><br><span class="line">　　<span class="comment">//生成listen描述符</span></span><br><span class="line">　　<span class="keyword">int</span> listenfd = socket(PF_INET, SOCK_CLOEXEC | SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);</span><br><span class="line"></span><br><span class="line">　　<span class="keyword">if</span>(listenfd &lt; <span class="number">0</span>)</span><br><span class="line">　　&#123;</span><br><span class="line">　　　　ERR_EXIT(<span class="string">"socketfd"</span>);</span><br><span class="line">　　&#125;</span><br><span class="line"></span><br><span class="line">　　<span class="comment">//初始化地址信息</span></span><br><span class="line">　　<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> <span class="title">servaddr</span>;</span></span><br><span class="line">　　<span class="built_in">memset</span>(&amp;servaddr,<span class="number">0</span> ,<span class="keyword">sizeof</span>(struct sockaddr_in));</span><br><span class="line">　　servaddr.sin_family = AF_INET;</span><br><span class="line">　　servaddr.sin_port = htons(<span class="number">6666</span>);</span><br><span class="line">　　servaddr.sin_addr.s_addr = htonl(INADDR_ANY);</span><br><span class="line"></span><br><span class="line">　　<span class="keyword">int</span> on = <span class="number">1</span>;</span><br><span class="line">　　<span class="keyword">if</span> (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &amp;on, <span class="keyword">sizeof</span>(on)) &lt; <span class="number">0</span>)</span><br><span class="line">　　ERR_EXIT(<span class="string">"setsockopt"</span>);</span><br><span class="line"></span><br><span class="line">　　<span class="keyword">if</span>(bind(listenfd, (struct sockaddr*)&amp;servaddr, <span class="keyword">sizeof</span>(servaddr)))</span><br><span class="line">　　ERR_EXIT(<span class="string">"bindError"</span>);</span><br><span class="line"></span><br><span class="line">　　<span class="keyword">if</span> (listen(listenfd, SOMAXCONN) &lt; <span class="number">0</span>)</span><br><span class="line">　　ERR_EXIT(<span class="string">"listen"</span>);</span><br><span class="line"></span><br><span class="line">　　<span class="comment">//记录客户端连接对应的socket</span></span><br><span class="line">　　<span class="built_in">std</span>::<span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; clients;</span><br><span class="line">　　<span class="comment">//创建epollfd, 用于管理epoll事件表</span></span><br><span class="line">　　<span class="keyword">int</span> epollfd;</span><br><span class="line">　　epollfd = epoll_create1(EPOLL_CLOEXEC);</span><br><span class="line"></span><br><span class="line">　　<span class="class"><span class="keyword">struct</span> <span class="title">epoll_event</span> <span class="title">event</span>;</span></span><br><span class="line">　　event.data.fd = listenfd;</span><br><span class="line">　　event.events = EPOLLIN;</span><br><span class="line">　　<span class="comment">//将listenfd加入到epollfd管理的表里</span></span><br><span class="line">　　epoll_ctl(epollfd, EPOLL_CTL_ADD, listenfd, &amp;event);</span><br><span class="line"></span><br><span class="line">　　<span class="comment">//创建长度为16的epoll_event队列</span></span><br><span class="line">　　<span class="function">EventList <span class="title">events</span><span class="params">(<span class="number">16</span>)</span></span>;</span><br><span class="line">　　<span class="comment">//用于接收新连接的客户端地址</span></span><br><span class="line">　　<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> <span class="title">peeraddr</span>;</span></span><br><span class="line">　　<span class="keyword">socklen_t</span> peerlen;</span><br><span class="line">　　<span class="keyword">int</span> connfd;</span><br><span class="line"></span><br><span class="line">　　<span class="keyword">int</span> nready;</span><br><span class="line">　　<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">　　&#123;</span><br><span class="line">　　　　nready = epoll_wait(epollfd, &amp;*events.begin(), <span class="keyword">static_cast</span>&lt;<span class="keyword">int</span>&gt;(events.size()), <span class="number">-1</span>);</span><br><span class="line">　　　　<span class="keyword">if</span> (nready == <span class="number">-1</span>)</span><br><span class="line">　　　　&#123;</span><br><span class="line">　　　　　　<span class="keyword">if</span> (errno == EINTR)</span><br><span class="line">　　　　　　<span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">　　　　　　ERR_EXIT(<span class="string">"epoll_wait"</span>);</span><br><span class="line">　　　　&#125;</span><br><span class="line">　　　　<span class="keyword">if</span> (nready == <span class="number">0</span>)	<span class="comment">// nothing happended</span></span><br><span class="line">　　　　　　<span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">　　　　<span class="comment">//大小不够了就重新开辟</span></span><br><span class="line"></span><br><span class="line">　　　　<span class="keyword">if</span> ((<span class="keyword">size_t</span>)nready == events.size())</span><br><span class="line">　　　　events.resize(events.size()*<span class="number">2</span>);</span><br><span class="line"></span><br><span class="line">　　</span><br><span class="line">　　　　<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; nready; ++i)</span><br><span class="line">　　　　&#123;</span><br><span class="line">　　　　　　<span class="comment">//判断wait返回的events数组状态是否正常</span></span><br><span class="line">　　　　　　<span class="keyword">if</span> ((events[i].events &amp; EPOLLERR) ||</span><br><span class="line">　　　　　　　　(events[i].events &amp; EPOLLHUP) ||</span><br><span class="line">　　　　　　　　(!(events[i].events &amp; EPOLLIN)))</span><br><span class="line">　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　<span class="built_in">fprintf</span> (<span class="built_in">stderr</span>, <span class="string">"epoll error\n"</span>);</span><br><span class="line">　　　　　　　　　　close (events[i].data.fd);</span><br><span class="line">　　　　　　　　　　<span class="keyword">continue</span>;</span><br><span class="line">　　　　　　　　&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">　　　　　　　　<span class="keyword">if</span> (events[i].data.fd == listenfd)</span><br><span class="line">　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　peerlen = <span class="keyword">sizeof</span>(peeraddr);</span><br><span class="line">　　　　　　　　　　<span class="comment">//LT模式accept不用放在while循环里</span></span><br><span class="line">　　　　　　　　　　connfd = ::accept4(listenfd, (struct sockaddr*)&amp;peeraddr,</span><br><span class="line">　　　　　　　　　　　　&amp;peerlen, SOCK_NONBLOCK | SOCK_CLOEXEC);</span><br><span class="line"></span><br><span class="line">　　　　　　　　　　<span class="comment">//accept失败，判断是否是文件描述符达到上限</span></span><br><span class="line"></span><br><span class="line">　　　　　　　　　　<span class="keyword">if</span> (connfd == <span class="number">-1</span>)</span><br><span class="line">　　　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　　　<span class="keyword">if</span> (errno == EMFILE)</span><br><span class="line">　　　　　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　　　　　<span class="comment">//关闭之前打开的描述符，重新accept，然后关闭这个accept得到的描述符，</span></span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　　　<span class="comment">//因为LT模式，如果socket读缓冲区有数据一直读取失败会造成busyloop　　　　　　　　　</span></span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　　　close(idlefd);</span><br><span class="line">　　　　　　　　　　　　　　idlefd = accept(listenfd, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line">　　　　　　　　　　　　　　close(idlefd);</span><br><span class="line">　　　　　　　　　　　　　　idlefd = open(<span class="string">"/dev/null"</span>, O_RDONLY | O_CLOEXEC);</span><br><span class="line">　　　　　　　　　　　　　　<span class="keyword">continue</span>;</span><br><span class="line">　　　　　　　　　　　　&#125;</span><br><span class="line">　　　　　　　　　　　　<span class="keyword">else</span></span><br><span class="line">　　　　　　　　　　　　　　ERR_EXIT(<span class="string">"accept4"</span>);</span><br><span class="line">　　　　　　　　　&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　<span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"ip="</span>&lt;&lt;inet_ntoa(peeraddr.sin_addr)&lt;&lt;</span><br><span class="line">　　　　　　　　　　　　　　<span class="string">" port="</span>&lt;&lt;ntohs(peeraddr.sin_port)&lt;&lt;<span class="built_in">std</span>::<span class="built_in">endl</span>;</span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　　　　　clients.push_back(connfd);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　<span class="comment">//将connd加入epoll表里，关注读事件</span></span><br><span class="line">　　　　　　　　　　　　event.data.fd = connfd;</span><br><span class="line">　　　　　　　　　　　　event.events = EPOLLIN ;</span><br><span class="line">　　　　　　　　　　　　epoll_ctl(epollfd, EPOLL_CTL_ADD, connfd, &amp;event);</span><br><span class="line">　　　　　　　　&#125;</span><br><span class="line">　　　　　　　　<span class="keyword">else</span> <span class="keyword">if</span> (events[i].events &amp; EPOLLIN)</span><br><span class="line">　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　connfd = events[i].data.fd;</span><br><span class="line">　　　　　　　　　　<span class="keyword">if</span> (connfd &lt; <span class="number">0</span>)</span><br><span class="line">　　　　　　　　　　<span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">　　　　　　　　　　<span class="keyword">char</span> buf[<span class="number">1024</span>] = &#123;<span class="number">0</span>&#125;;</span><br><span class="line">　　　　　　　　　　<span class="keyword">int</span> ret = read(connfd, buf, <span class="number">1024</span>);</span><br><span class="line">　　　　　　　　　　<span class="keyword">if</span> (ret == <span class="number">-1</span>)</span><br><span class="line">　　　　　　　　　　<span class="comment">//ERR_EXIT("read");</span></span><br><span class="line">　　　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　　　<span class="keyword">if</span>((errno == EAGAIN) ||</span><br><span class="line">　　　　　　　　　　　　　　(errno == EWOULDBLOCK))</span><br><span class="line">　　　　　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　　　　　<span class="comment">//由于内核缓冲区空了，下次再读，</span></span><br><span class="line">　　　　　　　　　　　　　　<span class="comment">//这个是LT模式不需要重新加入EPOLLIN事件,下次还会通知</span></span><br><span class="line">　　　　　　　　　　　　　　<span class="keyword">continue</span>;</span><br><span class="line">　　　　　　　　　　　　&#125;</span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　ERR_EXIT(<span class="string">"read"</span>); </span><br><span class="line">　　　　　　　　　　&#125;</span><br><span class="line">　　　　　　　　　　<span class="keyword">if</span> (ret == <span class="number">0</span>)</span><br><span class="line">　　　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　　　<span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"client close"</span>&lt;&lt;<span class="built_in">std</span>::<span class="built_in">endl</span>;</span><br><span class="line">　　　　　　　　　　　　close(connfd);</span><br><span class="line">　　　　　　　　　　　　event = events[i];</span><br><span class="line">　　　　　　　　　　　　epoll_ctl(epollfd, EPOLL_CTL_DEL, connfd, &amp;event);</span><br><span class="line">　　　　　　　　　　　　clients.erase(<span class="built_in">std</span>::remove(clients.begin(), clients.end(), connfd), clients.end());</span><br><span class="line">　　　　　　　　　　　　<span class="keyword">continue</span>;</span><br><span class="line">　　　　　　　　　　&#125;</span><br><span class="line">　　　　　　　　　　<span class="comment">//</span></span><br><span class="line">　　　　　　　　　　<span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;buf;</span><br><span class="line">　　　　　　　　　　write(connfd, buf, <span class="built_in">strlen</span>(buf));</span><br><span class="line">　　　　　　　　&#125;</span><br><span class="line">　　　　　　　　<span class="keyword">else</span> <span class="comment">//写事件</span></span><br><span class="line">　　　　　　　　　　<span class="keyword">if</span>(events[i].events &amp; EPOLLOUT)</span><br><span class="line">　　　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　　　connfd = events[i].data.fd;</span><br><span class="line">　　　　　　　　　　　　<span class="keyword">char</span> buf[<span class="number">512</span>];</span><br><span class="line">　　　　　　　　　　　　<span class="keyword">int</span> count = write(events[i].data.fd, buf, <span class="built_in">strlen</span>(buf));</span><br><span class="line">　　　　　　　　　　　　<span class="keyword">if</span>(count == <span class="number">-1</span>)</span><br><span class="line">　　　　　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　　　　　<span class="keyword">if</span>((errno == EAGAIN) ||</span><br><span class="line">　　　　　　　　　　　　　　　　(errno == EWOULDBLOCK))</span><br><span class="line">　　　　　　　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　　　　　　　<span class="comment">//由于内核缓冲区满了，下次再写，</span></span><br><span class="line">　　　　　　　　　　　　　　　　<span class="comment">//这个是LT模式不需要重新加入EPOLLOUT事件</span></span><br><span class="line">　　　　　　　　　　　　　　　　　<span class="keyword">continue</span>;</span><br><span class="line">　　　　　　　　　　　　　　&#125;</span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　　　ERR_EXIT(<span class="string">"write"</span>); </span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　&#125;</span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　　　<span class="comment">//写完要记得从epoll内核中删除，因为LT模式写缓冲区不满就会触发EPOLLOUT事件，防止busyloop</span></span><br><span class="line">　　　　　　　　　　　　　　event.data.fd = connfd;</span><br><span class="line">　　　　　　　　　　　　　　event.events = EPOLLOUT;</span><br><span class="line">　　　　　　　　　　　　　　epoll_ctl (epollfd, EPOLL_CTL_DEL, events[i].data.fd, &amp;event);</span><br><span class="line">　　　　　　　　　　　　　　<span class="comment">//close 操作会将events[i].data.fd从epoll表里删除，所以上面的操作可以不写</span></span><br><span class="line">　　　　　　　　　　　　　　<span class="comment">//close(events[i].data.fd); 此处是关闭了和客户端的连接，不关闭也可以，只和策划需求有关</span></span><br><span class="line">　　　　　　　　　　&#125;</span><br><span class="line">　　　　　　&#125;</span><br><span class="line">　　　　&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> <span class="number">0</span>;	</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
 <p> 好了，这就是epoll 的LT模式，demo源代码下载地址 <a href="http://download.csdn.net/detail/secondtonone1/9484752" target="_blank" rel="noopener">http://download.csdn.net/detail/secondtonone1/9484752</a>。<br> 谢谢关注我的公众号<br> <img src="1.jpg" alt="1.jpg"></p>
 
       
@@ -427,7 +422,7 @@
       
         <div class="post-tags">
           
-            <a href="/tags/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" rel="tag"># 网络编程</a>
+            <a href="/tags/网络编程/" rel="tag"># 网络编程</a>
           
         </div>
       
@@ -521,7 +516,7 @@
 
       <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
-          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
             
               <p class="site-author-name" itemprop="name">恋恋风辰</p>
               <p class="site-description motion-element" itemprop="description">重剑无锋，大巧不工</p>
@@ -532,7 +527,7 @@
             
               <div class="site-state-item site-state-posts">
               
-                <a href="/archives/%20%7C%7C%20archive">
+                <a href="/archives/">
               
                   <span class="site-state-item-count">140</span>
                   <span class="site-state-item-name">posts</span>
@@ -564,6 +559,13 @@
 
           </nav>
 
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
           
 
           <div class="links-of-author motion-element">

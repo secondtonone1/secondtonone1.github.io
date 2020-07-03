@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://www.limerence2017.com/"/>
-  <updated>2020-07-02T06:28:03.151Z</updated>
+  <updated>2020-07-03T03:30:36.079Z</updated>
   <id>http://www.limerence2017.com/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>docker命令(二)</title>
+    <link href="http://www.limerence2017.com/2020/07/02/docker02/"/>
+    <id>http://www.limerence2017.com/2020/07/02/docker02/</id>
+    <published>2020-07-02T12:45:53.000Z</published>
+    <updated>2020-07-03T03:30:36.079Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="删除docker"><a href="#删除docker" class="headerlink" title="删除docker"></a>删除docker</h2><p>sudo docker rm 容器id<br>如果容器正在运行，可以执行强制删除命令<br>sudo docker rm -f 容器id<br><a id="more"></a></p><h2 id="启动端口映射"><a href="#启动端口映射" class="headerlink" title="启动端口映射"></a>启动端口映射</h2><p>可以将容器内的端口映射到宿主机上的某个端口，从而达到通过访问宿主机端口访问容器的目的<br>比如我们启动一个tomcat容器<br>docker run -it –name mytomcat -p 8888:8080 tomcat<br>然后可以看到tomcat镜像启动日志，我们exit退出，通过docker ps 查看tomcat镜像还在<br><img src="1.png" alt="1.png"><br>此时我打开浏览器访问8888端口，可以看到端口和地址是可以访问的，但是资源文件不存在<br><img src="2.png" alt="2.png"><br>我们用exec命令进入容器<br>docker exec -it ce0da6732832 /bin/bash<br>进入容器后我们将webapps删除，然后将webapps.dist内容复制为webapps<br>rm -rf ./webapps<br>cp -r ./webapps.dist ./webapps<br>这时我们重启容器<br>docker restart ce0da6732832<br>这时我们登录浏览器访问8888端口，可以看到tomcat信息了<br><img src="3.png" alt="3.png"></p><h2 id="将容器副本打包为新的镜像"><a href="#将容器副本打包为新的镜像" class="headerlink" title="将容器副本打包为新的镜像"></a>将容器副本打包为新的镜像</h2><p>可以将容器副本打包为一个新的镜像，<br>docker commit -a “作者名” -m “说明” 容器id   镜像名:版本号<br>我们将我们改造好的tomcat容器打造为新的镜像<br>docker commit -a “secondtonone1” -m “new mytomcat” ce0da6732832 secondtonone1/mytomcat:v1.0<br>屏幕会输出镜像id<br>此时我们查看镜像<br>docker images -a<br><img src="4.png" alt="4.png"><br>可以看到有两个tomcat镜像，secondtonone1/mytomcat:v1.0的是我们新生成的</p><h2 id="根据镜像启动新的docker"><a href="#根据镜像启动新的docker" class="headerlink" title="根据镜像启动新的docker"></a>根据镜像启动新的docker</h2><p>我们通过secondtonone1/mytomcat:v1.0<br>docker run -id –name mytomcat1.0 -P  secondtonone1/mytomcat:v1.0<br>通过查看容器运行，看到如下<br><img src="5.png" alt="5.png"><br>运行了两个tomcat，其中tomcat1.0是新生成的，他被分配了随机端口32768<br>在浏览器输入地址和32768端口，可以看到新生成的tomcat docker已经运行了。<br><img src="6.png" alt="6.png"></p><h2 id="感谢关注公众号"><a href="#感谢关注公众号" class="headerlink" title="感谢关注公众号"></a>感谢关注公众号</h2><p>今天的笔记就这些吧，感谢关注公众号<br><img src="wxgzh.jpg" alt="wxgzh.jpg"> </p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;h2 id=&quot;删除docker&quot;&gt;&lt;a href=&quot;#删除docker&quot; class=&quot;headerlink&quot; title=&quot;删除docker&quot;&gt;&lt;/a&gt;删除docker&lt;/h2&gt;&lt;p&gt;sudo docker rm 容器id&lt;br&gt;如果容器正在运行，可以执行强制删除命令&lt;br&gt;sudo docker rm -f 容器id&lt;br&gt;
+    
+    </summary>
+    
+      <category term="docker" scheme="http://www.limerence2017.com/categories/docker/"/>
+    
+    
+      <category term="docker" scheme="http://www.limerence2017.com/tags/docker/"/>
+    
+  </entry>
   
   <entry>
     <title>docker 基本命令</title>
@@ -446,30 +468,6 @@
       &lt;h2 id=&quot;生产者消费者模型分析&quot;&gt;&lt;a href=&quot;#生产者消费者模型分析&quot; class=&quot;headerlink&quot; title=&quot;生产者消费者模型分析&quot;&gt;&lt;/a&gt;生产者消费者模型分析&lt;/h2&gt;&lt;p&gt;操作系统中的经典模型，由若干个消费者和生产者，消费者消耗系统资源，生产者创造系统资源，资源的数量要保持在一个合理范围(小于数量上限，大约0)。而消费者和生产者是通过并发或并行方式访问系统资源的，需要保持资源的原子操作。&lt;br&gt;其实就是生产者线程增加资源数，如果资源数大于最大值则生产者线程挂起等待，当收到消费者线程的通知后继续生产。&lt;br&gt;消费者线程减少资源数，如果资源数为0，则消费者线程挂起，等待生产者通知后继续生产。&lt;br&gt;将该模型提炼成伪代码如下:&lt;br&gt;&lt;figure class=&quot;highlight cmd&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;9&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;10&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;11&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;12&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;13&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;14&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;15&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;16&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;17&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;18&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;19&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;func consume()&amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    Lock()&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt; count &amp;lt;= &lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        挂起等待(解锁，并等待资源数大于&lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;)&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        收到系统通知资源数大约&lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;，抢占加锁&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    count--&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    如果当前资源数由最大值变少则通知生产者生产&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    ULock()&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;func produce()&amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    Lock()&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt; count &amp;gt;= 最大值&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        挂起等待(解锁，并等待资源数小于最大值)&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        收到系统通知资源小于最大值，抢占加锁&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    count++&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    如果当前资源数由最小值&lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;增加则通知消费者可以消耗&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    ULock()&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&amp;#125;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/p&gt;
 &lt;p&gt;consume()消耗资源，produce()生产资源，之前实现过C版本的该模型&lt;br&gt;&lt;a href=&quot;http://www.limerence2017.com/2017/08/08/pthreadwait/&quot;&gt;http://www.limerence2017.com/2017/08/08/pthreadwait/&lt;/a&gt;&lt;br&gt;C方式实现的是抢占式的，线程切换开销较大。下面给出golang协程方式的实现。&lt;/p&gt;
 &lt;h2 id=&quot;先实现资源的互斥访问&quot;&gt;&lt;a href=&quot;#先实现资源的互斥访问&quot; class=&quot;headerlink&quot; title=&quot;先实现资源的互斥访问&quot;&gt;&lt;/a&gt;先实现资源的互斥访问&lt;/h2&gt;&lt;p&gt;对于资源的互斥访问，其他语言提供了线程锁，golang也有线程锁，当然可以通过channel实现，这里我给出加锁访问资源的方式，因为channel内部也是通过加锁实现的，而且我习惯用channel做协程通信，对于共享资源的控制习惯用锁来控制，也比较高效。&lt;br&gt;
-    
-    </summary>
-    
-      <category term="golang" scheme="http://www.limerence2017.com/categories/golang/"/>
-    
-    
-      <category term="golang" scheme="http://www.limerence2017.com/tags/golang/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>图解Go协程调度原理，小白都能理解</title>
-    <link href="http://www.limerence2017.com/2019/11/05/golang17/"/>
-    <id>http://www.limerence2017.com/2019/11/05/golang17/</id>
-    <published>2019-11-05T02:42:53.000Z</published>
-    <updated>2020-06-22T09:30:58.907Z</updated>
-    
-    <content type="html"><![CDATA[<p>阅读本文仅需五分钟，golang协程调度原理，小白也能看懂，超实用。</p><h2 id="什么是协程"><a href="#什么是协程" class="headerlink" title="什么是协程"></a>什么是协程</h2><p>对于进程、线程，都是有内核进行调度，有CPU时间片的概念，进行抢占式调度。协程，又称微线程，纤程。英文名Coroutine。协程的调用有点类似子程序，如程序A调用了子程序B，子程序B调用了子程序C，当子程序C结束了返回子程序B继续执行之后的逻辑，当子程序B运行结束了返回程序A，直到程序A运行结束。但是和子程序相比，协程有挂起的概念，协程可以挂起跳转执行其他协程，合适的时机再跳转回来。</p><h2 id="线程调度原理"><a href="#线程调度原理" class="headerlink" title="线程调度原理"></a>线程调度原理</h2><p>N:1模型，多个用户空间线程在1个内核空间线程上运行。优势是上下文切换非常快，因为这些线程都在内核态运行，但是无法利用多核系统的优点。<br>1:1模型，1个内核空间线程运行一个用户空间线程。这种充分利用了多核系统的优势但是上下文切换非常慢，因为每一次调度都会在用户态和内核态之间切换。POSIX线程模型(pthread)就是这么做的。<br>M:N模型，内核空间开启多个内核线程，一个内核空间线程对应多个用户空间线程。效率非常高，但是管理复杂。<br><a id="more"></a></p><h2 id="goroutine调度原理"><a href="#goroutine调度原理" class="headerlink" title="goroutine调度原理"></a>goroutine调度原理</h2><p>本质上goroutine就是协程，但是完全运行在用户态，借鉴了M:N模型。如下图<br><img src="1.jpg" alt="1.jpg"><br>相比其他语言，golang采用了MPG模型管理协程，更加高效，但是管理非常复杂。<br>M：内核级线程<br>G：代表一个goroutine<br>P：Processor，处理器，用来管理和执行goroutine的。</p><p>G-M-P三者的关系与特点：<br>P的个数取决于设置的GOMAXPROCS，go新版本默认使用最大内核数，比如你有8核处理器，那么P的数量就是8<br>M的数量和P不一定匹配，可以设置很多M，M和P绑定后才可运行，多余的M处于休眠状态。<br>P包含一个LRQ（Local Run Queue）本地运行队列，这里面保存着P需要执行的协程G的队列<br>除了每个P自身保存的G的队列外，调度器还拥有一个全局的G队列GRQ（Global Run Queue），这个队列存储的是所有未分配的协程G。</p><p>假设我们的主机是单核的，那么协程运行图是这样：<br><img src="2.jpg" alt="2.jpg"><br>红色部分表示挂起和休眠，黄色部分表示准备就绪等待运行，绿色部分表示正在运行。<br>主机是单核的所以只有一个处理器P，但是系统初始化了两个线程M0和M1，处理器P优先绑定了M0线程，M1进入休眠状态。<br>P的LRQ队列里有G1,G2,G3等待处理。P目前正在处理G0,全局等待队列GRQ里保存着G4,G5，表示这两个协程还未分配给P。<br>如果G0在短时间内处理完，P就会从LRQ中取出G1继续处理。并且将GRQ全局队列中的部分协程加入LRQ中。<br>如下图<br><img src="3.jpg" alt="3.jpg"><br>假设现在G1处理速度很慢，系统就会让M0线程休眠，挂起协程G1，唤醒线程M1进行处理其他的协程。这里M1会将M0未处理的协程取走处理。<br><img src="4.jpg" alt="4.jpg"><br>等到M1协程队列中所有协程处理完再次唤醒M0，或者M1处理某个协程时间较长被挂起，M0也会被唤醒。<br>上面的讨论是单核主机情况，如果是多核的，就会运行多个P和M，如下图<br><img src="5.jpg" alt="5.jpg"><br>M0和M1分别运行在不同的内核中，M0处理G1,G2,G3，M1处理G4,G5,G6。<br>有人会问，当M0处理完所有的协程，而M1还未处理完，系统会如何做呢？<br>M0会取走M1的一半数量未处理的协程。</p><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>golang协程设计非常优秀，一方面极大的利用了内核线程和处理器资源，另一方面每个处理器的LRQ队列的协程都处于用户态，这些协程的处理和挂起操作都是用户态的，协程切换开销非常小。相比其他语言的线程设计，更加轻量和高效。<br>以上就是golang协程调度原理。感谢关注我的公众号<br><img src="wxgzh.jpg" alt="wxgzh.jpg"></p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;阅读本文仅需五分钟，golang协程调度原理，小白也能看懂，超实用。&lt;/p&gt;
-&lt;h2 id=&quot;什么是协程&quot;&gt;&lt;a href=&quot;#什么是协程&quot; class=&quot;headerlink&quot; title=&quot;什么是协程&quot;&gt;&lt;/a&gt;什么是协程&lt;/h2&gt;&lt;p&gt;对于进程、线程，都是有内核进行调度，有CPU时间片的概念，进行抢占式调度。协程，又称微线程，纤程。英文名Coroutine。协程的调用有点类似子程序，如程序A调用了子程序B，子程序B调用了子程序C，当子程序C结束了返回子程序B继续执行之后的逻辑，当子程序B运行结束了返回程序A，直到程序A运行结束。但是和子程序相比，协程有挂起的概念，协程可以挂起跳转执行其他协程，合适的时机再跳转回来。&lt;/p&gt;
-&lt;h2 id=&quot;线程调度原理&quot;&gt;&lt;a href=&quot;#线程调度原理&quot; class=&quot;headerlink&quot; title=&quot;线程调度原理&quot;&gt;&lt;/a&gt;线程调度原理&lt;/h2&gt;&lt;p&gt;N:1模型，多个用户空间线程在1个内核空间线程上运行。优势是上下文切换非常快，因为这些线程都在内核态运行，但是无法利用多核系统的优点。&lt;br&gt;1:1模型，1个内核空间线程运行一个用户空间线程。这种充分利用了多核系统的优势但是上下文切换非常慢，因为每一次调度都会在用户态和内核态之间切换。POSIX线程模型(pthread)就是这么做的。&lt;br&gt;M:N模型，内核空间开启多个内核线程，一个内核空间线程对应多个用户空间线程。效率非常高，但是管理复杂。&lt;br&gt;
     
     </summary>
     

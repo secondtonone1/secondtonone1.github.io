@@ -92,7 +92,7 @@
 <meta property="og:image" content="http://www.limerence2017.com/2020/11/04/docker20/1.png">
 <meta property="og:image" content="http://www.limerence2017.com/2020/11/04/docker20/2.png">
 <meta property="og:image" content="http://www.limerence2017.com/2020/11/04/docker20/wxgzh.jpg">
-<meta property="og:updated_time" content="2020-11-05T10:56:07.787Z">
+<meta property="og:updated_time" content="2020-11-06T03:17:04.557Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="k8s service和网络">
 <meta name="twitter:description" content="k8s的servicek8s创建service，然后外部可以访问service从而实现访问pod和容器。service 主要有三种类型，一种叫ClusterIP， 一种叫NodePort类型，一种叫外部的LoadBalancerClusterIP只能是cluster集群内部访问，NodePort可以支持外部访问。kubectl expose 可以导出一个service我们查看下pod信息">
@@ -386,7 +386,8 @@
 <p>然后我们可以通过命令查看service<br><figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl get svc</span><br></pre></td></tr></table></figure></p>
 <p>会显示如下<br><figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">NAME         <span class="built_in">TYPE</span>        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE</span><br><span class="line">kubernetes   ClusterIP   <span class="number">10</span>.<span class="number">96</span>.<span class="number">0</span>.<span class="number">1</span>       &lt;none&gt;        <span class="number">443</span>/TCP   <span class="number">25</span>h</span><br><span class="line">nginx        ClusterIP   <span class="number">10</span>.<span class="number">99</span>.<span class="number">158</span>.<span class="number">252</span>   &lt;none&gt;        <span class="number">80</span>/TCP    <span class="number">4</span>m56s</span><br></pre></td></tr></table></figure></p>
 <p>可以看到service的clusterIP<br>我们在k8s任何一个节点都可以访问这个地址<br><figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl <span class="number">10</span>.<span class="number">99</span>.<span class="number">158</span>.<span class="number">252</span>:<span class="number">80</span></span><br></pre></td></tr></table></figure></p>
-<p>会输出nginx的页面信息</p>
+<p>会输出nginx的页面信息<br>另外，当我们使用kubectl命令时可以设置自动补全功能<br><figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">source &lt;(kubectl completion bash)</span><br></pre></td></tr></table></figure></p>
+<p>设置后kubectl get 然后按下tab就可以自动补全了。</p>
 <h2 id="利用deployment启动python网站服务"><a href="#利用deployment启动python网站服务" class="headerlink" title="利用deployment启动python网站服务"></a>利用deployment启动python网站服务</h2><p>先实现该pod文件<br><figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">extensions/v1beta1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line"><span class="attr">  name:</span> <span class="string">service-test</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line"><span class="attr">  replicas:</span> <span class="number">2</span></span><br><span class="line"><span class="attr">  selector:</span></span><br><span class="line"><span class="attr">    matchLabels:</span></span><br><span class="line"><span class="attr">      app:</span> <span class="string">service_test_pod</span></span><br><span class="line"><span class="attr">  template:</span></span><br><span class="line"><span class="attr">    metadata:</span></span><br><span class="line"><span class="attr">      labels:</span></span><br><span class="line"><span class="attr">        app:</span> <span class="string">service_test_pod</span></span><br><span class="line"><span class="attr">    spec:</span></span><br><span class="line"><span class="attr">      containers:</span></span><br><span class="line"><span class="attr">      - name:</span> <span class="string">simple-http</span></span><br><span class="line"><span class="attr">        image:</span> <span class="attr">python:2.7</span></span><br><span class="line"><span class="attr">        imagePullPolicy:</span> <span class="string">IfNotPresent</span></span><br><span class="line"><span class="attr">        command:</span> <span class="string">["/bin/bash"]</span></span><br><span class="line"><span class="attr">        args:</span> <span class="string">["-c",</span> <span class="string">"echo \"&lt;p&gt;Hello from $(hostname)&lt;/p&gt;\" &gt; index.html; python -m SimpleHTTPServer 8080"</span><span class="string">]</span></span><br><span class="line"><span class="attr">        ports:</span></span><br><span class="line"><span class="attr">        - name:</span> <span class="string">http</span></span><br><span class="line"><span class="attr">          containerPort:</span> <span class="number">8080</span></span><br></pre></td></tr></table></figure></p>
 <p>用命令启动deployment<br><figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl create -f deployment_python_http.yml</span><br></pre></td></tr></table></figure></p>
 <p>将deployment导出为service<br><figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl expose deployment service-test</span><br></pre></td></tr></table></figure></p>
@@ -451,6 +452,10 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/11/06/docker21/" rel="prev" title="k8s知识补充和汇总">
+                k8s知识补充和汇总 <i class="fa fa-chevron-right"></i>
+              </a>
             
           </div>
         </div>
@@ -527,7 +532,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">160</span>
+                  <span class="site-state-item-count">161</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>

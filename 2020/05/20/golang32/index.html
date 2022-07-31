@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="golang," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="接上文我们查看了bind和listen流程，直到了listen操作会在内核初始化一个epoll表，并将listen的描述符加入到epoll表中 如何保证epoll表初始化一次前文我们看到pollDesc的init函数中调用了runtime的pollOpen函数完成的epoll创建和描述符加入，这里再贴一次代码 12345678910111213func (pd *pollDesc) init(fd">
+<meta property="og:type" content="article">
+<meta property="og:title" content="谈谈golang的netpoll原理(二)">
+<meta property="og:url" content="http://www.limerence2017.com/2020/05/20/golang32/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="接上文我们查看了bind和listen流程，直到了listen操作会在内核初始化一个epoll表，并将listen的描述符加入到epoll表中 如何保证epoll表初始化一次前文我们看到pollDesc的init函数中调用了runtime的pollOpen函数完成的epoll创建和描述符加入，这里再贴一次代码 12345678910111213func (pd *pollDesc) init(fd">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.limerence2017.com/2020/05/20/golang32/wxgzh.jpg">
+<meta property="article:published_time" content="2020-05-20T03:17:16.000Z">
+<meta property="article:modified_time" content="2022-07-31T07:11:50.013Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="golang">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.limerence2017.com/2020/05/20/golang32/wxgzh.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2020/05/20/golang32/"/>
+
+
+
+
+
+  <title>谈谈golang的netpoll原理(二) | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2020/05/20/golang32/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">谈谈golang的netpoll原理(二)</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-05-20T11:17:16+08:00">
+                2020-05-20
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>接上文我们查看了bind和listen流程，直到了listen操作会在内核初始化一个epoll表，并将listen的描述符加入到epoll表中</p>
+<h2 id="如何保证epoll表初始化一次"><a href="#如何保证epoll表初始化一次" class="headerlink" title="如何保证epoll表初始化一次"></a>如何保证epoll表初始化一次</h2><p>前文我们看到pollDesc的init函数中调用了runtime的pollOpen函数完成的epoll创建和描述符加入，这里再贴一次代码</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pd *pollDesc)</span></span> init(fd *FD) <span class="type">error</span> &#123;</span><br><span class="line">	serverInit.Do(runtime_pollServerInit)</span><br><span class="line">	ctx, errno := runtime_pollOpen(<span class="type">uintptr</span>(fd.Sysfd))</span><br><span class="line">	<span class="keyword">if</span> errno != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> ctx != <span class="number">0</span> &#123;</span><br><span class="line">			runtime_pollUnblock(ctx)</span><br><span class="line">			runtime_pollClose(ctx)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> errnoErr(syscall.Errno(errno))</span><br><span class="line">	&#125;</span><br><span class="line">	pd.runtimeCtx = ctx</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>runtime_pollServerInit link的是runtime/netpoll.go中的poll_runtime_pollServerInit函数<br>由于serverInit是sync.Once类型，所以runtime_pollServerInit只被初始化一次，而epoll模型的初始化就是在该函数完成</p>
+<span id="more"></span>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">poll_runtime_pollServerInit</span><span class="params">()</span></span> &#123;</span><br><span class="line">	netpollGenericInit()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpollGenericInit</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> atomic.Load(&amp;netpollInited) == <span class="number">0</span> &#123;</span><br><span class="line">		lock(&amp;netpollInitLock)</span><br><span class="line">		<span class="keyword">if</span> netpollInited == <span class="number">0</span> &#123;</span><br><span class="line">			netpollinit()</span><br><span class="line">			atomic.Store(&amp;netpollInited, <span class="number">1</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		unlock(&amp;netpollInitLock)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>netpollinit实现了不同模型的初始化，epoll的实现在runtime/netpoll_epoll.go中</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpollinit</span><span class="params">()</span></span> &#123;</span><br><span class="line">	epfd = epollcreate1(_EPOLL_CLOEXEC)</span><br><span class="line">	<span class="keyword">if</span> epfd &lt; <span class="number">0</span> &#123;</span><br><span class="line">		epfd = epollcreate(<span class="number">1024</span>)</span><br><span class="line">		<span class="keyword">if</span> epfd &lt; <span class="number">0</span> &#123;</span><br><span class="line">			<span class="built_in">println</span>(<span class="string">&quot;runtime: epollcreate failed with&quot;</span>, -epfd)</span><br><span class="line">			throw(<span class="string">&quot;runtime: netpollinit failed&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		closeonexec(epfd)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以看到上述代码里实现了epoll模型的初始化，所以对于一个M主线程只会初始化一张epoll表，所有要监听的文件描述符都会放入这个表中。</p>
+<h2 id="跟随accept看看goroutine挂起逻辑"><a href="#跟随accept看看goroutine挂起逻辑" class="headerlink" title="跟随accept看看goroutine挂起逻辑"></a>跟随accept看看goroutine挂起逻辑</h2><p>当我们调用Listener的Accept时，Listener为接口类型，实际调用的为TCPListener的Accept函数</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *TCPListener)</span></span> Accept() (Conn, <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="keyword">if</span> !l.ok() &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, syscall.EINVAL</span><br><span class="line">	&#125;</span><br><span class="line">	c, err := l.accept()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, &amp;OpError&#123;Op: <span class="string">&quot;accept&quot;</span>, Net: l.fd.net, Source: <span class="literal">nil</span>, Addr: l.fd.laddr, Err: err&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> c, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Accept内部调用了accept函数，该函数内部实际调用netFD的accept</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ln *TCPListener)</span></span> accept() (*TCPConn, <span class="type">error</span>) &#123;</span><br><span class="line">	fd, err := ln.fd.accept()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在net/fd_unix.go中实现了linux环境下accept的操作</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(fd *netFD)</span></span> accept() (netfd *netFD, err <span class="type">error</span>) &#123;</span><br><span class="line">	d, rsa, errcall, err := fd.pfd.Accept()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> errcall != <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">			err = wrapSyscallError(errcall, err)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> netfd, err = newFD(d, fd.family, fd.sotype, fd.net); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		poll.CloseFunc(d)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err = netfd.init(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		netfd.Close()</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	lsa, _ := syscall.Getsockname(netfd.pfd.Sysfd)</span><br><span class="line">	netfd.setAddr(netfd.addrFunc()(lsa), netfd.addrFunc()(rsa))</span><br><span class="line">	<span class="keyword">return</span> netfd, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述函数内部调用的是net/fd_unix.go内部实现的Accept函数</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(fd *FD)</span></span> Accept() (<span class="type">int</span>, syscall.Sockaddr, <span class="type">string</span>, <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="keyword">if</span> err := fd.readLock(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>, <span class="literal">nil</span>, <span class="string">&quot;&quot;</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> fd.readUnlock()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := fd.pd.prepareRead(fd.isFile); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>, <span class="literal">nil</span>, <span class="string">&quot;&quot;</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		s, rsa, errcall, err := accept(fd.Sysfd)</span><br><span class="line">		<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> s, rsa, <span class="string">&quot;&quot;</span>, err</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">switch</span> err &#123;</span><br><span class="line">		<span class="keyword">case</span> syscall.EAGAIN:</span><br><span class="line">			<span class="keyword">if</span> fd.pd.pollable() &#123;</span><br><span class="line">				<span class="keyword">if</span> err = fd.pd.waitRead(fd.isFile); err == <span class="literal">nil</span> &#123;</span><br><span class="line">					<span class="keyword">continue</span></span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">case</span> syscall.ECONNABORTED:</span><br><span class="line">			<span class="comment">// This means that a socket on the listen</span></span><br><span class="line">			<span class="comment">// queue was closed before we Accept()ed it;</span></span><br><span class="line">			<span class="comment">// it&#x27;s a silly error, so try again.</span></span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>, <span class="literal">nil</span>, errcall, err</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述函数就是tcp底层的函数了，accept(fd.Sysfd)监听fd.Sysfd描述符，等待可读事件到来，当可读事件到来后，就可以认为来了一个新的连接，从而创建一个新的描述符给新的连接。<br>当accept出现错误时，需要判断err类型，如果是EAGAIN说明当前没有连接到来，就调用waitRead等待连接，ECONNABORTED说明连接还未accept就断开了，可以忽略。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pd *pollDesc)</span></span> waitRead(isFile <span class="type">bool</span>) <span class="type">error</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> pd.wait(<span class="string">&#x27;r&#x27;</span>, isFile)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>进而调用pollDesc的wait操作</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pd *pollDesc)</span></span> wait(mode <span class="type">int</span>, isFile <span class="type">bool</span>) <span class="type">error</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> pd.runtimeCtx == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">&quot;waiting for unsupported file type&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	res := runtime_pollWait(pd.runtimeCtx, mode)</span><br><span class="line">	<span class="keyword">return</span> convertErr(res, isFile)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>wait函数中判断pd的runtime上下文是否正常，然后调用runtime包的poll_runtime_pollWait实现挂起等待</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">poll_runtime_pollWait</span><span class="params">(pd *pollDesc, mode <span class="type">int</span>)</span></span> <span class="type">int</span> &#123;</span><br><span class="line">	err := netpollcheckerr(pd, <span class="type">int32</span>(mode))</span><br><span class="line">	<span class="keyword">if</span> err != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> GOOS == <span class="string">&quot;solaris&quot;</span> || GOOS == <span class="string">&quot;illumos&quot;</span> || GOOS == <span class="string">&quot;aix&quot;</span> &#123;</span><br><span class="line">		netpollarm(pd, mode)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> !netpollblock(pd, <span class="type">int32</span>(mode), <span class="literal">false</span>) &#123;</span><br><span class="line">		err = netpollcheckerr(pd, <span class="type">int32</span>(mode))</span><br><span class="line">		<span class="keyword">if</span> err != <span class="number">0</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>poll_runtime_pollWait运行在内核M线程中，轮询调用netpollblock，所以内核M线程一直在轮询检测netpollblock返回值，当其返回true时循环就可以退出，从而用户态协程就可以继续运行了。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpollblock</span><span class="params">(pd *pollDesc, mode <span class="type">int32</span>, waitio <span class="type">bool</span>)</span></span> <span class="type">bool</span> &#123;</span><br><span class="line">	gpp := &amp;pd.rg</span><br><span class="line">	<span class="keyword">if</span> mode == <span class="string">&#x27;w&#x27;</span> &#123;</span><br><span class="line">		gpp = &amp;pd.wg</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// set the gpp semaphore to WAIT</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		old := *gpp</span><br><span class="line">		<span class="keyword">if</span> old == pdReady &#123;</span><br><span class="line">			*gpp = <span class="number">0</span></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> old != <span class="number">0</span> &#123;</span><br><span class="line">			throw(<span class="string">&quot;runtime: double wait&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> atomic.Casuintptr(gpp, <span class="number">0</span>, pdWait) &#123;</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> waitio || netpollcheckerr(pd, mode) == <span class="number">0</span> &#123;</span><br><span class="line">		gopark(netpollblockcommit, unsafe.Pointer(gpp), waitReasonIOWait, traceEvGoBlockNet, <span class="number">5</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	old := atomic.Xchguintptr(gpp, <span class="number">0</span>)</span><br><span class="line">	<span class="keyword">if</span> old &gt; pdWait &#123;</span><br><span class="line">		throw(<span class="string">&quot;runtime: corrupted polldesc&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> old == pdReady</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>netpollblock内部根据读模式还是写模式，获取pollDesc成员变量的读协程或者写协程地址，然后判断其状态是否为pdReady，这里要详细说一下，golang阻塞一个用户态协程是要将其状态设置为0(正在运行)或者pdWait(阻塞)，这里为0，所以逻辑继续往下走，之后做了一个原子操作将gpp设置为pdWait状态，接着根据这个状态，执行gopark函数，阻塞住用户态协程。当内核想激活用户协程时gopark会返回，然后该函数判断gpp是否为pdReady，从而激活用户态协程。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">gopark</span><span class="params">(unlockf <span class="keyword">func</span>(*g, unsafe.Pointer)</span></span> <span class="type">bool</span>, lock unsafe.Pointer, reason waitReason, traceEv <span class="type">byte</span>, traceskip <span class="type">int</span>) &#123;</span><br><span class="line">	<span class="keyword">if</span> reason != waitReasonSleep &#123;</span><br><span class="line">		checkTimeouts() <span class="comment">// timeouts may expire while two goroutines keep the scheduler busy</span></span><br><span class="line">	&#125;</span><br><span class="line">	mp := acquirem()</span><br><span class="line">	gp := mp.curg</span><br><span class="line">	status := readgstatus(gp)</span><br><span class="line">	<span class="keyword">if</span> status != _Grunning &amp;&amp; status != _Gscanrunning &#123;</span><br><span class="line">		throw(<span class="string">&quot;gopark: bad g status&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	mp.waitlock = lock</span><br><span class="line">	mp.waitunlockf = unlockf</span><br><span class="line">	gp.waitreason = reason</span><br><span class="line">	mp.waittraceev = traceEv</span><br><span class="line">	mp.waittraceskip = traceskip</span><br><span class="line">	releasem(mp)</span><br><span class="line">	<span class="comment">// can&#x27;t do anything that might move the G between Ms here.</span></span><br><span class="line">	mcall(park_m)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>gopark将用户态协程放在等待队列中，然后调用mcall触发汇编代码。之后会检测调用unlockf函数，如果unlockf返回false则说明可以解锁用户态协程了。另外官网的注释说unlockf不要访问用户态协程的stack，因为G’s stack可能会在gopark和unlockf之间被移除。到目前为止，我们理解了用户态协程挂起原理。</p>
+<h2 id="epoll就绪后如何激活用户态协程"><a href="#epoll就绪后如何激活用户态协程" class="headerlink" title="epoll就绪后如何激活用户态协程"></a>epoll就绪后如何激活用户态协程</h2><p>想知道如果激活挂起的用户态协程，就要先看看epoll_wait判断就绪事件后怎么处理的。runtime/netpoll_epoll.go中实现了epollwait逻辑</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpoll</span><span class="params">(delay <span class="type">int64</span>)</span></span> gList &#123;</span><br><span class="line">	<span class="keyword">if</span> epfd == <span class="number">-1</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> gList&#123;&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//...</span></span><br><span class="line">	<span class="keyword">var</span> events [<span class="number">128</span>]epollevent</span><br><span class="line">retry:</span><br><span class="line">	n := epollwait(epfd, &amp;events[<span class="number">0</span>], <span class="type">int32</span>(<span class="built_in">len</span>(events)), waitms)</span><br><span class="line">	<span class="keyword">if</span> n &lt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> n != -_EINTR &#123;</span><br><span class="line">			<span class="built_in">println</span>(<span class="string">&quot;runtime: epollwait on fd&quot;</span>, epfd, <span class="string">&quot;failed with&quot;</span>, -n)</span><br><span class="line">			throw(<span class="string">&quot;runtime: netpoll failed&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// If a timed sleep was interrupted, just return to</span></span><br><span class="line">		<span class="comment">// recalculate how long we should sleep now.</span></span><br><span class="line">		<span class="keyword">if</span> waitms &gt; <span class="number">0</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> gList&#123;&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">goto</span> retry</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">var</span> toRun gList</span><br><span class="line">	<span class="keyword">for</span> i := <span class="type">int32</span>(<span class="number">0</span>); i &lt; n; i++ &#123;</span><br><span class="line">		ev := &amp;events[i]</span><br><span class="line">		<span class="keyword">if</span> ev.events == <span class="number">0</span> &#123;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">        <span class="comment">//...</span></span><br><span class="line">		<span class="keyword">var</span> mode <span class="type">int32</span></span><br><span class="line">		<span class="keyword">if</span> ev.events&amp;(_EPOLLIN|_EPOLLRDHUP|_EPOLLHUP|_EPOLLERR) != <span class="number">0</span> &#123;</span><br><span class="line">			mode += <span class="string">&#x27;r&#x27;</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> ev.events&amp;(_EPOLLOUT|_EPOLLHUP|_EPOLLERR) != <span class="number">0</span> &#123;</span><br><span class="line">			mode += <span class="string">&#x27;w&#x27;</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> mode != <span class="number">0</span> &#123;</span><br><span class="line">			pd := *(**pollDesc)(unsafe.Pointer(&amp;ev.data))</span><br><span class="line">			pd.everr = <span class="literal">false</span></span><br><span class="line">			<span class="keyword">if</span> ev.events == _EPOLLERR &#123;</span><br><span class="line">				pd.everr = <span class="literal">true</span></span><br><span class="line">			&#125;</span><br><span class="line">			netpollready(&amp;toRun, pd, mode)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> toRun</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以看出netpoll函数调用epollwait返回就绪事件列表，然后遍历就绪的事件列表，从事件类型中取出pollDesc数据，调用netpollready将曾经挂起的协程放入gList中，然后返回该列表</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpollready</span><span class="params">(toRun *gList, pd *pollDesc, mode <span class="type">int32</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> rg, wg *g</span><br><span class="line">	<span class="keyword">if</span> mode == <span class="string">&#x27;r&#x27;</span> || mode == <span class="string">&#x27;r&#x27;</span>+<span class="string">&#x27;w&#x27;</span> &#123;</span><br><span class="line">		rg = netpollunblock(pd, <span class="string">&#x27;r&#x27;</span>, <span class="literal">true</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> mode == <span class="string">&#x27;w&#x27;</span> || mode == <span class="string">&#x27;r&#x27;</span>+<span class="string">&#x27;w&#x27;</span> &#123;</span><br><span class="line">		wg = netpollunblock(pd, <span class="string">&#x27;w&#x27;</span>, <span class="literal">true</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> rg != <span class="literal">nil</span> &#123;</span><br><span class="line">		toRun.push(rg)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> wg != <span class="literal">nil</span> &#123;</span><br><span class="line">		toRun.push(wg)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>netpollready调用了unblock函数，并且将协程写入glist中</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpollunblock</span><span class="params">(pd *pollDesc, mode <span class="type">int32</span>, ioready <span class="type">bool</span>)</span></span> *g &#123;</span><br><span class="line">	gpp := &amp;pd.rg</span><br><span class="line">	<span class="keyword">if</span> mode == <span class="string">&#x27;w&#x27;</span> &#123;</span><br><span class="line">		gpp = &amp;pd.wg</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		old := *gpp</span><br><span class="line">		<span class="keyword">if</span> old == pdReady &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> old == <span class="number">0</span> &amp;&amp; !ioready &#123;</span><br><span class="line">			<span class="comment">// Only set READY for ioready. runtime_pollWait</span></span><br><span class="line">			<span class="comment">// will check for timeout/cancel before waiting.</span></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">var</span> <span class="built_in">new</span> <span class="type">uintptr</span></span><br><span class="line">		<span class="keyword">if</span> ioready &#123;</span><br><span class="line">			<span class="built_in">new</span> = pdReady</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> atomic.Casuintptr(gpp, old, <span class="built_in">new</span>) &#123;</span><br><span class="line">			<span class="keyword">if</span> old == pdReady || old == pdWait &#123;</span><br><span class="line">				old = <span class="number">0</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> (*g)(unsafe.Pointer(old))</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>netpollunblock函数修改pd所在协程的状态为0，表示可运行状态，所以netpoll函数内部做了这样几件事，根据就绪事件列表找到对应的协程，将挂起的协程状态设置为0表示可运行，然后将该协程放入glist中。在runtime/proc.go中findrunnable会判断是否初始化epoll，如果初始化了则调用netpoll，从而获取glist，然后traceGoUnpark激活挂起的协程</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">findrunnable</span><span class="params">()</span></span> (gp *g, inheritTime <span class="type">bool</span>) &#123;</span><br><span class="line">	_g_ := getg()</span><br><span class="line">    <span class="comment">//...</span></span><br><span class="line">	<span class="keyword">if</span> netpollinited() &amp;&amp; atomic.Load(&amp;netpollWaiters) &gt; <span class="number">0</span> &amp;&amp; atomic.Load64(&amp;sched.lastpoll) != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> list := netpoll(<span class="number">0</span>); !list.empty() &#123; <span class="comment">// non-blocking</span></span><br><span class="line">			gp := list.pop()</span><br><span class="line">			injectglist(&amp;list)</span><br><span class="line">			casgstatus(gp, _Gwaiting, _Grunnable)</span><br><span class="line">			<span class="keyword">if</span> trace.enabled &#123;</span><br><span class="line">				traceGoUnpark(gp, <span class="number">0</span>)</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> gp, <span class="literal">false</span></span><br><span class="line">		&#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>以上就是golang网络调度和协程控制的原理，golang通过epoll和用户态协程调度结合的方式，实现了高并发的网络处理，这种思路是值得日后我们设计产品借鉴的。<br>感谢关注我的公众号<br><img src="wxgzh.jpg" alt="wxgzh.jpg"></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/golang/" rel="tag"># golang</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/05/17/golang31/" rel="next" title="谈谈golang的netpoll原理(一)">
+                <i class="fa fa-chevron-left"></i> 谈谈golang的netpoll原理(一)
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/06/29/golang33/" rel="prev" title="化繁为简，写一个简单好用的server">
+                化繁为简，写一个简单好用的server <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">219</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81epoll%E8%A1%A8%E5%88%9D%E5%A7%8B%E5%8C%96%E4%B8%80%E6%AC%A1"><span class="nav-number">1.</span> <span class="nav-text">如何保证epoll表初始化一次</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B7%9F%E9%9A%8Faccept%E7%9C%8B%E7%9C%8Bgoroutine%E6%8C%82%E8%B5%B7%E9%80%BB%E8%BE%91"><span class="nav-number">2.</span> <span class="nav-text">跟随accept看看goroutine挂起逻辑</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#epoll%E5%B0%B1%E7%BB%AA%E5%90%8E%E5%A6%82%E4%BD%95%E6%BF%80%E6%B4%BB%E7%94%A8%E6%88%B7%E6%80%81%E5%8D%8F%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">epoll就绪后如何激活用户态协程</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

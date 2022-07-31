@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="网络编程,Linux环境编程," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="Bufferevents and evbuffers Every bufferevent has an input buffer and an output buffer. These are of type “struct evbuffer”. When you have data to write on a bufferevent, you add it to the output buffe">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Libevent学习笔记(四) bufferevent 的 concepts and basics">
+<meta property="og:url" content="http://www.limerence2017.com/2017/08/04/libevent4/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="Bufferevents and evbuffers Every bufferevent has an input buffer and an output buffer. These are of type “struct evbuffer”. When you have data to write on a bufferevent, you add it to the output buffe">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2017-08-04T10:08:08.000Z">
+<meta property="article:modified_time" content="2022-07-31T07:11:50.041Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="网络编程">
+<meta property="article:tag" content="Linux环境编程">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2017/08/04/libevent4/"/>
+
+
+
+
+
+  <title>Libevent学习笔记(四) bufferevent 的 concepts and basics | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/04/libevent4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Libevent学习笔记(四) bufferevent 的 concepts and basics</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-04T18:08:08+08:00">
+                2017-08-04
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/netprogram/" itemprop="url" rel="index">
+                    <span itemprop="name">网络编程</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><code>Bufferevents and evbuffers</code></p>
+<p>Every bufferevent has an input buffer and an output buffer. These are of type “struct evbuffer”. When you have data to write on a bufferevent, you add it to the output buffer; when a bufferevent has data for you to read, you drain it from the input buffer.</p>
+<p>每个<code>bufferevents</code>都会包含一个input的buffer和output的buffer,都是<code>struct evbuffer</code>类型， 如果你有数据想通过bufferevent发送，需要将数据放入output buffer里。如果要从bufferevent中读数据，</p>
+<p>需要从input buffer里读取。</p>
+<p><code>Callbacks and watermarks</code></p>
+<p>Every bufferevent has two data-related callbacks: a read callback and a write callback. By default, the read callback is called whenever any data is read from the underlying transport, and the write callback is called whenever enough data from the output buffer is emptied to the underlying transport. You can override the behavior of these functions by adjusting the read and write “watermarks” of the bufferevent.</p>
+<p>每一个bufferevent都有两个回调函数，一个<code>读回调</code>和一个<code>写回调</code>函数，默认情况下，只要从底层传输读取数据就回触发读回调函数，当output buffer中足够多的数据排出就会触发写回调函数。而我的理解是，这里的足够多，默认情况下是排空，</p>
+<p>用户可以通过调整读写水位来达到控制这些函数触发。</p>
+<span id="more"></span>
+
+<p>下面是libevent源码中的一些注释</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">   A read or write callback for a bufferevent.</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">   The read callback is triggered when new data arrives in the input</span></span><br><span class="line"><span class="comment">   buffer and the amount of readable data exceed the low watermark</span></span><br><span class="line"><span class="comment">   which is 0 by default.</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">   The write callback is triggered if the write buffer has been</span></span><br><span class="line"><span class="comment">   exhausted or fell below its low watermark.</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">   @param bev the bufferevent that triggered the callback</span></span><br><span class="line"><span class="comment">   @param ctx the user-specified context for this bufferevent</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure>
+<p>到此为止总结下，bufferevent实际上是libevent为我们准备的一个缓存结构，将接受的数据缓存到input buffer供用户从中读取，用户将发送的数据缓存到output buffer进行发送。bufferevent的input buffer中有数据到来并且可读数据达到或超过读数据的低水位就会触发读回调函数，读数据的低水位默认是0,写回调函数会在outbuffer中的数据低于写的低水位时会触发。bufferevent会自己讲output中的内容发送出去，将接收到的内容放到input中。</p>
+<p><code>Read low-water mark</code><br>Whenever a read occurs that leaves the bufferevent’s input buffer at this level or higher, the bufferevent’s read callback is invoked. Defaults to 0, so that every read results in the read callback being invoked.</p>
+<p>只要读事件让bufferevent超过或者到达这个Read low-water 水位或者更高，读回调会被触发。默认情况下 Read low-water 是0，所以每次bufferevent 读数据都会导致读回调触发。</p>
+<p><code>Read high-water mark</code><br>If the bufferevent’s input buffer ever gets to this level, the bufferevent stops reading until enough data is drained from the input buffer to take us below it again. Defaults to unlimited, so that we never stop reading because of the size of the input buffer.</p>
+<p>如果bufferevent 的 input buffer达到Read high-water水平，那么bufferevent会停止读，直到有数据从input中被用户取出使input buffer的水位线低于Read high-water， 默认情况下Read high-water是无穷大的，因此我们不会因为input buffer不够停止读。 </p>
+<p><code>Write low-water mark</code><br>Whenever a write occurs that takes us to this level or below, we invoke the write callback. Defaults to 0, so that a write callback is not invoked unless the output buffer is emptied.</p>
+<p>当bufferevent写数据导致数据大小低于 Write low-water水平线，就回触发写回调函数。默认这个Write low-water值为0，因此只有当output buffer数据为空时才会触发写回调函数。</p>
+<p><code>Write high-water mark</code><br>Not used by a bufferevent directly, this watermark can have special meaning when a bufferevent is used as the underlying transport of another bufferevent. See notes on filtering bufferevents below.</p>
+<p>这个参数不会直接使用，当一个bufferevent作为参数传递给另一个bufferevent时可以做为特殊意义。filtering bufferevents可能会用到。</p>
+<p>A bufferevent also has an “error” or “event” callback that gets invoked to tell the application about non-data-oriented events, like when a connection is closed or an error occurs. The following event flags are defined:</p>
+<p>一个bufferevent也会有类似错误或者特殊事件的回调函数，这类函数触发后通知应用程序一些和数据无关的事件，比如当有连接关闭，或者错误出现可以触发这类函数。</p>
+<p><code>BEV_EVENT_READING</code><br>An event occured during a read operation on the bufferevent. See the other flags for which event it was.</p>
+<p>在bufferevent上进行读操作</p>
+<p><code>BEV_EVENT_WRITING</code><br>An event occured during a write operation on the bufferevent. See the other flags for which event it was.</p>
+<p>在bufferevent上进行写操作</p>
+<p><code>BEV_EVENT_ERROR</code><br>An error occurred during a bufferevent operation. For more information on what the error was, call EVUTIL_SOCKET_ERROR().</p>
+<p>bufferevent操作产生错误，通过EVUTIL_SOCKET_ERROR可以详细查看错误源</p>
+<p><code>BEV_EVENT_TIMEOUT</code><br>A timeout expired on the bufferevent.</p>
+<p>超时事件</p>
+<p><code>BEV_EVENT_EOF</code><br>We got an end-of-file indication on the bufferevent.</p>
+<p>读到文件结束符</p>
+<p><code>BEV_EVENT_CONNECTED</code><br>We finished a requested connection on the bufferevent.</p>
+<p>完成连接</p>
+<p>Deferred callbacks</p>
+<p>By default, a bufferevent callbacks are executed immediately when the corresponding condition happens. (This is true of evbuffer callbacks too; we’ll get to those later.) This immediate invocation can make trouble when dependencies get complex. For example, suppose that there is a callback that moves data into evbuffer A when it grows empty, and another callback that processes data out of evbuffer A when it grows full. Since these calls are all happening on the stack, you might risk a stack overflow if the dependency grows nasty enough.</p>
+<p>To solve this, you can tell a bufferevent (or an evbuffer) that its callbacks should be deferred. When the conditions are met for a deferred callback, rather than invoking it immediately, it is queued as part of the event_loop() call, and invoked after the regular events’ callbacks.</p>
+<p>(Deferred callbacks were introduced in Libevent 2.0.1-alpha.)</p>
+<p>默认情况下，bufferevent回调函数在条件符合时会立即执行。当情况复杂时这种立即出发的方式可能会造成问题，例如，假设有一个回调函数功能是在evbuffer A变空时向evbuffer A中放入数据，</p>
+<p>另一个回调函数是在evbuffer A数据满的时候从中取出数据，由于这些操作是在栈上进行，这种做法会造成造成栈溢出，解决方法就是将回调函数延迟触发，条件满足时，将回调函数作为event_loop的一个部分</p>
+<p>通过有规律的事件回调触发。</p>
+<p>Option flags for bufferevents</p>
+<p>You can use one or more flags when creating a bufferevent to alter its behavior. Recognized flags are:</p>
+<p>创建bufferevent时可以选择如下选项进行个性化设置</p>
+<p><code>BEV_OPT_CLOSE_ON_FREE</code><br>When the bufferevent is freed, close the underlying transport. This will close an underlying socket, free an underlying bufferevent, etc.</p>
+<p>当bufferevent被释放，关闭底层传输，这个将会关闭底层socket，释放底层的bufferevent等。</p>
+<p><code>BEV_OPT_THREADSAFE</code><br>Automatically allocate locks for the bufferevent, so that it’s safe to use from multiple threads.</p>
+<p>为bufferevent自动上锁，多线程模式会安全。</p>
+<p><code>BEV_OPT_DEFER_CALLBACKS</code><br>When this flag is set, the bufferevent defers all of its callbacks, as described above.</p>
+<p>设置bufferevent的callback延迟处理。</p>
+<p><code>BEV_OPT_UNLOCK_CALLBACKS</code><br>By default, when the bufferevent is set up to be threadsafe, the bufferevent’s locks are held whenever the any user-provided callback is invoked. Setting this option makes Libevent release the bufferevent’s lock when it’s invoking your callbacks.</p>
+<p>如果设置了线程安全选项，设置这个选项会使得调用我们的回调函数时释放锁。</p>
+<p>Working with socket-based bufferevents</p>
+<p><code>1创建bufferevent，成功返回bufferevent的指针，失败返回空，options是上面提到的选项。</code></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">bufferevent</span> *<span class="built_in">bufferevent_socket_new</span>(</span><br><span class="line">    <span class="keyword">struct</span> event_base *base,</span><br><span class="line">    <span class="type">evutil_socket_t</span> fd,</span><br><span class="line">    <span class="keyword">enum</span> bufferevent_options options);</span><br></pre></td></tr></table></figure>
+
+<p> <code>2连接函数</code></p>
+<p>int bufferevent_socket_connect(struct bufferevent *bev,<br>    struct sockaddr *address, int addrlen);</p>
+<p>the address and addrlen arguments are as for the standard call connect(). If the bufferevent does not already have a socket set, calling this function allocates a new stream socket for it, and makes it nonblocking.</p>
+<p>If the bufferevent does have a socket already, calling bufferevent_socket_connect() tells Libevent that the socket is not connected, and no reads or writes should be done on the socket until the connect operation has succeeded.</p>
+<p>It is okay to add data to the output buffer before the connect is done.</p>
+<p>如果bufferevent没有设置socket，调用这个函数会为它创建一个非阻塞socket</p>
+<p>如果bufferevent有socket，调用这个函数会通知libevent在连接成功前不能调用读或者写。</p>
+<p>在连接成功前可以向output buffer中添加数据。</p>
+<p>下面是例子：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;event2/event.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;event2/bufferevent.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">eventcb</span><span class="params">(<span class="keyword">struct</span> bufferevent *bev, <span class="type">short</span> events, <span class="type">void</span> *ptr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (events &amp; BEV_EVENT_CONNECTED) &#123;</span><br><span class="line">         <span class="comment">/* We&#x27;re connected to 127.0.0.1:8080.   Ordinarily we&#x27;d do</span></span><br><span class="line"><span class="comment">            something here, like start reading or writing. */</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (events &amp; BEV_EVENT_ERROR) &#123;</span><br><span class="line">         <span class="comment">/* An error occured while connecting. */</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="built_in">main_loop</span>(<span class="type">void</span>)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">struct</span> event_base *base;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">bufferevent</span> *bev;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">sockaddr_in</span> sin;</span><br><span class="line"></span><br><span class="line">    base = <span class="built_in">event_base_new</span>();</span><br><span class="line"></span><br><span class="line">    <span class="built_in">memset</span>(&amp;sin, <span class="number">0</span>, <span class="built_in">sizeof</span>(sin));</span><br><span class="line">    sin.sin_family = AF_INET;</span><br><span class="line">    sin.sin_addr.s_addr = <span class="built_in">htonl</span>(<span class="number">0x7f000001</span>); <span class="comment">/* 127.0.0.1 */</span></span><br><span class="line">    sin.sin_port = <span class="built_in">htons</span>(<span class="number">8080</span>); <span class="comment">/* Port 8080 */</span></span><br><span class="line"></span><br><span class="line">    bev = <span class="built_in">bufferevent_socket_new</span>(base, <span class="number">-1</span>, BEV_OPT_CLOSE_ON_FREE);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">bufferevent_setcb</span>(bev, <span class="literal">NULL</span>, <span class="literal">NULL</span>, eventcb, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">bufferevent_socket_connect</span>(bev,</span><br><span class="line">        (<span class="keyword">struct</span> sockaddr *)&amp;sin, <span class="built_in">sizeof</span>(sin)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="comment">/* Error starting connection */</span></span><br><span class="line">        <span class="built_in">bufferevent_free</span>(bev);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">event_base_dispatch</span>(base);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Note that you only get a BEV_EVENT_CONNECTED event if you launch the connect() attempt using bufferevent_socket_connect(). If you call connect() on your own, the connection gets reported as a write.</p>
+<p>If you want to call connect() yourself, but still get receive a BEV_EVENT_CONNECTED event when the connection succeeds, call bufferevent_socket_connect(bev, NULL, 0) after connect() returns -1 with errno equal to EAGAIN or EINPROGRESS.</p>
+<p>如果通过bufferevent_socket_connect连接，那么返回的事件是BEV_EVENT_CONNECTED ，</p>
+<p>如果通过connect连接，那么返回的是write事件。如果调用了connect，还想捕捉到BEV_EVENT_CONNECTED 事件，可以继续调用bufferevent_socket_connect(bev,NULL, 0),返回值为-1，errno为EAGAIN或者EINPROGRESS</p>
+<p><code>3释放bufferevent</code></p>
+<p>void bufferevent_free(struct bufferevent *bev);<br>This function frees a bufferevent. Bufferevents are internally reference-counted, so if the bufferevent has pending deferred callbacks when you free it, it won’t be deleted until the callbacks are done.</p>
+<p>The bufferevent_free() function does, however, try to free the bufferevent as soon as possible. If there is pending data to write on the bufferevent, it probably won’t be flushed before the bufferevent is freed.</p>
+<p>If the BEV_OPT_CLOSE_ON_FREE flag was set, and this bufferevent has a socket or underlying bufferevent associated with it as its transport, that transport is closed when you free the bufferevent.</p>
+<p>当bufferevent有延迟回调函数没处理，调用bufferevent_free并不会立即释放bufferevent，bufferevent内部是引用计数的，他能做到的是尽快释放，如果bufferevent上存在阻塞的数据还没有写，这部分数据在bufferevent释放前是不会被释放的。</p>
+<p><code>4 其他的一些设置函数</code></p>
+<p>是指bufferevent回调函数，以及获取回调函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">typedef</span> <span class="title">void</span> <span class="params">(*bufferevent_data_cb)</span><span class="params">(<span class="keyword">struct</span> bufferevent *bev, <span class="type">void</span> *ctx)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">typedef</span> <span class="title">void</span> <span class="params">(*bufferevent_event_cb)</span><span class="params">(<span class="keyword">struct</span> bufferevent *bev,</span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">short</span> events, <span class="type">void</span> *ctx)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">bufferevent_setcb</span><span class="params">(<span class="keyword">struct</span> bufferevent *bufev,</span></span></span><br><span class="line"><span class="params"><span class="function">    bufferevent_data_cb readcb, bufferevent_data_cb writecb,</span></span></span><br><span class="line"><span class="params"><span class="function">    bufferevent_event_cb eventcb, <span class="type">void</span> *cbarg)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">bufferevent_getcb</span><span class="params">(<span class="keyword">struct</span> bufferevent *bufev,</span></span></span><br><span class="line"><span class="params"><span class="function">    bufferevent_data_cb *readcb_ptr,</span></span></span><br><span class="line"><span class="params"><span class="function">    bufferevent_data_cb *writecb_ptr,</span></span></span><br><span class="line"><span class="params"><span class="function">    bufferevent_event_cb *eventcb_ptr,</span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">void</span> **cbarg_ptr)</span></span>;</span><br></pre></td></tr></table></figure>
+<p><code>5 读写生效函数，读写失效函数</code></p>
+<p>void bufferevent_enable(struct bufferevent *bufev, short events);<br>void bufferevent_disable(struct bufferevent *bufev, short events);</p>
+<p>short bufferevent_get_enabled(struct bufferevent *bufev);<br>You can enable or disable the events EV_READ, EV_WRITE, or EV_READ|EV_WRITE on a bufferevent. When reading or writing is not enabled, the bufferevent will not try to read or write data.</p>
+<p>There is no need to disable writing when the output buffer is empty: the bufferevent automatically stops writing, and restarts again when there is data to write.</p>
+<p>Similarly, there is no need to disable reading when the input buffer is up to its high-water mark: the bufferevent automatically stops reading, and restarts again when there is space to read.</p>
+<p>By default, a newly created bufferevent has writing enabled, but not reading.</p>
+<p>You can call bufferevent_get_enabled() to see which events are currently enabled on the bufferevent.</p>
+<p> 可以设置bufferevent 读，写，或者读和写生效，当读或者写失效，bufferevent将不会尝试读或者写数据。在output为空时没必要让写操作失效，bufferevent会自动停止写，当有数据可写时才再次执行写操作。</p>
+<p>同样的，在input buffer超过高水位时，没必要设置读失效，bufferevent 会自动停止读，而等到有空间(其实是input缓冲区非满)再次开始接收数据。</p>
+<p>默认情况下，新创建的 bufferevent是可写的不可读的。(因为如果设置可读选项，那么会出现busyloop，因为input一直非满)</p>
+<p>用户可以通过bufferevent_get_enabled获取当前哪些事件类型是允许的。</p>
+<p><code>6设置水位接口</code></p>
+<p>void bufferevent_setwatermark(struct bufferevent *bufev, short events,<br>    size_t lowmark, size_t highmark);<br>The bufferevent_setwatermark() function adjusts the read watermarks, the write watermarks, or both, of a single bufferevent. (If EV_READ is set in the events field, the read watermarks are adjusted. If EV_WRITE is set in the events field, the write watermarks are adjusted.)</p>
+<p>A high-water mark of 0 is equivalent to “unlimited”.</p>
+<p>bufferevent_setwatermark函数调整读或者写的水位。</p>
+<p><code>7获取读写缓冲区的内容</code></p>
+<p>struct evbuffer *bufferevent_get_input(struct bufferevent *bufev);<br>struct evbuffer *bufferevent_get_output(struct bufferevent *bufev);</p>
+<p><code>8向bufferevent中写数据</code></p>
+<p>int bufferevent_write(struct bufferevent *bufev,<br>    const void *data, size_t size);<br>int bufferevent_write_buffer(struct bufferevent *bufev,<br>    struct evbuffer *buf);</p>
+<p>调用bufferevent_write可以向bufev的output 的末尾追加写入。</p>
+<p>bufferevent_write_buffer将buf中的数据移除，写入到bufevoutput中。</p>
+<p>两个函数返回0表示成功，-1表示失败。</p>
+<p><code>9从bufferevent中读数据</code></p>
+<p>size_t bufferevent_read(struct bufferevent *bufev, void *data, size_t size);<br>int bufferevent_read_buffer(struct bufferevent *bufev,<br>    struct evbuffer *buf); </p>
+<p>bufferevent_read 从bufev中input buffer 读取size大小数据，存在data中。</p>
+<p>bufferevent_read_buffer从bufev的input buffer中将所有数据取出放入到buf中。</p>
+<p>两个函数返回0表示成功，-1表示失败。</p>
+<p><code>10设置读写事件的超时时间</code></p>
+<p>void bufferevent_set_timeouts(struct bufferevent *bufev,<br>    const struct timeval *timeout_read, const struct timeval *timeout_write);</p>
+<p><code>11强制刷新读或者写</code></p>
+<p>int bufferevent_flush(struct bufferevent *bufev,<br>    short iotype, enum bufferevent_flush_mode state);</p>
+<p> 强制从底层读取数据，或将数据写入底层。The iotype argument should be EV_READ, EV_WRITE, or EV_READ|EV_WRITE to indicate whether bytes being read, written, or both should be processed.</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" rel="tag"># 网络编程</a>
+          
+            <a href="/tags/Linux%E7%8E%AF%E5%A2%83%E7%BC%96%E7%A8%8B/" rel="tag"># Linux环境编程</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/08/04/Libevent5/" rel="next" title="Libevent学习笔记(五) 根据例子学习bufferevent">
+                <i class="fa fa-chevron-left"></i> Libevent学习笔记(五) 根据例子学习bufferevent
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/08/04/libevent3/" rel="prev" title="libevent学习文档(三)working with event">
+                libevent学习文档(三)working with event <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">219</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

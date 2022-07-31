@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="网络编程," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="1 设置网络socket非阻塞：12u_long has &#x3D; 1;ioctl(m_sock, FIONBIO , &amp;has); 这个函数很有可能返回success，却并没有设置成功。windows对此有优化，对于linux版本应采用fcntl设置。 总结如下： 123456789101112131415161718192021222324252627intmake_socket_nonbl">
+<meta property="og:type" content="article">
+<meta property="og:title" content="网络编程一些常见问题总结">
+<meta property="og:url" content="http://www.limerence2017.com/2017/08/04/newproblem/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="1 设置网络socket非阻塞：12u_long has &#x3D; 1;ioctl(m_sock, FIONBIO , &amp;has); 这个函数很有可能返回success，却并没有设置成功。windows对此有优化，对于linux版本应采用fcntl设置。 总结如下： 123456789101112131415161718192021222324252627intmake_socket_nonbl">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2017-08-04T09:19:14.000Z">
+<meta property="article:modified_time" content="2022-07-31T07:11:50.072Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="网络编程">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2017/08/04/newproblem/"/>
+
+
+
+
+
+  <title>网络编程一些常见问题总结 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/04/newproblem/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">网络编程一些常见问题总结</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-04T17:19:14+08:00">
+                2017-08-04
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/netprogram/" itemprop="url" rel="index">
+                    <span itemprop="name">网络编程</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="1-设置网络socket非阻塞："><a href="#1-设置网络socket非阻塞：" class="headerlink" title="1 设置网络socket非阻塞："></a>1 设置网络socket非阻塞：</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">u_long has = <span class="number">1</span>;</span><br><span class="line"><span class="built_in">ioctl</span>(m_sock, FIONBIO , &amp;has);</span><br></pre></td></tr></table></figure>
+<p>这个函数很有可能返回success，却并没有设置成功。<br>windows对此有优化，对于linux版本应采用fcntl设置。</p>
+<p>总结如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span></span></span><br><span class="line"><span class="function"><span class="title">make_socket_nonblocking</span><span class="params">(sockfd fd)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> WIN32</span></span><br><span class="line">    &#123;</span><br><span class="line">        u_long nonblocking = <span class="number">1</span>;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">ioctlsocket</span>(fd, FIONBIO, &amp;nonblocking) == SOCKET_ERROR) &#123;</span><br><span class="line">            cout &lt;&lt; <span class="string">&quot;fcntl failed, fd is : &quot;</span> &lt;&lt; fd; </span><br><span class="line">            </span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="type">int</span> flags;</span><br><span class="line">        <span class="keyword">if</span> ((flags = <span class="built_in">fcntl</span>(fd, F_GETFL, <span class="literal">NULL</span>)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            cout &lt;&lt; <span class="string">&quot;fcntl failed, fd is : &quot;</span> &lt;&lt; fd;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">fcntl</span>(fd, F_SETFL, flags | O_NONBLOCK) == <span class="number">-1</span>) &#123;</span><br><span class="line">            cout &lt;&lt; <span class="string">&quot;fcntl failed, fd is : &quot;</span> &lt;&lt; fd;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+<h2 id="2-windows环境下查看错误"><a href="#2-windows环境下查看错误" class="headerlink" title="2 windows环境下查看错误"></a>2 windows环境下查看错误</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">使用WSAGetLastError函数需要配置</span><br><span class="line"> </span><br><span class="line">lib,<span class="string">&quot;ws2_32.lib&quot;</span></span><br></pre></td></tr></table></figure>
+<h2 id="3-EPOLLET这个宏是最小int"><a href="#3-EPOLLET这个宏是最小int" class="headerlink" title="3 EPOLLET这个宏是最小int"></a>3 EPOLLET这个宏是最小int</h2><p>EPOLLET这个宏的数值为-2147483648， 是能表示的最小int值。</p>
+<h2 id="4-make-警告：检测到时钟错误。您的创建可能是不完整的。"><a href="#4-make-警告：检测到时钟错误。您的创建可能是不完整的。" class="headerlink" title="4 make: 警告：检测到时钟错误。您的创建可能是不完整的。"></a>4 make: 警告：检测到时钟错误。您的创建可能是不完整的。</h2><p>可以通过ls -l查看具体的是哪个文件的时间错了，就可以对症下药了，直接 “ touch 对应文件 “ 就可以解决这个问题。</p>
+<p>或者读者可以用 “ touch * “ 来更新整个项目文件的时间,这也可以解决问题。</p>
+<h2 id="5-select-fd-set-对于不同平台实现是不同的"><a href="#5-select-fd-set-对于不同平台实现是不同的" class="headerlink" title="5 select fd_set 对于不同平台实现是不同的"></a>5 select fd_set 对于不同平台实现是不同的</h2><p>在windows平台实现</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> <span class="title class_">fd_set</span> &#123;</span><br><span class="line">        u_int fd_count;               <span class="comment">/* how many are SET? */</span></span><br><span class="line">        SOCKET  fd_array[FD_SETSIZE];   <span class="comment">/* an array of SOCKETs */</span></span><br><span class="line">&#125; fd_set;</span><br></pre></td></tr></table></figure>
+
+<p>很明了，一个计数的fd_count，另一个就是SOCKET数组。其中，FD_SETSIZE是可以设置的。整个fd_set的过程实际上就是将对应的<br>fd_count作为数组下标，数组元素存储的是对应socket fd。比如说当前读事件集合readset的fd_count 为7，当要监控socket fd为5 的读事件到来时，那么readset这个集合中下标为8的数组元素为5，fd_count  = 8以此类推。当调用select时，会返回对应读，写集合所有的描述符数组，并且重置内部的fd_count数量，然后分别调用读写函数即可。</p>
+<p>下面是fd_set在linux下的实现：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">/* XPG4.2 requires this member name.  Otherwise avoid the name</span></span><br><span class="line"><span class="comment">       from the global namespace.  */</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> __USE_XOPEN</span></span><br><span class="line">    __fd_mask fds_bits[__FD_SETSIZE / __NFDBITS];</span><br><span class="line"><span class="meta"># <span class="keyword">define</span> __FDS_BITS(set) ((set)-&gt;fds_bits)</span></span><br><span class="line"><span class="meta">#<span class="keyword">else</span> </span></span><br><span class="line">    __fd_mask __fds_bits[__FD_SETSIZE / __NFDBITS];</span><br><span class="line"><span class="meta"># <span class="keyword">define</span> __FDS_BITS(set) ((set)-&gt;__fds_bits)</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">  &#125; fd_set;</span><br></pre></td></tr></table></figure>
+<p>根据UNIX网络编程对fd_set的介绍，fd_set是个整数数组，用每个bit位来表示fd的。比如，一个32位整数，则数组第一个整数表示0-31的fd，以此类推，第二个整数表示32-63<br>查看linux的FD_SET、FD_CLR是用汇编实现的。根据说明可以知道，就是给bit置位。<br>fd_set在不同平台实现的机制不一样，select第一个参数在linux环境下表示最大描述符数+1。windows无意义。</p>
+<p>下面是我根据libevent早期版本实现的一套select模型：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br><span class="line">280</span><br><span class="line">281</span><br><span class="line">282</span><br><span class="line">283</span><br><span class="line">284</span><br><span class="line">285</span><br><span class="line">286</span><br><span class="line">287</span><br><span class="line">288</span><br><span class="line">289</span><br><span class="line">290</span><br><span class="line">291</span><br><span class="line">292</span><br><span class="line">293</span><br><span class="line">294</span><br><span class="line">295</span><br><span class="line">296</span><br><span class="line">297</span><br><span class="line">298</span><br><span class="line">299</span><br><span class="line">300</span><br><span class="line">301</span><br><span class="line">302</span><br><span class="line">303</span><br><span class="line">304</span><br><span class="line">305</span><br><span class="line">306</span><br><span class="line">307</span><br><span class="line">308</span><br><span class="line">309</span><br><span class="line">310</span><br><span class="line">311</span><br><span class="line">312</span><br><span class="line">313</span><br><span class="line">314</span><br><span class="line">315</span><br><span class="line">316</span><br><span class="line">317</span><br><span class="line">318</span><br><span class="line">319</span><br><span class="line">320</span><br><span class="line">321</span><br><span class="line">322</span><br><span class="line">323</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;modelmanager.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> WIN32</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;netmodeldef.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> XFREE(ptr) do &#123; <span class="keyword">if</span> (ptr) free(ptr); &#125; while (0)</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">win_fd_set</span> &#123;</span><br><span class="line">    u_int fd_count;</span><br><span class="line">    SOCKET fd_array[<span class="number">1</span>];</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">win32op</span> &#123;</span><br><span class="line">    <span class="type">unsigned</span> num_fds_in_fd_sets;</span><br><span class="line">    <span class="type">int</span> resize_out_sets;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">win_fd_set</span> *readset_in;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">win_fd_set</span> *writeset_in;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">win_fd_set</span> *readset_out;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">win_fd_set</span> *writeset_out;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">win_fd_set</span> *exset_out;</span><br><span class="line">    <span class="type">unsigned</span> signals_are_broken : <span class="number">1</span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">static</span> <span class="type">void</span> *<span class="title">win32_init</span><span class="params">(<span class="type">void</span> *)</span></span>;</span><br><span class="line"><span class="function"><span class="type">static</span> <span class="type">int</span> <span class="title">win32_add</span><span class="params">(<span class="type">void</span> *, sockfd, <span class="type">short</span> old, <span class="type">short</span> events, <span class="type">void</span> *_idx)</span></span>;</span><br><span class="line"><span class="function"><span class="type">static</span> <span class="type">int</span> <span class="title">win32_del</span><span class="params">(<span class="type">void</span> *, sockfd, <span class="type">short</span> old, <span class="type">short</span> events, <span class="type">void</span> *_idx)</span></span>;</span><br><span class="line"><span class="function"><span class="type">static</span> <span class="type">int</span> <span class="title">win32_dispatch</span><span class="params">(<span class="type">void</span> *base, <span class="keyword">struct</span> timeval *)</span></span>;</span><br><span class="line"><span class="function"><span class="type">static</span> <span class="type">void</span> <span class="title">win32_dealloc</span><span class="params">(<span class="type">void</span> *)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">ModelOp</span> win32ops = &#123;</span><br><span class="line">    <span class="string">&quot;win32&quot;</span>,</span><br><span class="line">    win32_init,</span><br><span class="line">    win32_add,</span><br><span class="line">    win32_del,</span><br><span class="line">    win32_dispatch,</span><br><span class="line">    win32_dealloc,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> FD_SET_ALLOC_SIZE(n) ((sizeof(struct win_fd_set) + ((n)-1)*sizeof(SOCKET)))</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">static</span> <span class="type">int</span></span></span><br><span class="line"><span class="function"><span class="title">grow_fd_sets</span><span class="params">(<span class="keyword">struct</span> win32op *op, <span class="type">unsigned</span> new_num_fds)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">size_t</span> size;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>( !(new_num_fds &gt;= op-&gt;readset_in-&gt;fd_count &amp;&amp;</span><br><span class="line">        new_num_fds &gt;= op-&gt;writeset_in-&gt;fd_count) )</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    <span class="keyword">if</span>( !(new_num_fds &gt;= <span class="number">1</span>) )</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">    size = <span class="built_in">FD_SET_ALLOC_SIZE</span>(new_num_fds);</span><br><span class="line">    <span class="keyword">if</span> (!(op-&gt;readset_in = (<span class="keyword">struct</span> win_fd_set *)<span class="built_in">realloc</span>(op-&gt;readset_in, size)))</span><br><span class="line">        <span class="keyword">return</span> (<span class="number">-1</span>);</span><br><span class="line">    <span class="keyword">if</span> (!(op-&gt;writeset_in = (<span class="keyword">struct</span> win_fd_set *)<span class="built_in">realloc</span>(op-&gt;writeset_in, size)))</span><br><span class="line">        <span class="keyword">return</span> (<span class="number">-1</span>);</span><br><span class="line">    op-&gt;resize_out_sets = <span class="number">1</span>;</span><br><span class="line">    op-&gt;num_fds_in_fd_sets = new_num_fds;</span><br><span class="line">    <span class="keyword">return</span> (<span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">static</span> <span class="type">int</span></span></span><br><span class="line"><span class="function"><span class="title">do_fd_set</span><span class="params">(<span class="keyword">struct</span> win32op *op, <span class="keyword">struct</span> SocketIndex *ent, SOCKET s, <span class="type">int</span> read)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">win_fd_set</span> *set = read ? op-&gt;readset_in : op-&gt;writeset_in;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (read) &#123;</span><br><span class="line">        <span class="keyword">if</span> (ent-&gt;read_pos_plus1 &gt; <span class="number">0</span>)</span><br><span class="line">            <span class="keyword">return</span> (<span class="number">0</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (ent-&gt;write_pos_plus1 &gt; <span class="number">0</span>)</span><br><span class="line">            <span class="built_in">return</span> (<span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (set-&gt;fd_count == op-&gt;num_fds_in_fd_sets) &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">grow_fd_sets</span>(op, op-&gt;num_fds_in_fd_sets*<span class="number">2</span>))</span><br><span class="line">            <span class="keyword">return</span> (<span class="number">-1</span>);</span><br><span class="line">        <span class="comment">// set pointer will have changed and needs reiniting!</span></span><br><span class="line">        set = read ? op-&gt;readset_in : op-&gt;writeset_in;</span><br><span class="line">    &#125;</span><br><span class="line">    set-&gt;fd_array[set-&gt;fd_count] = s;</span><br><span class="line">    <span class="keyword">if</span> (read)</span><br><span class="line">        ent-&gt;read_pos_plus1 = set-&gt;fd_count+<span class="number">1</span>;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        ent-&gt;write_pos_plus1 = set-&gt;fd_count+<span class="number">1</span>;</span><br><span class="line">    <span class="keyword">return</span> (set-&gt;fd_count++);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">static</span> <span class="type">int</span></span></span><br><span class="line"><span class="function"><span class="title">do_fd_clear</span><span class="params">(<span class="type">void</span> *base,</span></span></span><br><span class="line"><span class="params"><span class="function"><span class="keyword">struct</span> win32op *op, <span class="keyword">struct</span> SocketIndex *ent, <span class="type">int</span> read)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ModelManager* pDispatcher = (ModelManager*)base;</span><br><span class="line"></span><br><span class="line">    <span class="type">int</span> i;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">win_fd_set</span> *set = read ? op-&gt;readset_in : op-&gt;writeset_in;</span><br><span class="line">    <span class="keyword">if</span> (read) &#123;</span><br><span class="line">        i = ent-&gt;read_pos_plus1 - <span class="number">1</span>;</span><br><span class="line">        ent-&gt;read_pos_plus1 = <span class="number">0</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        i = ent-&gt;write_pos_plus1 - <span class="number">1</span>;</span><br><span class="line">        ent-&gt;write_pos_plus1 = <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (i &lt; <span class="number">0</span>)</span><br><span class="line">        <span class="keyword">return</span> (<span class="number">0</span>);</span><br><span class="line">    <span class="keyword">if</span> (--set-&gt;fd_count != (<span class="type">unsigned</span>)i) &#123;</span><br><span class="line">        <span class="keyword">struct</span> <span class="title class_">SocketIndex</span> *ent2;</span><br><span class="line">        SOCKET s2;</span><br><span class="line">        s2 = set-&gt;fd_array[i] = set-&gt;fd_array[set-&gt;fd_count];</span><br><span class="line"></span><br><span class="line">        ent2 = pDispatcher-&gt;<span class="built_in">getSocketIndex</span>( s2 );</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!ent2) <span class="comment">// This indicates a bug.</span></span><br><span class="line">            <span class="keyword">return</span> (<span class="number">0</span>);</span><br><span class="line">        <span class="keyword">if</span> (read)</span><br><span class="line">            ent2-&gt;read_pos_plus1 = i+<span class="number">1</span>;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            ent2-&gt;write_pos_plus1 = i+<span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> (<span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NEVENT 32</span></span><br><span class="line"><span class="function"><span class="type">void</span> *</span></span><br><span class="line"><span class="function"><span class="title">win32_init</span><span class="params">(<span class="type">void</span> *base)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">win32op</span> *winop;</span><br><span class="line">    <span class="type">size_t</span> size;</span><br><span class="line">    <span class="keyword">if</span> (!(winop = (<span class="keyword">struct</span> win32op*)<span class="built_in">malloc</span>( <span class="built_in">sizeof</span>(<span class="keyword">struct</span> win32op))))</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    winop-&gt;num_fds_in_fd_sets = NEVENT;</span><br><span class="line">    size = <span class="built_in">FD_SET_ALLOC_SIZE</span>(NEVENT);</span><br><span class="line">    <span class="keyword">if</span> (!(winop-&gt;readset_in = (<span class="keyword">struct</span> win_fd_set *)<span class="built_in">malloc</span>(size)))</span><br><span class="line">        <span class="keyword">goto</span> err;</span><br><span class="line">    <span class="keyword">if</span> (!(winop-&gt;writeset_in = (<span class="keyword">struct</span> win_fd_set *)<span class="built_in">malloc</span>(size)))</span><br><span class="line">        <span class="keyword">goto</span> err;</span><br><span class="line">    <span class="keyword">if</span> (!(winop-&gt;readset_out = (<span class="keyword">struct</span> win_fd_set *)<span class="built_in">malloc</span>(size)))</span><br><span class="line">        <span class="keyword">goto</span> err;</span><br><span class="line">    <span class="keyword">if</span> (!(winop-&gt;writeset_out = (<span class="keyword">struct</span> win_fd_set *)<span class="built_in">malloc</span>(size)))</span><br><span class="line">        <span class="keyword">goto</span> err;</span><br><span class="line">    <span class="keyword">if</span> (!(winop-&gt;exset_out = (<span class="keyword">struct</span> win_fd_set *)<span class="built_in">malloc</span>(size)))</span><br><span class="line">        <span class="keyword">goto</span> err;</span><br><span class="line">    winop-&gt;readset_in-&gt;fd_count = winop-&gt;writeset_in-&gt;fd_count = <span class="number">0</span>;</span><br><span class="line">    winop-&gt;readset_out-&gt;fd_count = winop-&gt;writeset_out-&gt;fd_count</span><br><span class="line">        = winop-&gt;exset_out-&gt;fd_count = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    winop-&gt;resize_out_sets = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> (winop);</span><br><span class="line">err:</span><br><span class="line">    <span class="built_in">XFREE</span>(winop-&gt;readset_in);</span><br><span class="line">    <span class="built_in">XFREE</span>(winop-&gt;writeset_in);</span><br><span class="line">    <span class="built_in">XFREE</span>(winop-&gt;readset_out);</span><br><span class="line">    <span class="built_in">XFREE</span>(winop-&gt;writeset_out);</span><br><span class="line">    <span class="built_in">XFREE</span>(winop-&gt;exset_out);</span><br><span class="line">    <span class="built_in">XFREE</span>(winop);</span><br><span class="line">    <span class="keyword">return</span> (<span class="literal">NULL</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span></span></span><br><span class="line"><span class="function"><span class="title">win32_add</span><span class="params">(<span class="type">void</span> *base, SOCKET fd,</span></span></span><br><span class="line"><span class="params"><span class="function">          <span class="type">short</span> old, <span class="type">short</span> events, <span class="type">void</span> *_idx)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ModelManager* pDispatcher = (ModelManager*)base;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">win32op</span> *winop = (<span class="keyword">struct</span> win32op *)pDispatcher-&gt;<span class="built_in">getModelData</span>();</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">SocketIndex</span> *idx = (<span class="keyword">struct</span> SocketIndex *)_idx;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!(events &amp; (EV_READ|EV_WRITE)))</span><br><span class="line">        <span class="keyword">return</span> (<span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//event_debug((&quot;%s: adding event for %d&quot;, __func__, (int)fd));</span></span><br><span class="line">    <span class="keyword">if</span> (events &amp; EV_READ) &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">do_fd_set</span>(winop, idx, fd, <span class="number">1</span>)&lt;<span class="number">0</span>)</span><br><span class="line">            <span class="keyword">return</span> (<span class="number">-1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (events &amp; EV_WRITE) &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">do_fd_set</span>(winop, idx, fd, <span class="number">0</span>)&lt;<span class="number">0</span>)</span><br><span class="line">            <span class="keyword">return</span> (<span class="number">-1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> (<span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span></span></span><br><span class="line"><span class="function"><span class="title">win32_del</span><span class="params">(<span class="type">void</span> *base, SOCKET fd, <span class="type">short</span> old, <span class="type">short</span> events,</span></span></span><br><span class="line"><span class="params"><span class="function">          <span class="type">void</span> *_idx)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ModelManager* pDispatcher = (ModelManager*)base;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">win32op</span> *winop = (<span class="keyword">struct</span> win32op *)pDispatcher-&gt;<span class="built_in">getModelData</span>();</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">SocketIndex</span> *idx = (<span class="keyword">struct</span> SocketIndex *)_idx;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//event_debug((&quot;%s: Removing event for &quot;EV_SOCK_FMT,__func__, EV_SOCK_ARG(fd)));</span></span><br><span class="line">    <span class="keyword">if</span> ( (old &amp; EV_READ) &amp;&amp; !(events &amp; EV_READ) )</span><br><span class="line">        <span class="built_in">do_fd_clear</span>(base, winop, idx, <span class="number">1</span>);</span><br><span class="line">    <span class="keyword">if</span> ( (old &amp; EV_WRITE) &amp;&amp; !(events &amp; EV_WRITE) )</span><br><span class="line">        <span class="built_in">do_fd_clear</span>(base, winop, idx, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">static</span> <span class="type">void</span></span></span><br><span class="line"><span class="function"><span class="title">fd_set_copy</span><span class="params">(<span class="keyword">struct</span> win_fd_set *out, <span class="type">const</span> <span class="keyword">struct</span> win_fd_set *in)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    out-&gt;fd_count = in-&gt;fd_count;</span><br><span class="line">    <span class="built_in">memcpy</span>(out-&gt;fd_array, in-&gt;fd_array, in-&gt;fd_count * (<span class="built_in">sizeof</span>(SOCKET)));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">static void dump_fd_set(struct win_fd_set *s)</span></span><br><span class="line"><span class="comment">&#123;</span></span><br><span class="line"><span class="comment">unsigned int i;</span></span><br><span class="line"><span class="comment">printf(&quot;[ &quot;);</span></span><br><span class="line"><span class="comment">for(i=0;i&lt;s-&gt;fd_count;++i)</span></span><br><span class="line"><span class="comment">printf(&quot;%d &quot;,(int)s-&gt;fd_array[i]);</span></span><br><span class="line"><span class="comment">printf(&quot;]\n&quot;);</span></span><br><span class="line"><span class="comment">&#125;</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span></span></span><br><span class="line"><span class="function"><span class="title">win32_dispatch</span><span class="params">(<span class="type">void</span> *base, <span class="keyword">struct</span> timeval *tv)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ModelManager* pDispatcher = (ModelManager*)base;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">win32op</span> *winop = (<span class="keyword">struct</span> win32op *)pDispatcher-&gt;<span class="built_in">getModelData</span>();</span><br><span class="line">    <span class="type">int</span> res = <span class="number">0</span>;</span><br><span class="line">    <span class="type">unsigned</span> j, i;</span><br><span class="line">    <span class="type">int</span> fd_count;</span><br><span class="line">    SOCKET s;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (winop-&gt;resize_out_sets) &#123;</span><br><span class="line">        <span class="type">size_t</span> size = <span class="built_in">FD_SET_ALLOC_SIZE</span>(winop-&gt;num_fds_in_fd_sets);</span><br><span class="line">        <span class="keyword">if</span> (!(winop-&gt;readset_out = (<span class="keyword">struct</span> win_fd_set *)<span class="built_in">realloc</span>(winop-&gt;readset_out, size)))</span><br><span class="line">            <span class="keyword">return</span> (<span class="number">-1</span>);</span><br><span class="line">        <span class="keyword">if</span> (!(winop-&gt;exset_out = (<span class="keyword">struct</span> win_fd_set *)<span class="built_in">realloc</span>(winop-&gt;exset_out, size)))</span><br><span class="line">            <span class="keyword">return</span> (<span class="number">-1</span>);</span><br><span class="line">        <span class="keyword">if</span> (!(winop-&gt;writeset_out = (<span class="keyword">struct</span> win_fd_set *)<span class="built_in">realloc</span>(winop-&gt;writeset_out, size)))</span><br><span class="line">            <span class="keyword">return</span> (<span class="number">-1</span>);</span><br><span class="line">        winop-&gt;resize_out_sets = <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">fd_set_copy</span>(winop-&gt;readset_out, winop-&gt;readset_in);</span><br><span class="line">    <span class="built_in">fd_set_copy</span>(winop-&gt;exset_out, winop-&gt;writeset_in);</span><br><span class="line">    <span class="built_in">fd_set_copy</span>(winop-&gt;writeset_out, winop-&gt;writeset_in);</span><br><span class="line"></span><br><span class="line">    fd_count =</span><br><span class="line">        (winop-&gt;readset_out-&gt;fd_count &gt; winop-&gt;writeset_out-&gt;fd_count) ?</span><br><span class="line">        winop-&gt;readset_out-&gt;fd_count : winop-&gt;writeset_out-&gt;fd_count;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!fd_count) &#123;</span><br><span class="line">        <span class="built_in">Sleep</span>(tv-&gt;tv_usec/<span class="number">1000</span>);</span><br><span class="line">        <span class="keyword">return</span> (<span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    res = <span class="built_in">select</span>(fd_count,</span><br><span class="line">        (<span class="keyword">struct</span> fd_set*)winop-&gt;readset_out,</span><br><span class="line">        (<span class="keyword">struct</span> fd_set*)winop-&gt;writeset_out,</span><br><span class="line">        (<span class="keyword">struct</span> fd_set*)winop-&gt;exset_out, tv);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">//event_debug((&quot;%s: select returned %d&quot;, __func__, res));</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (res &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span>( res == <span class="number">-1</span> )</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;error:%d\n&quot;</span>, <span class="built_in">getErrno</span>() );</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> res;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (winop-&gt;readset_out-&gt;fd_count) &#123;</span><br><span class="line">        i = <span class="built_in">rand</span>() % winop-&gt;readset_out-&gt;fd_count;</span><br><span class="line">        <span class="keyword">for</span> (j=<span class="number">0</span>; j&lt;winop-&gt;readset_out-&gt;fd_count; ++j) &#123;</span><br><span class="line">            <span class="keyword">if</span> (++i &gt;= winop-&gt;readset_out-&gt;fd_count)</span><br><span class="line">                i = <span class="number">0</span>;</span><br><span class="line">            s = winop-&gt;readset_out-&gt;fd_array[i];</span><br><span class="line">            pDispatcher-&gt;<span class="built_in">insertActiveList</span>( s, EV_READ);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (winop-&gt;exset_out-&gt;fd_count) &#123;</span><br><span class="line">        i = <span class="built_in">rand</span>() % winop-&gt;exset_out-&gt;fd_count;</span><br><span class="line">        <span class="keyword">for</span> (j=<span class="number">0</span>; j&lt;winop-&gt;exset_out-&gt;fd_count; ++j) &#123;</span><br><span class="line">            <span class="keyword">if</span> (++i &gt;= winop-&gt;exset_out-&gt;fd_count)</span><br><span class="line">                i = <span class="number">0</span>;</span><br><span class="line">            s = winop-&gt;exset_out-&gt;fd_array[i];</span><br><span class="line">            pDispatcher-&gt;<span class="built_in">insertActiveList</span>( s, EV_WRITE);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (winop-&gt;writeset_out-&gt;fd_count) &#123;</span><br><span class="line">        SOCKET s;</span><br><span class="line">        i = <span class="built_in">rand</span>() % winop-&gt;writeset_out-&gt;fd_count;</span><br><span class="line">        <span class="keyword">for</span> (j=<span class="number">0</span>; j&lt;winop-&gt;writeset_out-&gt;fd_count; ++j) &#123;</span><br><span class="line">            <span class="keyword">if</span> (++i &gt;= winop-&gt;writeset_out-&gt;fd_count)</span><br><span class="line">                i = <span class="number">0</span>;</span><br><span class="line">            s = winop-&gt;writeset_out-&gt;fd_array[i];</span><br><span class="line">            pDispatcher-&gt;<span class="built_in">insertActiveList</span>( s, EV_WRITE);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> (<span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span></span></span><br><span class="line"><span class="function"><span class="title">win32_dealloc</span><span class="params">(<span class="type">void</span> *base)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ModelManager* pDispatcher = (ModelManager*)base;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">win32op</span> *winop = (<span class="keyword">struct</span> win32op *)pDispatcher-&gt;<span class="built_in">getModelData</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (winop-&gt;readset_in)</span><br><span class="line">        <span class="built_in">free</span>(winop-&gt;readset_in);</span><br><span class="line">    <span class="keyword">if</span> (winop-&gt;writeset_in)</span><br><span class="line">        <span class="built_in">free</span>(winop-&gt;writeset_in);</span><br><span class="line">    <span class="keyword">if</span> (winop-&gt;readset_out)</span><br><span class="line">        <span class="built_in">free</span>(winop-&gt;readset_out);</span><br><span class="line">    <span class="keyword">if</span> (winop-&gt;writeset_out)</span><br><span class="line">        <span class="built_in">free</span>(winop-&gt;writeset_out);</span><br><span class="line">    <span class="keyword">if</span> (winop-&gt;exset_out)</span><br><span class="line">        <span class="built_in">free</span>(winop-&gt;exset_out);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="built_in">memset</span>(winop, <span class="number">0</span>, <span class="built_in">sizeof</span>(winop));</span><br><span class="line">    <span class="built_in">free</span>(winop);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" rel="tag"># 网络编程</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/08/04/econreset/" rel="next" title="ECONNRESET和WSAECONNRESET怎么产生的以及如何避免">
+                <i class="fa fa-chevron-left"></i> ECONNRESET和WSAECONNRESET怎么产生的以及如何避免
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/08/04/neterror/" rel="prev" title="网络编程的一些错误总结">
+                网络编程的一些错误总结 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">219</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BE%E7%BD%AE%E7%BD%91%E7%BB%9Csocket%E9%9D%9E%E9%98%BB%E5%A1%9E%EF%BC%9A"><span class="nav-number">1.</span> <span class="nav-text">1 设置网络socket非阻塞：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-windows%E7%8E%AF%E5%A2%83%E4%B8%8B%E6%9F%A5%E7%9C%8B%E9%94%99%E8%AF%AF"><span class="nav-number">2.</span> <span class="nav-text">2 windows环境下查看错误</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-EPOLLET%E8%BF%99%E4%B8%AA%E5%AE%8F%E6%98%AF%E6%9C%80%E5%B0%8Fint"><span class="nav-number">3.</span> <span class="nav-text">3 EPOLLET这个宏是最小int</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-make-%E8%AD%A6%E5%91%8A%EF%BC%9A%E6%A3%80%E6%B5%8B%E5%88%B0%E6%97%B6%E9%92%9F%E9%94%99%E8%AF%AF%E3%80%82%E6%82%A8%E7%9A%84%E5%88%9B%E5%BB%BA%E5%8F%AF%E8%83%BD%E6%98%AF%E4%B8%8D%E5%AE%8C%E6%95%B4%E7%9A%84%E3%80%82"><span class="nav-number">4.</span> <span class="nav-text">4 make: 警告：检测到时钟错误。您的创建可能是不完整的。</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-select-fd-set-%E5%AF%B9%E4%BA%8E%E4%B8%8D%E5%90%8C%E5%B9%B3%E5%8F%B0%E5%AE%9E%E7%8E%B0%E6%98%AF%E4%B8%8D%E5%90%8C%E7%9A%84"><span class="nav-number">5.</span> <span class="nav-text">5 select fd_set 对于不同平台实现是不同的</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="网络编程," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="网络通信中socket有自己的内核发送缓冲区和内核接受缓冲区，好比是一个水池，当用户发送数据的时候会从用户缓冲区拷贝到socket的内核发送缓冲区，然后从 socket发送缓冲区发出去, 当用户要读取数据时，就是从socket内核读缓冲区读到用户缓冲区。所以TCP中recv, send, read, write等函数并不是真的直接读写 发送报文，而是将数据分别写到socket内核缓冲区，或者从so">
+<meta property="og:type" content="article">
+<meta property="og:title" content="IO多路复用之epoll(一)讲解">
+<meta property="og:url" content="http://www.limerence2017.com/2017/08/07/epoll1/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="网络通信中socket有自己的内核发送缓冲区和内核接受缓冲区，好比是一个水池，当用户发送数据的时候会从用户缓冲区拷贝到socket的内核发送缓冲区，然后从 socket发送缓冲区发出去, 当用户要读取数据时，就是从socket内核读缓冲区读到用户缓冲区。所以TCP中recv, send, read, write等函数并不是真的直接读写 发送报文，而是将数据分别写到socket内核缓冲区，或者从so">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.limerence2017.com/2017/08/07/epoll1/1.jpg">
+<meta property="article:published_time" content="2017-08-07T09:25:29.000Z">
+<meta property="article:modified_time" content="2022-07-31T07:11:49.940Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="网络编程">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.limerence2017.com/2017/08/07/epoll1/1.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2017/08/07/epoll1/"/>
+
+
+
+
+
+  <title>IO多路复用之epoll(一)讲解 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/07/epoll1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">IO多路复用之epoll(一)讲解</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-07T17:25:29+08:00">
+                2017-08-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/netprogram/" itemprop="url" rel="index">
+                    <span itemprop="name">网络编程</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>网络通信中<code>socket</code>有自己的<code>内核发送缓冲区</code>和<code>内核接受缓冲区</code>，好比是一个水池，当用户发送数据的时候会从<code>用户缓冲区</code>拷贝到<code>socket的内核发送缓冲区</code>，然后从</p>
+<p>socket发送缓冲区发出去, 当用户要读取数据时，就是从<code>socket内核读缓冲区</code>读到<code>用户缓冲区</code>。所以TCP中<code>recv</code>, <code>send</code>, <code>read</code>, <code>write</code>等函数并不是真的直接读写</p>
+<p>发送报文，而是将数据分别写到socket内核缓冲区，或者从socket内核缓冲区读到用户区。</p>
+<p>对于读有两种状态，<code>可读</code>和<code>不可读</code>，当用户从socket中读取数据的时候，如果socket读缓冲区内容为空，那么读数据会失败，阻塞情况下会等待数据到来，非阻塞情况下</p>
+<p>会返回一个<code>EWOULDBLOCK</code> 或者<code>EAGAIN</code>，反之如果读缓冲区内容不为空，那么就会返回读到的字节数。</p>
+<p>对于用户向socket中写数据，存在<code>可写</code>和<code>不可写</code>，如果socket写缓冲区内容满了，此时向socket写缓冲区里写数据会失败，阻塞情况下会等待socket的写缓冲区非满(有空闲空间)，非阻塞情况下回返回-1，根据errono 为<code>EWOULDBLOCK</code>或者<code>EAGAIN</code>，<code>判断写缓冲区满</code></p>
+<p>反之，如果socket写缓冲区此时非满，那么写会成功，返回写入的字节数。</p>
+<p>综上所述，对于读的情况，我们关注socket读缓冲区空还是非空，对于写的情况，我们关注</p>
+<span id="more"></span>
+<p>写缓冲区满还是非满。</p>
+<p>讲述epoll 的几个参数含义</p>
+<p><code>EPOLLIN</code>：关联文件用来监听读事件<br><code>EPOLLOUT</code>:关联文件用来监听写事件</p>
+<p><code>POLLRDNORM</code>，有普通数据可读。<br><code>POLLRDBAND</code>，有优先数据可读。<br><code>POLLPRI</code>，有紧迫数据可读。</p>
+<p><code>POLLWRNORM</code>，写普通数据不会导致阻塞。<br><code>POLLWRBAND</code>，写优先数据不会导致阻塞。<br><code>POLLMSG</code>，SIGPOLL消息可用。<br>此外，还可能返回下列事件：<br><code>POLLER</code>，指定的文件描述符发生错误。<br><code>POLLHUP</code>，指定的文件描述符挂起事件。<br><code>POLLNVAL</code>，指定的文件描述符非法。</p>
+<p>EPOLL有两种模式<code>LT（水平触发模式）ET（边缘触发模式）</code></p>
+<h3 id="LT：水平触发-一直触发"><a href="#LT：水平触发-一直触发" class="headerlink" title="LT：水平触发 一直触发"></a>LT：水平触发 一直触发</h3><p><code>1 内核中的socket接受缓冲区不为空，那么有数据可读，一直出发读事件</code><br><code>2 内核中的socket发送缓冲区不满，可以继续写入数据，写事件一直出发</code><br>试想一下，如果一开始就关注EPOLLOUT，会是什么情况呢？对于LT模式，由于刚开始socket的发送缓冲区肯定是空的，那么<br>由于socket的发送缓冲区可以一直写数据，所以写事件会一直触发。正确的做法是，我们向socket中写数据，当返回EAGAIN(socket<br>发送缓冲区满了)的时候，这个时候如果关注EPOLLOUT，当socket发送缓冲区由满变为非满，会触发写事件。这个时候，就从应用<br>缓冲区取出数据拷贝到内核缓冲区。如果应用缓冲区的数据已经全部拷贝到内核缓冲区，说明数据全部在socket的发送缓冲区，<br>就取消EPOLLOUT的关注，如果应用缓冲区还有数据没拷贝完全，就不需要取消对EPOLLOUT的关注。</p>
+<p><code>优点是对于read操作比较简单，只要有read事件就读，读多读少都可以。</code><br><code>缺点是write相关操作较复杂， 由于socket在空闲状态发送缓冲区一定是不满的， 故若socket一直在epoll wait列表中，则epoll会一直通知write事件</code>，<br>所以必须保证没有数据要发送的时候，要把socket的write事件从epoll wait列表中删除。<br>而在需要的时候在加入回去，这就是LT模式的最复杂部分。</p>
+<h3 id="ET：边沿触发模式"><a href="#ET：边沿触发模式" class="headerlink" title="ET：边沿触发模式"></a>ET：边沿触发模式</h3><p><code>由未就绪变为就绪状态才可触发</code>，比如写事件由缓冲区满变为缓冲区非满，读事件由缓冲区空到非空才触发<br><code>1.内核中socket接受缓冲区不为空，那么有数据可读，可以触发读事件，但是对于边缘模式，只触发一次</code><br>例如，当listen一个文件描述符，当有很多新的连接连上来的时候，只触发一次。所以要在循环中accept，取出所以新连接上来的socket<br>例如，当监听的socket有读事件，一定要读完所有的数据，否则之后到来的数据就会被漏掉。解决办法是在循环体内读取数据，<br>直到读完或者读出的返回值为EAGIN（缓冲区为空）才可以。对于写事件，发送数据，直到发送完或者产生EAGIN（缓冲区为满）<br>ET模式下，只有socket的状态发生变化时才会通知，也就是读取缓冲区由无数据到有数据时通知read事件，发送缓冲区由满变成未满通知write事件。</p>
+<p><code>缺点是epoll read事件触发时，必须保证socket的读取缓冲区数据全部读完（事实上这个要求很容易达到）</code><br><code>优点：对于write事件，发送缓冲区由满到未满时才会通知，若无数据可写，忽略该事件，若有数据可写，直接写。</code><br>当向socket写数据，返回的值小于传入的buffer大小或者write系统调用返回EWouldBlock时，表示发送缓冲区已满。</p>
+<p>平时大家使用 epoll 时都知道其事件触发模式有默认的 level-trigger 模式和通过 EPOLLET 启用的 edge-trigger 模式两种。<br>从 epoll 发展历史来看，它刚诞生时只有 edge-trigger 模式，后来因容易产生 race-cond 且不易被开发者理解，<br>又增加了 level-trigger 模式并作为默认处理方式。二者的差异在于 level-trigger 模式下只要某个 fd<br>处于 readable/writable 状态，无论什么时候进行 epoll_wait 都会返回该 fd；<br>而 edge-trigger 模式下只有某个 fd 从 unreadable 变为 readable 或从 unwritable 变为 writable 时，<br>epoll_wait 才会返回该 fd。</p>
+<h3 id="然后我们来说说epoll几个函数"><a href="#然后我们来说说epoll几个函数" class="headerlink" title="然后我们来说说epoll几个函数"></a>然后我们来说说epoll几个函数</h3><p>epoll的接口非常简单，一共就三个函数：<br><code>1 int epoll_create(int size);</code><br>创建一个epoll句柄，size用来告诉内核这个监听的数目一共有多大。size为最大监听数量+1，因为创建好epoll句柄后，他就会占用一个fd值，<br>在linux下如果查看/proc/进程/id/fd/，能看到这个fd，使用完epoll后，必须调用close()关闭，否则可能导致fd被耗尽。</p>
+<p><code>2 int epoll_ctl(int epfd, int op, int fd, struct epoll_event * event);</code><br>epoll的事件注册函数，先注册想要监听的事件类型，第一个参数是epoll_create()的返回值，第二个参数表示动作，<br>用三个宏来表示：</p>
+<p><code>EPOLL_CTL_ADD</code>：注册新的fd到epfd中<br><code>EPOLL_CTL_MOD</code>:修改已经注册的fd的监听事件；<br><code>EPOLL_CTL_DEL</code>:从epfd中删除一个fd<br>第三个参数是需要监听的fd，第四个参数是告诉内核需要监听什么事，struct epoll_event结构如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="keyword">union</span> <span class="title class_">epoll_data</span> &#123;</span><br><span class="line"><span class="type">void</span> *ptr;</span><br><span class="line"><span class="type">int</span> fd;</span><br><span class="line"><span class="type">__uint32_t</span> u32;</span><br><span class="line"><span class="type">__uint64_t</span> u64;</span><br><span class="line">&#125; <span class="type">epoll_data_t</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">epoll_event</span> &#123;</span><br><span class="line"><span class="type">__uint32_t</span> events; <span class="comment">/* Epoll events */</span></span><br><span class="line"><span class="type">epoll_data_t</span> data; <span class="comment">/* User data variable */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>events可以是以下几个宏的集合：<br><code>EPOLLIN</code> ：表示对应的文件描述符可以读（包括对端SOCKET正常关闭）；<br><code>EPOLLOUT</code>：表示对应的文件描述符可以写；<br><code>EPOLLPRI</code>：表示对应的文件描述符有紧急的数据可读（这里应该表示有带外数据到来）；<br><code>EPOLLERR</code>：表示对应的文件描述符发生错误；<br><code>EPOLLHUP</code>：表示对应的文件描述符被挂断；<br><code>EPOLLET</code>： 将EPOLL设为边缘触发(Edge Triggered)模式，这是相对于水平触发(Level Triggered)来说的。<br><code>EPOLLONESHOT</code>：只监听一次事件，当监听完这次事件之后，如果还需要继续监听这个socket的话，需要再次把这个socket加入到EPOLL队列里</p>
+<p><code>3 int epoll_wait(int epfd, struct epoll_event* events, int maxevents, int tiemout);</code><br>等待事件产生，参数events用来从内核中得到事件的集合，maxevents告知内核这个events有多大，这个maxevents的值不能大于创建epoll_create()<br>的size，参数timeout是超时时间，毫秒，0表示立即返回，-1会永久阻塞。该函数返回需要处理的事件数目，如果返回0，表示已超时。</p>
+<p>下面我查阅相关资料，仿照别人写了一个类似的epoll demo代码，这个是LT的，下一篇写ET的</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;netinet/in.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;arpa/inet.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;signal.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/wait.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/epoll.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;errno.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;algorithm&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> ERR_EXIT(m) \</span></span><br><span class="line"><span class="meta">do \</span></span><br><span class="line"><span class="meta">&#123; \</span></span><br><span class="line"><span class="meta">perror(m); \</span></span><br><span class="line"><span class="meta">exit(EXIT_FAILURE); \</span></span><br><span class="line"><span class="meta">&#125; while(0)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//先定义一个类型，epoll_event连续的存储空间，可以是数组，也可以是vector</span></span><br><span class="line"><span class="comment">//当然也可以malloc一块连续内存 (struct epoll_event *)malloc(n * sizeof(struct epoll_event));</span></span><br><span class="line"><span class="keyword">typedef</span> std::vector&lt;<span class="keyword">struct</span> epoll_event&gt; EventList;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">　　<span class="comment">//打开一个空的描述符</span></span><br><span class="line">　　<span class="type">int</span> idlefd = <span class="built_in">open</span>(<span class="string">&quot;/dev/null&quot;</span>,O_RDONLY|O_CLOEXEC);</span><br><span class="line"></span><br><span class="line">　　<span class="comment">//生成listen描述符</span></span><br><span class="line">　　<span class="type">int</span> listenfd = <span class="built_in">socket</span>(PF_INET, SOCK_CLOEXEC | SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);</span><br><span class="line"></span><br><span class="line">　　<span class="keyword">if</span>(listenfd &lt; <span class="number">0</span>)</span><br><span class="line">　　&#123;</span><br><span class="line">　　　　<span class="built_in">ERR_EXIT</span>(<span class="string">&quot;socketfd&quot;</span>);</span><br><span class="line">　　&#125;</span><br><span class="line"></span><br><span class="line">　　<span class="comment">//初始化地址信息</span></span><br><span class="line">　　<span class="keyword">struct</span> <span class="title class_">sockaddr_in</span> servaddr;</span><br><span class="line">　　<span class="built_in">memset</span>(&amp;servaddr,<span class="number">0</span> ,<span class="built_in">sizeof</span>(<span class="keyword">struct</span> sockaddr_in));</span><br><span class="line">　　servaddr.sin_family = AF_INET;</span><br><span class="line">　　servaddr.sin_port = <span class="built_in">htons</span>(<span class="number">6666</span>);</span><br><span class="line">　　servaddr.sin_addr.s_addr = <span class="built_in">htonl</span>(INADDR_ANY);</span><br><span class="line"></span><br><span class="line">　　<span class="type">int</span> on = <span class="number">1</span>;</span><br><span class="line">　　<span class="keyword">if</span> (<span class="built_in">setsockopt</span>(listenfd, SOL_SOCKET, SO_REUSEADDR, &amp;on, <span class="built_in">sizeof</span>(on)) &lt; <span class="number">0</span>)</span><br><span class="line">　　<span class="built_in">ERR_EXIT</span>(<span class="string">&quot;setsockopt&quot;</span>);</span><br><span class="line"></span><br><span class="line">　　<span class="keyword">if</span>(<span class="built_in">bind</span>(listenfd, (<span class="keyword">struct</span> sockaddr*)&amp;servaddr, <span class="built_in">sizeof</span>(servaddr)))</span><br><span class="line">　　<span class="built_in">ERR_EXIT</span>(<span class="string">&quot;bindError&quot;</span>);</span><br><span class="line"></span><br><span class="line">　　<span class="keyword">if</span> (<span class="built_in">listen</span>(listenfd, SOMAXCONN) &lt; <span class="number">0</span>)</span><br><span class="line">　　<span class="built_in">ERR_EXIT</span>(<span class="string">&quot;listen&quot;</span>);</span><br><span class="line"></span><br><span class="line">　　<span class="comment">//记录客户端连接对应的socket</span></span><br><span class="line">　　std::vector&lt;<span class="type">int</span>&gt; clients;</span><br><span class="line">　　<span class="comment">//创建epollfd, 用于管理epoll事件表</span></span><br><span class="line">　　<span class="type">int</span> epollfd;</span><br><span class="line">　　epollfd = <span class="built_in">epoll_create1</span>(EPOLL_CLOEXEC);</span><br><span class="line"></span><br><span class="line">　　<span class="keyword">struct</span> <span class="title class_">epoll_event</span> event;</span><br><span class="line">　　event.data.fd = listenfd;</span><br><span class="line">　　event.events = EPOLLIN;</span><br><span class="line">　　<span class="comment">//将listenfd加入到epollfd管理的表里</span></span><br><span class="line">　　<span class="built_in">epoll_ctl</span>(epollfd, EPOLL_CTL_ADD, listenfd, &amp;event);</span><br><span class="line"></span><br><span class="line">　　<span class="comment">//创建长度为16的epoll_event队列</span></span><br><span class="line">　　<span class="function">EventList <span class="title">events</span><span class="params">(<span class="number">16</span>)</span></span>;</span><br><span class="line">　　<span class="comment">//用于接收新连接的客户端地址</span></span><br><span class="line">　　<span class="keyword">struct</span> <span class="title class_">sockaddr_in</span> peeraddr;</span><br><span class="line">　　<span class="type">socklen_t</span> peerlen;</span><br><span class="line">　　<span class="type">int</span> connfd;</span><br><span class="line"></span><br><span class="line">　　<span class="type">int</span> nready;</span><br><span class="line">　　<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">　　&#123;</span><br><span class="line">　　　　nready = <span class="built_in">epoll_wait</span>(epollfd, &amp;*events.<span class="built_in">begin</span>(), <span class="built_in">static_cast</span>&lt;<span class="type">int</span>&gt;(events.<span class="built_in">size</span>()), <span class="number">-1</span>);</span><br><span class="line">　　　　<span class="keyword">if</span> (nready == <span class="number">-1</span>)</span><br><span class="line">　　　　&#123;</span><br><span class="line">　　　　　　<span class="keyword">if</span> (errno == EINTR)</span><br><span class="line">　　　　　　<span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">　　　　　　<span class="built_in">ERR_EXIT</span>(<span class="string">&quot;epoll_wait&quot;</span>);</span><br><span class="line">　　　　&#125;</span><br><span class="line">　　　　<span class="keyword">if</span> (nready == <span class="number">0</span>)	<span class="comment">// nothing happended</span></span><br><span class="line">　　　　　　<span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">　　　　<span class="comment">//大小不够了就重新开辟</span></span><br><span class="line"></span><br><span class="line">　　　　<span class="keyword">if</span> ((<span class="type">size_t</span>)nready == events.<span class="built_in">size</span>())</span><br><span class="line">　　　　events.<span class="built_in">resize</span>(events.<span class="built_in">size</span>()*<span class="number">2</span>);</span><br><span class="line"></span><br><span class="line">　　</span><br><span class="line">　　　　<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; nready; ++i)</span><br><span class="line">　　　　&#123;</span><br><span class="line">　　　　　　<span class="comment">//判断wait返回的events数组状态是否正常</span></span><br><span class="line">　　　　　　<span class="keyword">if</span> ((events[i].events &amp; EPOLLERR) ||</span><br><span class="line">　　　　　　　　(events[i].events &amp; EPOLLHUP) ||</span><br><span class="line">　　　　　　　　(!(events[i].events &amp; EPOLLIN)))</span><br><span class="line">　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　<span class="built_in">fprintf</span> (stderr, <span class="string">&quot;epoll error\n&quot;</span>);</span><br><span class="line">　　　　　　　　　　<span class="built_in">close</span> (events[i].data.fd);</span><br><span class="line">　　　　　　　　　　<span class="keyword">continue</span>;</span><br><span class="line">　　　　　　　　&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">　　　　　　　　<span class="keyword">if</span> (events[i].data.fd == listenfd)</span><br><span class="line">　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　peerlen = <span class="built_in">sizeof</span>(peeraddr);</span><br><span class="line">　　　　　　　　　　<span class="comment">//LT模式accept不用放在while循环里</span></span><br><span class="line">　　　　　　　　　　connfd = ::<span class="built_in">accept4</span>(listenfd, (<span class="keyword">struct</span> sockaddr*)&amp;peeraddr,</span><br><span class="line">　　　　　　　　　　　　&amp;peerlen, SOCK_NONBLOCK | SOCK_CLOEXEC);</span><br><span class="line"></span><br><span class="line">　　　　　　　　　　<span class="comment">//accept失败，判断是否是文件描述符达到上限</span></span><br><span class="line"></span><br><span class="line">　　　　　　　　　　<span class="keyword">if</span> (connfd == <span class="number">-1</span>)</span><br><span class="line">　　　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　　　<span class="keyword">if</span> (errno == EMFILE)</span><br><span class="line">　　　　　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　　　　　<span class="comment">//关闭之前打开的描述符，重新accept，然后关闭这个accept得到的描述符，</span></span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　　　<span class="comment">//因为LT模式，如果socket读缓冲区有数据一直读取失败会造成busyloop　　　　　　　　　</span></span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　　　<span class="built_in">close</span>(idlefd);</span><br><span class="line">　　　　　　　　　　　　　　idlefd = <span class="built_in">accept</span>(listenfd, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line">　　　　　　　　　　　　　　<span class="built_in">close</span>(idlefd);</span><br><span class="line">　　　　　　　　　　　　　　idlefd = <span class="built_in">open</span>(<span class="string">&quot;/dev/null&quot;</span>, O_RDONLY | O_CLOEXEC);</span><br><span class="line">　　　　　　　　　　　　　　<span class="keyword">continue</span>;</span><br><span class="line">　　　　　　　　　　　　&#125;</span><br><span class="line">　　　　　　　　　　　　<span class="keyword">else</span></span><br><span class="line">　　　　　　　　　　　　　　<span class="built_in">ERR_EXIT</span>(<span class="string">&quot;accept4&quot;</span>);</span><br><span class="line">　　　　　　　　　&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　std::cout&lt;&lt;<span class="string">&quot;ip=&quot;</span>&lt;&lt;<span class="built_in">inet_ntoa</span>(peeraddr.sin_addr)&lt;&lt;</span><br><span class="line">　　　　　　　　　　　　　　<span class="string">&quot; port=&quot;</span>&lt;&lt;<span class="built_in">ntohs</span>(peeraddr.sin_port)&lt;&lt;std::endl;</span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　　　　　clients.<span class="built_in">push_back</span>(connfd);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　<span class="comment">//将connd加入epoll表里，关注读事件</span></span><br><span class="line">　　　　　　　　　　　　event.data.fd = connfd;</span><br><span class="line">　　　　　　　　　　　　event.events = EPOLLIN ;</span><br><span class="line">　　　　　　　　　　　　<span class="built_in">epoll_ctl</span>(epollfd, EPOLL_CTL_ADD, connfd, &amp;event);</span><br><span class="line">　　　　　　　　&#125;</span><br><span class="line">　　　　　　　　<span class="keyword">else</span> <span class="keyword">if</span> (events[i].events &amp; EPOLLIN)</span><br><span class="line">　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　connfd = events[i].data.fd;</span><br><span class="line">　　　　　　　　　　<span class="keyword">if</span> (connfd &lt; <span class="number">0</span>)</span><br><span class="line">　　　　　　　　　　<span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">　　　　　　　　　　<span class="type">char</span> buf[<span class="number">1024</span>] = &#123;<span class="number">0</span>&#125;;</span><br><span class="line">　　　　　　　　　　<span class="type">int</span> ret = <span class="built_in">read</span>(connfd, buf, <span class="number">1024</span>);</span><br><span class="line">　　　　　　　　　　<span class="keyword">if</span> (ret == <span class="number">-1</span>)</span><br><span class="line">　　　　　　　　　　<span class="comment">//ERR_EXIT(&quot;read&quot;);</span></span><br><span class="line">　　　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　　　<span class="keyword">if</span>((errno == EAGAIN) ||</span><br><span class="line">　　　　　　　　　　　　　　(errno == EWOULDBLOCK))</span><br><span class="line">　　　　　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　　　　　<span class="comment">//由于内核缓冲区空了，下次再读，</span></span><br><span class="line">　　　　　　　　　　　　　　<span class="comment">//这个是LT模式不需要重新加入EPOLLIN事件,下次还会通知</span></span><br><span class="line">　　　　　　　　　　　　　　<span class="keyword">continue</span>;</span><br><span class="line">　　　　　　　　　　　　&#125;</span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　<span class="built_in">ERR_EXIT</span>(<span class="string">&quot;read&quot;</span>); </span><br><span class="line">　　　　　　　　　　&#125;</span><br><span class="line">　　　　　　　　　　<span class="keyword">if</span> (ret == <span class="number">0</span>)</span><br><span class="line">　　　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　　　std::cout&lt;&lt;<span class="string">&quot;client close&quot;</span>&lt;&lt;std::endl;</span><br><span class="line">　　　　　　　　　　　　<span class="built_in">close</span>(connfd);</span><br><span class="line">　　　　　　　　　　　　event = events[i];</span><br><span class="line">　　　　　　　　　　　　<span class="built_in">epoll_ctl</span>(epollfd, EPOLL_CTL_DEL, connfd, &amp;event);</span><br><span class="line">　　　　　　　　　　　　clients.<span class="built_in">erase</span>(std::<span class="built_in">remove</span>(clients.<span class="built_in">begin</span>(), clients.<span class="built_in">end</span>(), connfd), clients.<span class="built_in">end</span>());</span><br><span class="line">　　　　　　　　　　　　<span class="keyword">continue</span>;</span><br><span class="line">　　　　　　　　　　&#125;</span><br><span class="line">　　　　　　　　　　<span class="comment">//</span></span><br><span class="line">　　　　　　　　　　std::cout&lt;&lt;buf;</span><br><span class="line">　　　　　　　　　　<span class="built_in">write</span>(connfd, buf, <span class="built_in">strlen</span>(buf));</span><br><span class="line">　　　　　　　　&#125;</span><br><span class="line">　　　　　　　　<span class="keyword">else</span> <span class="comment">//写事件</span></span><br><span class="line">　　　　　　　　　　<span class="keyword">if</span>(events[i].events &amp; EPOLLOUT)</span><br><span class="line">　　　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　　　connfd = events[i].data.fd;</span><br><span class="line">　　　　　　　　　　　　<span class="type">char</span> buf[<span class="number">512</span>];</span><br><span class="line">　　　　　　　　　　　　<span class="type">int</span> count = <span class="built_in">write</span>(events[i].data.fd, buf, <span class="built_in">strlen</span>(buf));</span><br><span class="line">　　　　　　　　　　　　<span class="keyword">if</span>(count == <span class="number">-1</span>)</span><br><span class="line">　　　　　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　　　　　<span class="keyword">if</span>((errno == EAGAIN) ||</span><br><span class="line">　　　　　　　　　　　　　　　　(errno == EWOULDBLOCK))</span><br><span class="line">　　　　　　　　　　　　　　&#123;</span><br><span class="line">　　　　　　　　　　　　　　　　<span class="comment">//由于内核缓冲区满了，下次再写，</span></span><br><span class="line">　　　　　　　　　　　　　　　　<span class="comment">//这个是LT模式不需要重新加入EPOLLOUT事件</span></span><br><span class="line">　　　　　　　　　　　　　　　　　<span class="keyword">continue</span>;</span><br><span class="line">　　　　　　　　　　　　　　&#125;</span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　　　<span class="built_in">ERR_EXIT</span>(<span class="string">&quot;write&quot;</span>); </span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　&#125;</span><br><span class="line"></span><br><span class="line">　　　　　　　　　　　　　　<span class="comment">//写完要记得从epoll内核中删除，因为LT模式写缓冲区不满就会触发EPOLLOUT事件，防止busyloop</span></span><br><span class="line">　　　　　　　　　　　　　　event.data.fd = connfd;</span><br><span class="line">　　　　　　　　　　　　　　event.events = EPOLLOUT;</span><br><span class="line">　　　　　　　　　　　　　　<span class="built_in">epoll_ctl</span> (epollfd, EPOLL_CTL_DEL, events[i].data.fd, &amp;event);</span><br><span class="line">　　　　　　　　　　　　　　<span class="comment">//close 操作会将events[i].data.fd从epoll表里删除，所以上面的操作可以不写</span></span><br><span class="line">　　　　　　　　　　　　　　<span class="comment">//close(events[i].data.fd); 此处是关闭了和客户端的连接，不关闭也可以，只和策划需求有关</span></span><br><span class="line">　　　　　　　　　　&#125;</span><br><span class="line">　　　　　　&#125;</span><br><span class="line">　　　　&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> <span class="number">0</span>;	</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> 好了，这就是epoll 的LT模式，demo源代码下载地址 <a target="_blank" rel="noopener" href="http://download.csdn.net/detail/secondtonone1/9484752">http://download.csdn.net/detail/secondtonone1/9484752</a>。<br> 谢谢关注我的公众号<br> <img src="1.jpg" alt="1.jpg"></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" rel="tag"># 网络编程</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/08/07/epoll2/" rel="next" title="IO多路复用之epoll（二）">
+                <i class="fa fa-chevron-left"></i> IO多路复用之epoll（二）
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/08/07/redis1/" rel="prev" title="对于redis底层框架的理解(一)">
+                对于redis底层框架的理解(一) <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">219</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#LT%EF%BC%9A%E6%B0%B4%E5%B9%B3%E8%A7%A6%E5%8F%91-%E4%B8%80%E7%9B%B4%E8%A7%A6%E5%8F%91"><span class="nav-number">1.</span> <span class="nav-text">LT：水平触发 一直触发</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ET%EF%BC%9A%E8%BE%B9%E6%B2%BF%E8%A7%A6%E5%8F%91%E6%A8%A1%E5%BC%8F"><span class="nav-number">2.</span> <span class="nav-text">ET：边沿触发模式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%84%B6%E5%90%8E%E6%88%91%E4%BB%AC%E6%9D%A5%E8%AF%B4%E8%AF%B4epoll%E5%87%A0%E4%B8%AA%E5%87%BD%E6%95%B0"><span class="nav-number">3.</span> <span class="nav-text">然后我们来说说epoll几个函数</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="指针C++提供了对指针操作的方法，当我们用new开辟指定类型的空间后，就生成了一个指针。 1234567void use_pointer()&amp;#123;    &#x2F;&#x2F;开辟整形指针，指向一个值为5的元素    int *pint &#x3D; new int(5);    &#x2F;&#x2F;开辟指向字符串的指针    string *pstr &#x3D; new string(&quot;hello zack&quot;);&amp;#12">
+<meta property="og:type" content="article">
+<meta property="og:title" content="智能指针shared_ptr">
+<meta property="og:url" content="http://www.limerence2017.com/2022/01/17/cpp21/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="指针C++提供了对指针操作的方法，当我们用new开辟指定类型的空间后，就生成了一个指针。 1234567void use_pointer()&amp;#123;    &#x2F;&#x2F;开辟整形指针，指向一个值为5的元素    int *pint &#x3D; new int(5);    &#x2F;&#x2F;开辟指向字符串的指针    string *pstr &#x3D; new string(&quot;hello zack&quot;);&amp;#12">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-01-17T07:40:22.000Z">
+<meta property="article:modified_time" content="2022-07-31T07:11:49.825Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2022/01/17/cpp21/"/>
+
+
+
+
+
+  <title>智能指针shared_ptr | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2022/01/17/cpp21/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">智能指针shared_ptr</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2022-01-17T15:40:22+08:00">
+                2022-01-17
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="指针"><a href="#指针" class="headerlink" title="指针"></a>指针</h2><p>C++提供了对指针操作的方法，当我们用new开辟指定类型的空间后，就生成了一个指针。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_pointer</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//开辟整形指针，指向一个值为5的元素</span></span><br><span class="line">    <span class="type">int</span> *pint = <span class="keyword">new</span> <span class="built_in">int</span>(<span class="number">5</span>);</span><br><span class="line">    <span class="comment">//开辟指向字符串的指针</span></span><br><span class="line">    string *pstr = <span class="keyword">new</span> <span class="built_in">string</span>(<span class="string">&quot;hello zack&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+<p>通过new + 类型构造的方式可以生成指针对象，但是开辟的指针对象所占用的空间在堆空间上。需要手动回收。<br>可以通过delete 指针对象的方式回收</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_pointer</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//开辟整形指针，指向一个值为5的元素</span></span><br><span class="line">    <span class="type">int</span> *pint = <span class="keyword">new</span> <span class="built_in">int</span>(<span class="number">5</span>);</span><br><span class="line">    <span class="comment">//开辟指向字符串的指针</span></span><br><span class="line">    string *pstr = <span class="keyword">new</span> <span class="built_in">string</span>(<span class="string">&quot;hello zack&quot;</span>);</span><br><span class="line">    <span class="comment">//释放pint指向的空间</span></span><br><span class="line">    <span class="keyword">if</span> (pint != <span class="literal">nullptr</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">delete</span> pint;</span><br><span class="line">        pint = <span class="literal">nullptr</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//释放指针指向的空间。</span></span><br><span class="line">    <span class="keyword">if</span> (pstr != <span class="literal">nullptr</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">delete</span> pstr;</span><br><span class="line">        pstr = <span class="literal">nullptr</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过delete 指针对象回收其指向的堆空间。为了防止double free，所以将释放后的对象分别置为nullptr。<br>指针存在很多隐患:<br>1  当一个函数返回局部变量的指针时，外部使用该指针可能会造成崩溃或逻辑错误。因为局部变量随着函数的右}释放了。<br>2  如果多个指针指向同一个堆空间，其中一个释放了堆空间，使用其他的指针时会造成崩溃。<br>3  对一个指针多次delete，会造成double free问题。<br>4  两个类对象A和B，分别包含对方类型的指针成员，互相引用时如何释放是个问题。</p>
+<p>所以C++提出了智能指针的用法，可以解决上述隐患。<br>shared_ptr允许多个指针指向同一个对象；<br>unique_ptr则“独占”所指向的对象。<br>标准库还定义了一个名为weak_ptr的伴随类，它是一种弱引用，指向shared_ptr所管理的对象。<br>这三种类型都定义在memory头文件中。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//我们定义一个指向整形5得指针</span></span><br><span class="line"><span class="keyword">auto</span> psint2 = <span class="built_in">make_shared</span>&lt;<span class="type">int</span>&gt;(<span class="number">5</span>);</span><br><span class="line"><span class="comment">//判断智能指针是否为空</span></span><br><span class="line"><span class="keyword">if</span> (psint2 != <span class="literal">nullptr</span>)</span><br><span class="line">&#123;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;psint2 is &quot;</span> &lt;&lt; *psint2 &lt;&lt; endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">auto</span> psstr2 = <span class="built_in">make_shared</span>&lt;string&gt;(<span class="string">&quot;hello zack&quot;</span>);</span><br><span class="line"><span class="keyword">if</span> (psstr2 != <span class="literal">nullptr</span> &amp;&amp; !psstr2-&gt;<span class="built_in">empty</span>())</span><br><span class="line">&#123;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;psstr2 is &quot;</span> &lt;&lt; *psstr2 &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于智能指针得使用和普通的内置指针没什么区别，通过判断指针是否为nullptr可以判断是否为空指针。<br>通过<code>-&gt;</code>可以取指针内部得成员方法或者成员变量。<br>make_shared函数将参数为对象类型的构造函数的参数，将此参数传递给模板中得对象类型的构造函数，从而构造出对象类型得智能指针，节省了对象在函数传递得开销。<br>当我们需要获取内置类型时，可以通过智能指针的方法get()返回其底层的内置指针。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> *pint = psint2.<span class="built_in">get</span>();</span><br><span class="line">cout &lt;&lt; <span class="string">&quot;*pint  is &quot;</span> &lt;&lt; *pint &lt;&lt; endl;</span><br></pre></td></tr></table></figure>
+<p>不要手动回收智能指针get返回的内置指针，要交给智能指针自己回收即可，否则会造成double free或者 使用智能指针产生崩溃等问题。<br>也不要用get()返回得内置指针初始化另一个智能指针，因为两个智能指针引用一个内置指针会出现问题，比如一个释放了另一个不知道就会导致崩溃等问题。<br>shared_ptr会根据引用计数管理内置指针，当引用计数为0时就自动删除内置指针。<br>当将一个智能指针p赋值给另一个智能指针q时，p引用计数就-1，q引用计数就+1</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_sharedptr</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//我们定义一个指向整形5得指针</span></span><br><span class="line">    <span class="keyword">auto</span> psint2 = <span class="built_in">make_shared</span>&lt;<span class="type">int</span>&gt;(<span class="number">5</span>);</span><br><span class="line">    <span class="keyword">auto</span> psstr2 = <span class="built_in">make_shared</span>&lt;string&gt;(<span class="string">&quot;hello zack&quot;</span>);</span><br><span class="line">    <span class="comment">//将psint2赋值给psint3,他们底层的内置指针相同</span></span><br><span class="line">    <span class="comment">// psint3和psint2引用计数相同，引用计数+1，都为2</span></span><br><span class="line">    shared_ptr&lt;<span class="type">int</span>&gt; psint3 = psint2;</span><br><span class="line">    <span class="comment">//打印引用计数</span></span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;psint2 usecount is &quot;</span> &lt;&lt; psint2.<span class="built_in">use_count</span>() &lt;&lt; endl;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;psint3 usecount is &quot;</span> &lt;&lt; psint3.<span class="built_in">use_count</span>() &lt;&lt; endl;</span><br><span class="line">    <span class="comment">// psint3引用计数为1</span></span><br><span class="line">    psint3 = <span class="built_in">make_shared</span>&lt;<span class="type">int</span>&gt;(<span class="number">1024</span>);</span><br><span class="line">    <span class="comment">// psint2引用计数-1，变为1</span></span><br><span class="line">    <span class="comment">//打印引用计数</span></span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;psint2 usecount is &quot;</span> &lt;&lt; psint2.<span class="built_in">use_count</span>() &lt;&lt; endl;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;psint3 usecount is &quot;</span> &lt;&lt; psint3.<span class="built_in">use_count</span>() &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>程序输出</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">psint2 usecount is <span class="number">2</span></span><br><span class="line">psint3 usecount is <span class="number">2</span></span><br><span class="line">psint2 usecount is <span class="number">1</span></span><br><span class="line">psint3 usecount is <span class="number">1</span></span><br></pre></td></tr></table></figure>
+<p>可以利用shared_ptr实现数据共享，我们定义一个StrBlob类，这个类仅又一个成员shared_ptr成员，用来管理vector,记录有多少个StrBlob类对象使用vector，当所有的StrBlob销毁时，vector自动回收。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">StrBlob</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="comment">//定义类型</span></span><br><span class="line">    <span class="keyword">typedef</span> std::vector&lt;string&gt;::size_type size_type;</span><br><span class="line">    <span class="built_in">StrBlob</span>();</span><br><span class="line">    <span class="comment">//通过初始化列表构造</span></span><br><span class="line">    <span class="built_in">StrBlob</span>(<span class="type">const</span> initializer_list&lt;string&gt; &amp;li);</span><br><span class="line">    <span class="comment">//返回vector大小</span></span><br><span class="line">    <span class="function">size_type <span class="title">size</span><span class="params">()</span> <span class="type">const</span> </span>&#123; <span class="keyword">return</span> data-&gt;<span class="built_in">size</span>(); &#125;</span><br><span class="line">    <span class="comment">//判断vector是否为空</span></span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">empty</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> data-&gt;<span class="built_in">empty</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//向vector写入元素</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">push_back</span><span class="params">(<span class="type">const</span> string &amp;s)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        data-&gt;<span class="built_in">push_back</span>(s);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//从vector弹出元素</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">pop_back</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="comment">//访问头元素</span></span><br><span class="line">    <span class="function">std::string &amp;<span class="title">front</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="comment">//访问尾元素</span></span><br><span class="line">    <span class="function">std::string &amp;<span class="title">back</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    shared_ptr&lt;vector&lt;string&gt;&gt; data;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>因为StrBlob未重载赋值运算符，也没有实现拷贝构造函数，所以StrBlob对象之间的赋值就是浅copy，因而内部成员data会随着StrBlob对象的赋值修改引用计数，默认情况下，当我们拷贝、赋值或销毁一个StrBlob对象时，它的shared_ptr成员会被拷贝、赋值或销毁。<br>当然我们也可以实现拷贝构造和赋值操作，让大家更好的理解智能指针随着类对象赋值等操作达到共享的效果。<br>运算符重载之后介绍，为了让程序更完善，这里给出拷贝构造和运算符重载的完整类声明。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">StrBlob</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="comment">//定义类型</span></span><br><span class="line">    <span class="keyword">typedef</span> std::vector&lt;string&gt;::size_type size_type;</span><br><span class="line">    <span class="built_in">StrBlob</span>();</span><br><span class="line">    <span class="comment">//通过初始化列表构造</span></span><br><span class="line">    <span class="built_in">StrBlob</span>(<span class="type">const</span> initializer_list&lt;string&gt; &amp;li);</span><br><span class="line">    <span class="comment">//拷贝构造函数</span></span><br><span class="line">    <span class="built_in">StrBlob</span>(<span class="type">const</span> StrBlob &amp;sb);</span><br><span class="line">    StrBlob &amp;<span class="keyword">operator</span>=(<span class="type">const</span> StrBlob &amp;sb);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//返回vector大小</span></span><br><span class="line">    <span class="function">size_type <span class="title">size</span><span class="params">()</span> <span class="type">const</span> </span>&#123; <span class="keyword">return</span> data-&gt;<span class="built_in">size</span>(); &#125;</span><br><span class="line">    <span class="comment">//判断vector是否为空</span></span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">empty</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> data-&gt;<span class="built_in">empty</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//向vector写入元素</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">push_back</span><span class="params">(<span class="type">const</span> string &amp;s)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        data-&gt;<span class="built_in">push_back</span>(s);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//从vector弹出元素</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">pop_back</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="comment">//访问头元素</span></span><br><span class="line">    <span class="function">std::string &amp;<span class="title">front</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="comment">//访问尾元素</span></span><br><span class="line">    <span class="function">std::string &amp;<span class="title">back</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    shared_ptr&lt;vector&lt;string&gt;&gt; data;</span><br><span class="line">    <span class="comment">//检测i是否越界</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">check</span><span class="params">(size_type i, <span class="type">const</span> string &amp;msg)</span> <span class="type">const</span></span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>接下来实现三个构造函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">StrBlob::<span class="built_in">StrBlob</span>()</span><br><span class="line">&#123;</span><br><span class="line">    data = make_shared&lt;vector&lt;string&gt;&gt;();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">StrBlob::<span class="built_in">StrBlob</span>(<span class="type">const</span> StrBlob &amp;sb)</span><br><span class="line">&#123;</span><br><span class="line">    data = sb.data;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">StrBlob::<span class="built_in">StrBlob</span>(<span class="type">const</span> initializer_list&lt;string&gt; &amp;li)</span><br><span class="line">&#123;</span><br><span class="line">    data = make_shared&lt;vector&lt;string&gt;&gt;(li);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>默认构造函数初始化data指向了一个空的vector，拷贝构造函数将sb的data赋值给自己，初始化列表方式的构造函数是用初始化列表构造data。接下来实现赋值运算符的重载</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">StrBlob &amp;StrBlob::<span class="keyword">operator</span>=(<span class="type">const</span> StrBlob &amp;sb)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (&amp;sb != <span class="keyword">this</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">this</span>-&gt;data = sb.data;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>将sb的data赋值给this-&gt;data，这样this-&gt;data和sb.data引用计数相同。<br>我们实现检查越界的函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//检测i是否越界</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">StrBlob::check</span><span class="params">(size_type i, <span class="type">const</span> string &amp;msg)</span> <span class="type">const</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (i &gt;= data-&gt;<span class="built_in">size</span>())</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="built_in">out_of_range</span>(msg);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>接下来实现front</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">string &amp;<span class="title">StrBlob::front</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//不要返回局部变量的引用</span></span><br><span class="line">    <span class="comment">// if (data-&gt;size() &lt;= 0)</span></span><br><span class="line">    <span class="comment">// &#123;</span></span><br><span class="line">    <span class="comment">//     return string(&quot;&quot;);</span></span><br><span class="line">    <span class="comment">// &#125;</span></span><br><span class="line">    <span class="comment">// 1 可以用一个局部变量返回异常情况</span></span><br><span class="line">    <span class="keyword">if</span> (data-&gt;<span class="built_in">size</span>() &lt;= <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> badvalue;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> data-&gt;<span class="built_in">front</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>要考虑队列为空的情况，此时返回空字符串。但是如果我们直接构造一个空字符串返回，这样就返回了局部变量的引用，局部变量会随着函数结束而释放，造成安全隐患。所以我们可以返回类的成员变量badvalue，作为队列为空的标记。当然如果不能容忍队列为空的情况，可以通过抛出异常来处理，那我们用这种方式改写front</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">string &amp;<span class="title">StrBlob::front</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">check</span>(<span class="number">0</span>, <span class="string">&quot;front on empty StrBlob&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> data-&gt;<span class="built_in">front</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>同样我们实现back()和pop_back()</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">string &amp;<span class="title">StrBlob::back</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">check</span>(<span class="number">0</span>, <span class="string">&quot;back on empty StrBlog&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> data-&gt;<span class="built_in">back</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">StrBlob::pop_back</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">check</span>(<span class="number">0</span>, <span class="string">&quot;back on pop_back StrBlog&quot;</span>);</span><br><span class="line">    data-&gt;<span class="built_in">pop_back</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这样我们通过定义StrBlob类，达到共享vector<string>的方式。多个StrBlob操作的是一个vector<string>向量。<br>我们新增一个打印shared_ptr引用计数的方法</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">StrBlob::printCount</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;shared_ptr use count is &quot;</span> &lt;&lt; data.<span class="built_in">use_count</span>() &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>下面测试以下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_StrBlob</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">StrBlob <span class="title">strblob1</span><span class="params">(&#123;<span class="string">&quot;hello&quot;</span>, <span class="string">&quot;zack&quot;</span>, <span class="string">&quot;good luck&quot;</span>&#125;)</span></span>;</span><br><span class="line">    StrBlob strblob2;</span><br><span class="line">    <span class="keyword">try</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">auto</span> str2front = strblob2.<span class="built_in">front</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">catch</span> (std::out_of_range &amp;exc)</span><br><span class="line">    &#123;</span><br><span class="line">        cout &lt;&lt; exc.<span class="built_in">what</span>() &lt;&lt; endl;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">catch</span> (...)</span><br><span class="line">    &#123;</span><br><span class="line">        cout &lt;&lt; <span class="string">&quot;unknown exception&quot;</span> &lt;&lt; endl;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    strblob2 = strblob1;</span><br><span class="line">    <span class="keyword">auto</span> str1front = strblob1.<span class="built_in">front</span>();</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;strblob1 front is &quot;</span> &lt;&lt; str1front &lt;&lt; endl;</span><br><span class="line"></span><br><span class="line">    strblob2.<span class="built_in">printCount</span>();</span><br><span class="line">    strblob1.<span class="built_in">printCount</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>程序输出</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">front on empty StrBlob</span><br><span class="line">strblob1 front is hello</span><br><span class="line">shared_ptr use count is <span class="number">2</span></span><br><span class="line">shared_ptr use count is <span class="number">2</span></span><br></pre></td></tr></table></figure>
+<p>因为strblob2的队列为空，所以会抛出异常，当执行strblob2 = strblob1之后，strblob2和strblob1的data的引用计数相同都为2。</p>
+<h2 id="shared-ptr和new结合"><a href="#shared-ptr和new结合" class="headerlink" title="shared_ptr和new结合"></a>shared_ptr和new结合</h2><p>之前的方式都是通过make_shared&lt;类型&gt;(构造函数列表参数)的方式构造的shared_ptr，也可以通过new 生成的内置指针初始化生成shared_ptr。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span> psint = <span class="built_in">shared_ptr</span>&lt;<span class="type">int</span>&gt;(<span class="keyword">new</span> <span class="built_in">int</span>(<span class="number">5</span>));</span><br><span class="line"><span class="keyword">auto</span> psstr = <span class="built_in">shared_ptr</span>&lt;string&gt;(<span class="keyword">new</span> <span class="built_in">string</span>(<span class="string">&quot;hello zack&quot;</span>));</span><br></pre></td></tr></table></figure>
+<p>接受指针参数的智能指针构造函数是explicit的。因此，我们不能将一个内置指针隐式转换为一个智能指针，必须使用直接初始化形式来初始化一个智能指针：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//错误，不能用内置指针隐式初始化shared_ptr</span></span><br><span class="line"><span class="comment">// shared_ptr&lt;int&gt; psint2 = new int(5);</span></span><br><span class="line"><span class="comment">//正确，显示初始化</span></span><br><span class="line"><span class="function">shared_ptr&lt;string&gt; <span class="title">psstr2</span><span class="params">(<span class="keyword">new</span> string(<span class="string">&quot;good luck&quot;</span>))</span></span>;</span><br></pre></td></tr></table></figure>
+<p>除了智能指针之间的赋值，可以通过一个智能指针构造另一个</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">shared_ptr&lt;string&gt; <span class="title">psstr2</span><span class="params">(<span class="keyword">new</span> string(<span class="string">&quot;good luck&quot;</span>))</span></span>;</span><br><span class="line"><span class="comment">//可以通过一个shared_ptr 构造另一个shared_ptr</span></span><br><span class="line"><span class="function">shared_ptr&lt;string&gt; <span class="title">psstr3</span><span class="params">(psstr2)</span></span>;</span><br><span class="line">cout &lt;&lt; <span class="string">&quot;psstr2 use count is &quot;</span> &lt;&lt; psstr2.<span class="built_in">use_count</span>() &lt;&lt; endl;</span><br><span class="line">cout &lt;&lt; <span class="string">&quot;psstr3 use count is &quot;</span> &lt;&lt; psstr3.<span class="built_in">use_count</span>() &lt;&lt; endl;</span><br></pre></td></tr></table></figure>
+<p>程序输出</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">psstr2 use count is <span class="number">2</span></span><br><span class="line">psstr3 use count is <span class="number">2</span></span><br></pre></td></tr></table></figure>
+<p>通过一个指针构造另一个智能指针，两个指针共享底层内置指针，所以引用计数为2.<br>在构造智能指针的同时，可以指定自定义的删除方法替代shared_ptr自己的delete操作</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//可以设置新的删除函数替代delete</span></span><br><span class="line"><span class="function">shared_ptr&lt;string&gt; <span class="title">psstr4</span><span class="params">(<span class="keyword">new</span> string(<span class="string">&quot;good luck for zack&quot;</span>), delfunc)</span></span>;</span><br></pre></td></tr></table></figure>
+<p>我们为psstr4指定了delfunc删除函数，这样当psstr4被释放时就会执行delfunc函数，而不是delete操作。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">delfunc</span><span class="params">(string *p)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (p != <span class="literal">nullptr</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">delete</span> (p);</span><br><span class="line">        p = <span class="literal">nullptr</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;self delete&quot;</span> &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们实现了自己的delfunc函数作为删除器，回收了内置指针，并且打印了删除信息。这样当psstr4执行析构时，会打印”self delete”。<br>推荐使用make_shared的方式构造智能指针。<br>如果通过内置指针初始化生成智能指针，那一定要记住不要手动回收内置指针。<br>当将一个shared_ptr绑定到一个普通指针时，我们就将内存的管理责任交给了这个shared_ptr。<br>一旦这样做了，我们就不应该再使用内置指针来访问shared_ptr所指向的内存了。<br>以下代码存在问题</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">process</span><span class="params">(shared_ptr&lt;<span class="type">int</span>&gt; psint)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;psint data is &quot;</span> &lt;&lt; *psint &lt;&lt; endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> *p = <span class="keyword">new</span> <span class="built_in">int</span>(<span class="number">5</span>);</span><br><span class="line">    <span class="built_in">process</span>(<span class="built_in">shared_ptr</span>&lt;<span class="type">int</span>&gt;(p));</span><br><span class="line">    <span class="comment">//危险，p已经被释放，会造成崩溃或者逻辑错误</span></span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;p data is &quot;</span> &lt;&lt; *p &lt;&lt; endl;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>程序输出</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">psint data is <span class="number">5</span></span><br><span class="line">p data is <span class="number">10569024</span></span><br></pre></td></tr></table></figure>
+<p>因为p构造为shared_ptr，那么它的回收就交给了shared_ptr，而shared_ptr是process的形参，形参在process运行结束会释放，那么p也被回收，之后再访问p会产生逻辑错误，所以打印了一个非法内存的数值。</p>
+<p>智能指针类型定义了一个名为get的函数，它返回一个内置指针，指向智能指针管理的对象。<br>此函数是为了这样一种情况而设计的：我们需要向不能使用智能指针的代码传递一个内置指针。<br>使用get返回的指针的代码不能delete此指针。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">bad_use_sharedptr</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">shared_ptr&lt;<span class="type">int</span>&gt; <span class="title">p</span><span class="params">(<span class="keyword">new</span> <span class="type">int</span>(<span class="number">5</span>))</span></span>;</span><br><span class="line">    <span class="comment">//通过p获取内置指针q</span></span><br><span class="line">    <span class="comment">//注意q此时被p绑定，不要手动delete q</span></span><br><span class="line">    <span class="type">int</span> *q = p.<span class="built_in">get</span>();</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">//两个独立的shared_ptr m和p都绑定q</span></span><br><span class="line">        <span class="keyword">auto</span> m = <span class="built_in">shared_ptr</span>&lt;<span class="type">int</span>&gt;(q);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//上述&#125;结束则m被回收，其绑定的q也被回收</span></span><br><span class="line">    <span class="comment">//此时使用q是非法操作，崩溃或者逻辑错误</span></span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;q data is &quot;</span> &lt;&lt; *q &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述代码虽然没有手动delete q但是，两个独立的shared_ptr m和p都绑定了q，导致其中一个m被回收时q的内存也回收所以之后访问*q会出现崩溃或者数据异常。<br>注意，以下代码和上面是不同的，m和p此时共享q,并且引用计数是共享同步的。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">good_use_sharedptr</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">shared_ptr&lt;<span class="type">int</span>&gt; <span class="title">p</span><span class="params">(<span class="keyword">new</span> <span class="type">int</span>(<span class="number">5</span>))</span></span>;</span><br><span class="line">    <span class="comment">//通过p获取内置指针q</span></span><br><span class="line">    <span class="comment">//注意q此时被p绑定，不要手动delete q</span></span><br><span class="line">    <span class="type">int</span> *q = p.<span class="built_in">get</span>();</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// m和p的引用计数都为2</span></span><br><span class="line">        <span class="function">shared_ptr&lt;<span class="type">int</span>&gt; <span class="title">m</span><span class="params">(p)</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//上述&#125;结束则m被回收，其绑定的q也被回收</span></span><br><span class="line">    <span class="comment">//此时使用q是非法操作，崩溃或者逻辑错误</span></span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;q data is &quot;</span> &lt;&lt; *q &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>所以总结以下：<br>get用来将指针的访问权限传递给代码，你只有在确定代码不会delete指针的情况下，才能使用get。<br>特别是，永远不要用get初始化另一个智能指针或者为另一个智能指针赋值。</p>
+<h2 id="reset"><a href="#reset" class="headerlink" title="reset"></a>reset</h2><p>reset的功能是为shared_ptr重新开辟一块新的内存，让shared_ptr绑定这块内存</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">shared_ptr&lt;<span class="type">int</span>&gt; <span class="title">p</span><span class="params">(<span class="keyword">new</span> <span class="type">int</span>(<span class="number">5</span>))</span></span>;</span><br><span class="line"><span class="comment">// p重新绑定新的内置指针</span></span><br><span class="line">p.<span class="built_in">reset</span>(<span class="keyword">new</span> <span class="built_in">int</span>(<span class="number">6</span>));</span><br></pre></td></tr></table></figure>
+<p>上述代码为p重新绑定了新的内存空间。<br>reset常用的情况是判断智能指针是否独占内存，如果引用计数为1，也就是自己独占内存就去修改，否则就为智能指针绑定一块新的内存进行修改，防止多个智能指针共享一块内存，一个智能指针修改内存导致其他智能指针受影响。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//如果引用计数为1，unique返回true</span></span><br><span class="line"><span class="keyword">if</span> (!p.<span class="built_in">unique</span>())</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">//还有其他人引用，所以我们为p指向新的内存</span></span><br><span class="line">    p.<span class="built_in">reset</span>(<span class="keyword">new</span> <span class="built_in">int</span>(<span class="number">6</span>));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// p目前是唯一用户</span></span><br><span class="line">*p = <span class="number">1024</span>;</span><br></pre></td></tr></table></figure>
+<p>使用智能指针的另一个好处，就是当程序一场崩溃时，智能指针也能保证内存空间被回收</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">execption_shared</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">shared_ptr&lt;string&gt; <span class="title">p</span><span class="params">(<span class="keyword">new</span> string(<span class="string">&quot;hello zack&quot;</span>))</span></span>;</span><br><span class="line">    <span class="comment">//此处导致异常</span></span><br><span class="line">    <span class="type">int</span> m = <span class="number">5</span> / <span class="number">0</span>;</span><br><span class="line">    <span class="comment">//即使崩溃也会保证p被回收</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>即使运行到 m = 5 / 0处，程序崩溃，智能指针p也会被回收。<br>有时候我们传递个智能指针的指针不是new分配的，那就需要我们自己给他传递一个删除器</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">delfuncint</span><span class="params">(<span class="type">int</span> *p)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    cout &lt;&lt; *p &lt;&lt; <span class="string">&quot; in del func&quot;</span> &lt;&lt; endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">delfunc_shared</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> p = <span class="number">6</span>;</span><br><span class="line">    <span class="function">shared_ptr&lt;<span class="type">int</span>&gt; <span class="title">psh</span><span class="params">(&amp;p, delfuncint)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果不传递delfuncint，会造成p被智能指针delete，因为p是栈空间的变量，用delete会导致崩溃。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>智能指针陷阱智能指针可以提供对动态分配的内存安全而又方便的管理，但这建立在正确使用的前提下。<br>为了正确使用智能指针，我们必须坚持一些基本规范：<br>· 不使用相同的内置指针值初始化（或reset）多个智能指针。<br>· 不delete get（）返回的指针。<br>· 不使用get（）初始化或reset另一个智能指针。<br>· 如果你使用get（）返回的指针，记住当最后一个对应的智能指针销毁后，你的指针就变为无效了。<br>· 如果你使用智能指针管理的资源不是new分配的内存，记住传递给它一个删除器。</p>
+<p>源码连接<br><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/cpplearn">https://gitee.com/secondtonone1/cpplearn</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/01/12/algorithms03/" rel="next" title="求最长回文串的长度">
+                <i class="fa fa-chevron-left"></i> 求最长回文串的长度
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/01/19/cpp22/" rel="prev" title="智能指针 unique_ptr">
+                智能指针 unique_ptr <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">219</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8C%87%E9%92%88"><span class="nav-number">1.</span> <span class="nav-text">指针</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#shared-ptr%E5%92%8Cnew%E7%BB%93%E5%90%88"><span class="nav-number">2.</span> <span class="nav-text">shared_ptr和new结合</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reset"><span class="nav-number">3.</span> <span class="nav-text">reset</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

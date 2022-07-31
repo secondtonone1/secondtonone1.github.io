@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="golang," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="简介mongodb是著名的非关系型数据库，常用来存储大量关联性不大的数据。golang操作mongo数据库可选的库很多，目前主流的使用为”go.mongodb.org&#x2F;mongo-driver&#x2F;mongo”，本文通过代码demo的方式介绍go如何操作mongo，实现增删改查，以及多条更新，分组查询，分页查询等复杂查询，代码demo选自个人博客系统的源码。源码地址https:&#x2F;&#x2F;github.com">
+<meta property="og:type" content="article">
+<meta property="og:title" content="golang使用mongo">
+<meta property="og:url" content="http://www.limerence2017.com/2021/11/29/gomongo/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="简介mongodb是著名的非关系型数据库，常用来存储大量关联性不大的数据。golang操作mongo数据库可选的库很多，目前主流的使用为”go.mongodb.org&#x2F;mongo-driver&#x2F;mongo”，本文通过代码demo的方式介绍go如何操作mongo，实现增删改查，以及多条更新，分组查询，分页查询等复杂查询，代码demo选自个人博客系统的源码。源码地址https:&#x2F;&#x2F;github.com">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-11-29T08:16:21.000Z">
+<meta property="article:modified_time" content="2022-07-31T07:11:50.019Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="golang">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2021/11/29/gomongo/"/>
+
+
+
+
+
+  <title>golang使用mongo | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2021/11/29/gomongo/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">golang使用mongo</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2021-11-29T16:16:21+08:00">
+                2021-11-29
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>mongodb是著名的非关系型数据库，常用来存储大量关联性不大的数据。golang操作mongo数据库可选的库很多，目前主流的使用为”go.mongodb.org/mongo-driver/mongo”，本文通过代码demo的方式介绍go如何操作mongo，实现增删改查，以及多条更新，分组查询，分页查询等复杂查询，代码demo选自个人博客系统的源码。源码地址<a target="_blank" rel="noopener" href="https://github.com/secondtonone1/bstgo-blog">https://github.com/secondtonone1/bstgo-blog</a></p>
+<h2 id="初始化连接和断开连接"><a href="#初始化连接和断开连接" class="headerlink" title="初始化连接和断开连接"></a>初始化连接和断开连接</h2><p>初始化连接,包含必要的mongo-driver库即可</p>
+<span id="more"></span>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span>(</span><br><span class="line">    <span class="string">&quot;go.mongodb.org/mongo-driver/mongo&quot;</span></span><br><span class="line">	<span class="string">&quot;go.mongodb.org/mongo-driver/mongo/options&quot;</span></span><br><span class="line">	<span class="string">&quot;go.mongodb.org/mongo-driver/mongo/readpref&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> MongoClient *mongo.Client = <span class="literal">nil</span></span><br><span class="line"><span class="keyword">var</span> MongoDb *mongo.Database = <span class="literal">nil</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">MongoInit</span><span class="params">()</span></span> (e <span class="type">error</span>) &#123;</span><br><span class="line"> ctx, _ := context.WithTimeout(context.Background(), <span class="number">10</span>*time.Second)</span><br><span class="line">	<span class="comment">// 连接uri</span></span><br><span class="line"> uri := <span class="string">&quot;mongodb://&quot;</span> + config.TotalCfgData.Mongo.User + <span class="string">&quot;:&quot;</span> + config.TotalCfgData.Mongo.Passwd +</span><br><span class="line">		<span class="string">&quot;@&quot;</span> + config.TotalCfgData.Mongo.Host + <span class="string">&quot;/?authSource=admin&quot;</span></span><br><span class="line">	log.Println(<span class="string">&quot;uri is &quot;</span>, uri)</span><br><span class="line">	<span class="comment">// 构建mongo连接可选属性配置</span></span><br><span class="line">	opt := <span class="built_in">new</span>(options.ClientOptions)</span><br><span class="line">	<span class="comment">// 设置最大连接的数量</span></span><br><span class="line">	opt = opt.SetMaxPoolSize(<span class="type">uint64</span>(config.TotalCfgData.Mongo.MaxPoolSize))</span><br><span class="line">	<span class="comment">// 设置连接超时时间 5000 毫秒</span></span><br><span class="line">	du, _ := time.ParseDuration(config.TotalCfgData.Mongo.ConTimeOut)</span><br><span class="line">	opt = opt.SetConnectTimeout(du)</span><br><span class="line">	<span class="comment">// 设置连接的空闲时间 毫秒</span></span><br><span class="line">	mt, _ := time.ParseDuration(config.TotalCfgData.Mongo.MaxConIdle)</span><br><span class="line">	opt = opt.SetMaxConnIdleTime(mt)</span><br><span class="line">	<span class="comment">// 开启驱动</span></span><br><span class="line">	MongoClient, e = mongo.Connect(ctx, options.Client().ApplyURI(uri), opt)</span><br><span class="line">	<span class="keyword">if</span> e != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Println(<span class="string">&quot;err is &quot;</span>, e)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 注意，在这一步才开始正式连接mongo</span></span><br><span class="line">	e = MongoClient.Ping(ctx, readpref.Primary())</span><br><span class="line">	<span class="keyword">if</span> e != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Println(<span class="string">&quot;err is &quot;</span>, e)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	log.Println(<span class="string">&quot;mongo init success!!!&quot;</span>)</span><br><span class="line">	<span class="comment">//连接数据库</span></span><br><span class="line">	MongoDb = MongoClient.Database(config.TotalCfgData.Mongo.Database)</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当服务器关闭时要回收mongo的资源，这里简单关闭即可</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">MongoRelease</span><span class="params">()</span></span> &#123;</span><br><span class="line">	MongoClient.Disconnect(context.TODO())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="文章表结构"><a href="#文章表结构" class="headerlink" title="文章表结构"></a>文章表结构</h2><p>在go文件中定义ArticleInfo类</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//文章信息</span></span><br><span class="line"><span class="keyword">type</span> ArticleInfo <span class="keyword">struct</span> &#123;</span><br><span class="line">	Id    <span class="type">string</span> <span class="string">`bson:&quot;id&quot; json:&quot;infoid&quot;`</span></span><br><span class="line">	Cat   <span class="type">string</span> <span class="string">`bson: &quot;cat&quot; json: &quot;cat&quot;`</span></span><br><span class="line">	Title <span class="type">string</span> <span class="string">`bson: &quot;title&quot; json: &quot;title&quot;`</span></span><br><span class="line"></span><br><span class="line">	Subcat   <span class="type">string</span> <span class="string">`bson: &quot;subcat&quot; json: &quot;subcat&quot;`</span></span><br><span class="line">	Subtitle <span class="type">string</span> <span class="string">`bson: &quot;subtitle&quot; json: &quot;subtitle&quot;`</span></span><br><span class="line">	ScanNum  <span class="type">int</span>    <span class="string">`bson:&quot;scannum&quot; json:&quot;scannum&quot;`</span></span><br><span class="line">	LoveNum  <span class="type">int</span>    <span class="string">`bson:&quot;lovenum json:&quot;lovenum`</span></span><br><span class="line">	CreateAt <span class="type">int64</span>  <span class="string">`bson:&quot;createdAt&quot; json:&quot;createdAt&quot;`</span></span><br><span class="line">	LastEdit <span class="type">int64</span>  <span class="string">`bson:&quot;lastedit&quot; json:&quot;lastedit&quot;`</span></span><br><span class="line">	Author   <span class="type">string</span> <span class="string">`bson:&quot;author&quot; json:&quot;author&quot;`</span></span><br><span class="line">	Index    <span class="type">int</span>    <span class="string">`bson:&quot;index&quot; json:&quot;index&quot;`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>字段的tag中一定要写bson标识，用来通知mongo以该bson指定的名字存储该字段,json可以不写，我这里写json是为了数据传输<br>接下来看一下mongo数据库表中的文章信息结构表</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;20RgXj2UbtwIYbhQIScpEyoeera&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;cat&quot;</span><span class="punctuation">:</span> <span class="string">&quot;Go&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;title&quot;</span><span class="punctuation">:</span> <span class="string">&quot;Linux环境搭建和编码&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;subcat&quot;</span><span class="punctuation">:</span> <span class="string">&quot;安装和使用&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;subtitle&quot;</span><span class="punctuation">:</span> <span class="string">&quot;Linux环境搭建&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;scannum&quot;</span><span class="punctuation">:</span> <span class="number">1246</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;lovenum json:&quot;</span><span class="punctuation">:</span> <span class="number">594</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;createdAt&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;$numberLong&quot;</span><span class="punctuation">:</span> <span class="string">&quot;1636012855&quot;</span></span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;lastedit&quot;</span><span class="punctuation">:</span> <span class="number">1636594645</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;author&quot;</span><span class="punctuation">:</span> <span class="string">&quot;恋恋风辰&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;index&quot;</span><span class="punctuation">:</span> <span class="number">1</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;lovenum&quot;</span><span class="punctuation">:</span> <span class="number">2</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+<p>数据库表中的数据字段和go程序定义的结构体bson命名的字段是相符合。</p>
+<h2 id="查找一条数据"><a href="#查找一条数据" class="headerlink" title="查找一条数据"></a>查找一条数据</h2><p>我们根据文章id获取文章信息，代码如下</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//通过文章获取文章概要信息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetArticleInfo</span><span class="params">(id <span class="type">string</span>)</span></span> (*model.ArticleInfo, <span class="type">error</span>) &#123;</span><br><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), <span class="number">5</span>*time.Second)</span><br><span class="line">	<span class="keyword">defer</span> cancel()</span><br><span class="line">	filter := bson.M&#123;<span class="string">&quot;id&quot;</span>: id&#125;</span><br><span class="line">	<span class="comment">//log.Println(&quot;filter is &quot;, filter)</span></span><br><span class="line">	info := &amp;model.ArticleInfo&#123;&#125;</span><br><span class="line">	err := MongoDb.Collection(<span class="string">&quot;articles&quot;</span>).FindOne(ctx, filter).Decode(info)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Println(<span class="string">&quot;get article failed, error is &quot;</span>, err)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> info, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="查找多条数据"><a href="#查找多条数据" class="headerlink" title="查找多条数据"></a>查找多条数据</h2><p>查询未分组的文章列表，这里用到了Find函数，返回的是一个cursor，通过不断的cursor.Next获取每条记录。而且Find设置了查询选项，用了or或查询，这个或查询的条件就是cat为default或者subcat为default，同时对查询结果设置了排序</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//获取未分类的文章</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetDefaultArts</span><span class="params">()</span></span> ([]*model.ArticleInfo, <span class="type">error</span>) &#123;</span><br><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), <span class="number">5</span>*time.Second)</span><br><span class="line">	<span class="keyword">defer</span> cancel()</span><br><span class="line"></span><br><span class="line">	catfilter := bson.M&#123;&#125;</span><br><span class="line">	catfilter[<span class="string">&quot;cat&quot;</span>] = <span class="string">&quot;default&quot;</span></span><br><span class="line"></span><br><span class="line">	subfilter := bson.M&#123;&#125;</span><br><span class="line">	subfilter[<span class="string">&quot;subcat&quot;</span>] = <span class="string">&quot;default&quot;</span></span><br><span class="line"></span><br><span class="line">	filterarry := []bson.M&#123;catfilter, subfilter&#125;</span><br><span class="line">	<span class="comment">//或查询</span></span><br><span class="line">	orfilter := bson.M&#123;&#125;</span><br><span class="line">	orfilter[<span class="string">&quot;$or&quot;</span>] = filterarry</span><br><span class="line"></span><br><span class="line">	<span class="comment">//log.Println(&quot;filter is &quot;, filter)</span></span><br><span class="line">	sort := bson.D&#123;&#123;<span class="string">&quot;lastedit&quot;</span>, <span class="number">-1</span>&#125;&#125;</span><br><span class="line">	findOptions := options.Find().SetSort(sort)</span><br><span class="line">	articles := []*model.ArticleInfo&#123;&#125;</span><br><span class="line">	cursor, err := MongoDb.Collection(<span class="string">&quot;articles&quot;</span>).Find(ctx, orfilter, findOptions)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> articles, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">defer</span> cursor.Close(context.TODO())</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> cursor.Next(context.TODO()) &#123;</span><br><span class="line">		article := &amp;model.ArticleInfo&#123;&#125;</span><br><span class="line">		<span class="keyword">if</span> err := cursor.Decode(article); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		articles = <span class="built_in">append</span>(articles, article)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> articles, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="插入一条数据"><a href="#插入一条数据" class="headerlink" title="插入一条数据"></a>插入一条数据</h2><p>这里直接调用insertone传入我们定义的结构体，mongo-driver会自动根据bson命名写入mongo</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">SaveArtInfo</span><span class="params">(article *model.ArticleInfo)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), <span class="number">5</span>*time.Second)</span><br><span class="line">	<span class="keyword">defer</span> cancel()</span><br><span class="line">	_, err := MongoDb.Collection(<span class="string">&quot;articles&quot;</span>).InsertOne(ctx, article)</span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="更新一条数据"><a href="#更新一条数据" class="headerlink" title="更新一条数据"></a>更新一条数据</h2><p>根据文章id更新浏览量</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//更新文章浏览量</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">AddArticleScan</span><span class="params">(id <span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), <span class="number">5</span>*time.Second)</span><br><span class="line">	<span class="keyword">defer</span> cancel()</span><br><span class="line">	filter := bson.M&#123;<span class="string">&quot;id&quot;</span>: id&#125;</span><br><span class="line">	value := bson.M&#123;<span class="string">&quot;$inc&quot;</span>: bson.M&#123;<span class="string">&quot;scannum&quot;</span>: <span class="number">1</span>&#125;&#125;</span><br><span class="line">	_, err := MongoDb.Collection(<span class="string">&quot;articles&quot;</span>).UpdateOne(ctx, filter, value)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>更新时设置filter为更新的条件，value为更新的字段值，这里实现的是浏览量自增运算，如果要实现覆盖式更新也很简单</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//更新文章</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">UpdateArticle</span><span class="params">(req *model.UpdateArticleReq)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), <span class="number">5</span>*time.Second)</span><br><span class="line">	<span class="keyword">defer</span> cancel()</span><br><span class="line">	filter := bson.M&#123;<span class="string">&quot;id&quot;</span>: req.Id&#125;</span><br><span class="line">	value := bson.M&#123;&#125;</span><br><span class="line">	value[<span class="string">&quot;title&quot;</span>] = req.Title</span><br><span class="line">	value[<span class="string">&quot;subtitle&quot;</span>] = req.SubTitle</span><br><span class="line">	value[<span class="string">&quot;cat&quot;</span>] = req.Cat</span><br><span class="line">	value[<span class="string">&quot;subcat&quot;</span>] = req.SubCat</span><br><span class="line">	value[<span class="string">&quot;lastedit&quot;</span>] = req.LastEdit</span><br><span class="line">	value[<span class="string">&quot;author&quot;</span>] = req.Author</span><br><span class="line">	<span class="comment">//value[&quot;content&quot;] = req.Content</span></span><br><span class="line"></span><br><span class="line">	upvalue := bson.M&#123;<span class="string">&quot;$set&quot;</span>: value&#125;</span><br><span class="line">	_, err := MongoDb.Collection(<span class="string">&quot;articles&quot;</span>).UpdateOne(ctx, filter, upvalue)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line">更新指定id的文章，更新字段值包括title，subtitle，cat，subcat等，此时用$set选项可以实现覆盖式更新</span><br></pre></td></tr></table></figure>
+<h2 id="更新多条"><a href="#更新多条" class="headerlink" title="更新多条"></a>更新多条</h2><p>批量更新满足条件的多条记录，比如更新一个序列的文章列表，将其分类和子分类都更新为指定字段</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//批量更新默认文章的分类</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">UpDefaultArtsCtg</span><span class="params">(cat <span class="type">string</span>, subcat <span class="type">string</span>, arts []<span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), <span class="number">5</span>*time.Second)</span><br><span class="line">	<span class="keyword">defer</span> cancel()</span><br><span class="line"></span><br><span class="line">	<span class="comment">//根据不同的条件，更新相同的值</span></span><br><span class="line">	filter := bson.M&#123;<span class="string">&quot;id&quot;</span>: bson.M&#123;<span class="string">&quot;$in&quot;</span>: arts&#125;&#125;</span><br><span class="line">	<span class="comment">//将该子分类的文章的子分类设置为新的分类</span></span><br><span class="line">	artupval := bson.M&#123;<span class="string">&quot;subcat&quot;</span>: subcat, <span class="string">&quot;cat&quot;</span>: cat&#125;</span><br><span class="line">	artupcmd := bson.M&#123;<span class="string">&quot;$set&quot;</span>: artupval&#125;</span><br><span class="line">	_, err := MongoDb.Collection(<span class="string">&quot;articles&quot;</span>).UpdateMany(ctx, filter, artupcmd)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述代码将arts数组中的文章列表，统一更新了分类为cat，子分类为subcat<br>如果需要将多条记录，更新成多个不同的值怎么处理呢？这里要用到bulkwrite</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//批量更新文章列表序列</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">UpdateArticleSort</span><span class="params">(sortArt *model.ArticleSortReq)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(sortArt.ArticleList) == <span class="number">0</span> &#123;</span><br><span class="line">		log.Println(<span class="string">&quot;sort article list is empty&quot;</span>)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), <span class="number">5</span>*time.Second)</span><br><span class="line">	<span class="keyword">defer</span> cancel()</span><br><span class="line">	models := []mongo.WriteModel&#123;&#125;</span><br><span class="line">	<span class="keyword">for</span> _, article := <span class="keyword">range</span> sortArt.ArticleList &#123;</span><br><span class="line">		filter := bson.M&#123;<span class="string">&quot;id&quot;</span>: article.Id, <span class="string">&quot;title&quot;</span>: article.Title&#125;</span><br><span class="line">		updatecmd := bson.D&#123;&#123;<span class="string">&quot;$set&quot;</span>, bson.D&#123;&#123;<span class="string">&quot;index&quot;</span>, article.Index&#125;&#125;&#125;&#125;</span><br><span class="line">		model := mongo.NewUpdateOneModel().SetFilter(filter).SetUpdate(updatecmd).SetUpsert(<span class="literal">false</span>)</span><br><span class="line">		models = <span class="built_in">append</span>(models, model)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//log.Println(&quot;models are &quot;, models)</span></span><br><span class="line">	opts := options.BulkWrite().SetOrdered(<span class="literal">false</span>)</span><br><span class="line">	_, err := MongoDb.Collection(<span class="string">&quot;articles&quot;</span>).BulkWrite(ctx, models, opts)</span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述代码将文章列表的多个文章的index更新为不同的值，index代表文章的排序索引，将不同文章的index值更新为不同的index，达到的效果就是id为1的文章index索引更新为index1，id为2的文章index更新为index2</p>
+<h2 id="分页查询"><a href="#分页查询" class="headerlink" title="分页查询"></a>分页查询</h2><p>可以对查询选项设置排序，并且设置每次获取多少条记录从而达到分页查询的效果。比如将skipTmp设置为5,10,15，将limitTmp设置为5就是每页获取五条记录，将sort设置为按照lastedit排序，就达到了根据最后编辑日期排序，并分页查询，获取每页五条数据的功能。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//获取文章列表</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetArticlesByPage</span><span class="params">(page <span class="type">int</span>)</span></span> ([]*model.ArticleInfo, <span class="type">error</span>) &#123;</span><br><span class="line">	articles := []*model.ArticleInfo&#123;&#125;</span><br><span class="line">	<span class="keyword">if</span> page &lt; <span class="number">1</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> articles, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), <span class="number">5</span>*time.Second)</span><br><span class="line">	<span class="keyword">defer</span> cancel()</span><br><span class="line">	sort := bson.D&#123;&#123;<span class="string">&quot;lastedit&quot;</span>, <span class="number">-1</span>&#125;&#125;</span><br><span class="line">	findOptions := options.Find().SetSort(sort)</span><br><span class="line"></span><br><span class="line">	<span class="comment">//从第1页获取，每次获取5条</span></span><br><span class="line">	skipTmp := <span class="type">int64</span>((page - <span class="number">1</span>) * <span class="number">5</span>)</span><br><span class="line">	limitTmp := <span class="type">int64</span>(<span class="number">5</span>)</span><br><span class="line">	findOptions.Skip = &amp;skipTmp</span><br><span class="line">	findOptions.Limit = &amp;limitTmp</span><br><span class="line"></span><br><span class="line">	filter := bson.D&#123;&#125;</span><br><span class="line">	cursor, err := MongoDb.Collection(<span class="string">&quot;articles&quot;</span>).Find(ctx, filter, findOptions)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> articles, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">defer</span> cursor.Close(context.TODO())</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> cursor.Next(context.TODO()) &#123;</span><br><span class="line">		article := &amp;model.ArticleInfo&#123;&#125;</span><br><span class="line">		<span class="keyword">if</span> err := cursor.Decode(article); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		articles = <span class="built_in">append</span>(articles, article)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> articles, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="获取文档总记录数量"><a href="#获取文档总记录数量" class="headerlink" title="获取文档总记录数量"></a>获取文档总记录数量</h2><p>有时我们需要获取一个文档的所有记录数，比如分页查询后也要返回总的页数，这其实就是需要查询出总的条数计算返回总页数即可。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//获取文章总数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ArticleTotalCount</span><span class="params">()</span></span> (<span class="type">int</span>, <span class="type">error</span>) &#123;</span><br><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), <span class="number">5</span>*time.Second)</span><br><span class="line">	<span class="keyword">defer</span> cancel()</span><br><span class="line"></span><br><span class="line">	filter := bson.D&#123;&#125;</span><br><span class="line">	count, err := MongoDb.Collection(<span class="string">&quot;articles&quot;</span>).CountDocuments(ctx, filter)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="type">int</span>(count), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>CountDocuments返回的是文档总的记录条数</p>
+<h2 id="模糊查询"><a href="#模糊查询" class="headerlink" title="模糊查询"></a>模糊查询</h2><p>我们可以根据年月日以及分类查询，返回文章列表，当然还可以通过输入keywords关键字进行模糊查询。这里做一个较为复杂的查询，查询条件为某年某月某日创建的文章，分类为cat，并根据keywords模糊查询，如果文章内容或标题中有符合keywords的，返回该文章列表。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//搜索文章</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">SearchArticle</span><span class="params">(condition *model.SearchArticleReq)</span></span> ([]*model.ArticleInfo, <span class="type">int</span>, <span class="type">error</span>) &#123;</span><br><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), <span class="number">5</span>*time.Second)</span><br><span class="line">	<span class="keyword">defer</span> cancel()</span><br><span class="line">	filter := bson.M&#123;&#125;</span><br><span class="line">	<span class="keyword">if</span> condition.Year != <span class="string">&quot;&quot;</span> &amp;&amp; condition.Year != <span class="string">&quot;不限&quot;</span> &#123;</span><br><span class="line">		<span class="keyword">var</span> stamp <span class="type">int64</span> = <span class="number">0</span></span><br><span class="line">		valStr := condition.Year</span><br><span class="line">		<span class="keyword">if</span> condition.Month != <span class="string">&quot;&quot;</span> &amp;&amp; condition.Month != <span class="string">&quot;不限&quot;</span> &#123;</span><br><span class="line">			tempStr := <span class="string">&quot;2006-01月&quot;</span></span><br><span class="line">			valStr = valStr + <span class="string">&quot;-&quot;</span> + condition.Month</span><br><span class="line">			localTime, err := time.ParseInLocation(tempStr, valStr, time.Local)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				log.Println(<span class="string">&quot;time parse failed, err is &quot;</span>, err)</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				stamp = localTime.Unix()</span><br><span class="line">				log.Println(<span class="string">&quot;query time stamp is &quot;</span>, stamp)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			localTime, err := time.ParseInLocation(<span class="string">&quot;2006&quot;</span>, valStr, time.Local)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				log.Println(<span class="string">&quot;time parse failed, err is &quot;</span>, err)</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				stamp = localTime.Unix()</span><br><span class="line">				log.Println(<span class="string">&quot;query time stamp is &quot;</span>, stamp)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		filter[<span class="string">&quot;createdAt&quot;</span>] = bson.M&#123;<span class="string">&quot;$gte&quot;</span>: stamp&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> condition.Cat != <span class="string">&quot;&quot;</span> &amp;&amp; condition.Cat != <span class="string">&quot;不限&quot;</span> &#123;</span><br><span class="line">		filter[<span class="string">&quot;cat&quot;</span>] = condition.Cat</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> condition.Keywords != <span class="string">&quot;&quot;</span> &amp;&amp; condition.Keywords != <span class="string">&quot;不限&quot;</span> &#123;</span><br><span class="line"></span><br><span class="line">		filter[<span class="string">&quot;$or&quot;</span>] = []bson.M&#123;</span><br><span class="line">			bson.M&#123;</span><br><span class="line">				<span class="string">&quot;content&quot;</span>: bson.M&#123;<span class="string">&quot;$regex&quot;</span>: condition.Keywords, <span class="string">&quot;$options&quot;</span>: <span class="string">&quot;$i&quot;</span>&#125;,</span><br><span class="line">			&#125;,</span><br><span class="line"></span><br><span class="line">			bson.M&#123;</span><br><span class="line">				<span class="string">&quot;title&quot;</span>: bson.M&#123;<span class="string">&quot;$regex&quot;</span>: condition.Keywords, <span class="string">&quot;$options&quot;</span>: <span class="string">&quot;$i&quot;</span>&#125;,</span><br><span class="line">			&#125;,</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//log.Println(&quot;filter is &quot;, filter)</span></span><br><span class="line">	sort := bson.D&#123;&#123;<span class="string">&quot;lastedit&quot;</span>, <span class="number">-1</span>&#125;&#125;</span><br><span class="line">	findOptions := options.Find().SetSort(sort)</span><br><span class="line"></span><br><span class="line">	<span class="comment">//从第1页获取，每次获取5条</span></span><br><span class="line">	skipTmp := <span class="type">int64</span>((condition.Page - <span class="number">1</span>) * <span class="number">5</span>)</span><br><span class="line">	limitTmp := <span class="type">int64</span>(<span class="number">5</span>)</span><br><span class="line">	findOptions.Skip = &amp;skipTmp</span><br><span class="line">	findOptions.Limit = &amp;limitTmp</span><br><span class="line"></span><br><span class="line">	articles := []*model.ArticleInfo&#123;&#125;</span><br><span class="line">	cursor, err := MongoDb.Collection(<span class="string">&quot;articles&quot;</span>).Find(ctx, filter, findOptions)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> articles, <span class="number">0</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">defer</span> cursor.Close(context.TODO())</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> cursor.Next(context.TODO()) &#123;</span><br><span class="line">		article := &amp;model.ArticleInfo&#123;&#125;</span><br><span class="line">		<span class="keyword">if</span> err := cursor.Decode(article); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		articles = <span class="built_in">append</span>(articles, article)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	count, err := MongoDb.Collection(<span class="string">&quot;articles&quot;</span>).CountDocuments(ctx, filter)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> articles, <span class="number">0</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> articles, <span class="type">int</span>(count), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="分组查询"><a href="#分组查询" class="headerlink" title="分组查询"></a>分组查询</h2><p>我们常遇到这种情况，查询每个班级成绩最好的学生，或者查询每个类别销量最好的产品品牌等，这里我也用到了分组查询，根据不同分类返回每个分类下最大index值，这样做主要是统计每个分类下文章最大索引。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//获取子分类下最大index</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetSubCatMaxIndex</span><span class="params">(subcat <span class="type">string</span>)</span></span> (<span class="type">int</span>, <span class="type">error</span>) &#123;</span><br><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), <span class="number">5</span>*time.Second)</span><br><span class="line">	<span class="keyword">defer</span> cancel()</span><br><span class="line">	pipeline := bson.A&#123;</span><br><span class="line">		bson.M&#123;</span><br><span class="line">			<span class="string">&quot;$match&quot;</span>: bson.M&#123;<span class="string">&quot;subcat&quot;</span>: subcat&#125;,</span><br><span class="line">		&#125;,</span><br><span class="line"></span><br><span class="line">		bson.M&#123;</span><br><span class="line">			<span class="string">&quot;$group&quot;</span>: bson.M&#123;</span><br><span class="line">				<span class="string">&quot;_id&quot;</span>:      bson.M&#123;<span class="string">&quot;subcat_&quot;</span>: <span class="string">&quot;$subcat&quot;</span>&#125;,</span><br><span class="line">				<span class="string">&quot;maxIndex&quot;</span>: bson.M&#123;<span class="string">&quot;$max&quot;</span>: <span class="string">&quot;$index&quot;</span>&#125;&#125;,</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">	cursor, err := MongoDb.Collection(<span class="string">&quot;articles&quot;</span>).Aggregate(ctx, pipeline)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Println(<span class="string">&quot;aggrete failed, error is &quot;</span>, err)</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	maxIndex := <span class="number">0</span></span><br><span class="line">	<span class="keyword">for</span> cursor.Next(context.Background()) &#123;</span><br><span class="line">		doc := cursor.Current</span><br><span class="line">		maxindex_, err := doc.LookupErr(<span class="string">&quot;maxIndex&quot;</span>)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Println(<span class="string">&quot;LookupErr failed, error is &quot;</span>, err)</span><br><span class="line">			<span class="keyword">return</span> maxIndex, err</span><br><span class="line">		&#125;</span><br><span class="line">		log.Println(<span class="string">&quot;maxindex_ is &quot;</span>, maxindex_)</span><br><span class="line">		maxIndex = <span class="type">int</span>(maxindex_.Int32())</span><br><span class="line">		log.Println(<span class="string">&quot;maxindex is &quot;</span>, maxIndex)</span><br><span class="line">	&#125;</span><br><span class="line">	log.Println(<span class="string">&quot;get max index is &quot;</span>, maxIndex)</span><br><span class="line">	<span class="keyword">return</span> maxIndex, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过match匹配subcat，然后根据匹配结果进行分组，分组的区分的条件为subcat，分组条件的字段要用_id(只能用这个名字)表示，然后用maxIndex(可以自己命名)表示获取分组的最大索引。<br>当然我们还可以做一些分组运算的其他操作</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//分组查询</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">findGroup</span><span class="params">()</span></span> &#123;</span><br><span class="line">	client := mongodb.DB.Mongo</span><br><span class="line">	collection := client.Database(constants.DB_DATABASES).Collection(constants.DB_COLLECTION)</span><br><span class="line"></span><br><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), constants.QUERY_TIME_OUT)</span><br><span class="line">	<span class="keyword">defer</span> cancel()</span><br><span class="line">	<span class="comment">//复杂查询，先匹配后分组</span></span><br><span class="line">	pipeline := bson.A&#123;</span><br><span class="line">		bson.M&#123;</span><br><span class="line">			<span class="string">&quot;$match&quot;</span>: bson.M&#123;<span class="string">&quot;birthMonth&quot;</span>: <span class="number">3</span>&#125;,</span><br><span class="line">		&#125;,</span><br><span class="line">		bson.M&#123;<span class="string">&quot;$group&quot;</span>: bson.M&#123;</span><br><span class="line">			<span class="string">&quot;_id&quot;</span>:        bson.M&#123;<span class="string">&quot;birthMonthUid&quot;</span>: <span class="string">&quot;$birthMonth&quot;</span>&#125;,</span><br><span class="line">			<span class="string">&quot;totalCount&quot;</span>: bson.M&#123;<span class="string">&quot;$sum&quot;</span>: <span class="number">1</span>&#125;,</span><br><span class="line">			<span class="string">&quot;nameG&quot;</span>:      bson.M&#123;<span class="string">&quot;$min&quot;</span>: <span class="string">&quot;$name&quot;</span>&#125;,</span><br><span class="line">			<span class="string">&quot;ageG&quot;</span>:       bson.M&#123;<span class="string">&quot;$min&quot;</span>: <span class="string">&quot;$age&quot;</span>&#125;,</span><br><span class="line">		&#125;,</span><br><span class="line">		&#125;,</span><br><span class="line"></span><br><span class="line">		<span class="comment">//bson.M&#123;&quot;$sort&quot;: bson.M&#123;&quot;time&quot;: 1&#125;&#125;,</span></span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Println(<span class="string">&quot;pipeline is &quot;</span>, pipeline)</span><br><span class="line"></span><br><span class="line">	cursor, err := collection.Aggregate(ctx, pipeline)</span><br><span class="line">	fmt.Println(<span class="string">&quot;findGroup cursor is &quot;</span>, cursor)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fmt.Printf(<span class="string">&quot;dao.findGroup collection.Aggregate() error=[%s]\n&quot;</span>, err)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> cursor.Next(context.Background()) &#123;</span><br><span class="line">		doc := cursor.Current</span><br><span class="line"></span><br><span class="line">		totalCount, err_2 := doc.LookupErr(<span class="string">&quot;totalCount&quot;</span>)</span><br><span class="line">		<span class="keyword">if</span> err_2 != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Printf(<span class="string">&quot;dao.findGroup totalCount err_2=[%s]\n&quot;</span>, err_2)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		nameData, err_4 := doc.LookupErr(<span class="string">&quot;nameG&quot;</span>)</span><br><span class="line">		<span class="keyword">if</span> err_4 != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Printf(<span class="string">&quot;dao.findGroup insertDateG err_4=[%s]\n&quot;</span>, err_4)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		ageData, err_5 := doc.LookupErr(<span class="string">&quot;ageG&quot;</span>)</span><br><span class="line">		<span class="keyword">if</span> err_5 != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Printf(<span class="string">&quot;dao.findGroup ageG err_5=[%s]\n&quot;</span>, err_5)</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		fmt.Println(<span class="string">&quot;totalCount is &quot;</span>, totalCount)</span><br><span class="line">		fmt.Println(<span class="string">&quot;nameData is &quot;</span>, nameData)</span><br><span class="line">		fmt.Println(<span class="string">&quot;ageData is &quot;</span>, ageData)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>先用birthday做查询，匹配三月份出生的人，然后根据月份进行分组，totalCount用来计算分组下人的总数，nameG表示最小名字等。</p>
+<h2 id="文档内查询"><a href="#文档内查询" class="headerlink" title="文档内查询"></a>文档内查询</h2><p>有时候mongo的文档中的记录形式为一条记录，该记录有多个字段，某个字段为一个数组列表，查询记录中数组列表某个值满足条件，返回该记录。我有这样一个文档，表示文章的目录菜单</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span> </span><br><span class="line">   <span class="attr">&quot;_id&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span><span class="attr">&quot;$oid&quot;</span><span class="punctuation">:</span><span class="string">&quot;61138b43094825c520604e56&quot;</span><span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;catmenus&quot;</span><span class="punctuation">:</span><span class="punctuation">[</span></span><br><span class="line">                <span class="punctuation">&#123;</span> <span class="attr">&quot;catid&quot;</span><span class="punctuation">:</span><span class="string">&quot;1wZexxzy9FsQOtdfKSro5EM6Zzv&quot;</span><span class="punctuation">,</span></span><br><span class="line">                  <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span><span class="string">&quot;C++&quot;</span><span class="punctuation">,</span></span><br><span class="line">                  <span class="attr">&quot;subcatmenus&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">                         <span class="punctuation">&#123;</span><span class="attr">&quot;subcatid&quot;</span><span class="punctuation">:</span><span class="string">&quot;1wZf3EsGe5UdNxXTcH71iEfxgpb&quot;</span><span class="punctuation">,</span><span class="attr">&quot;name&quot;</span><span class="punctuation">:</span><span class="string">&quot;变量&quot;</span><span class="punctuation">&#125;</span><span class="punctuation">,</span>   </span><br><span class="line">                         <span class="punctuation">&#123;</span><span class="attr">&quot;subcatid&quot;</span><span class="punctuation">:</span><span class="string">&quot;1wZfFxSHDw5gdOF0g39lb72n8r9&quot;</span><span class="punctuation">,</span><span class="attr">&quot;name&quot;</span><span class="punctuation">:</span><span class="string">&quot;aa&quot;</span><span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                         <span class="punctuation">&#123;</span><span class="attr">&quot;subcatid&quot;</span><span class="punctuation">:</span><span class="string">&quot;1wZldzHUziSZyTXvfhO9FNfRWnD&quot;</span><span class="punctuation">,</span><span class="attr">&quot;name&quot;</span><span class="punctuation">:</span><span class="string">&quot;&quot;</span><span class="punctuation">&#125;</span><span class="punctuation">]</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span> </span><br><span class="line">                <span class="punctuation">&#123;</span> <span class="attr">&quot;catid&quot;</span><span class="punctuation">:</span><span class="string">&quot;1wZezd7c961MNGZ0s0U8aUef4hq&quot;</span><span class="punctuation">,</span></span><br><span class="line">                   <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span><span class="string">&quot;Go&quot;</span><span class="punctuation">,</span></span><br><span class="line">                  <span class="attr">&quot;subcatmenus&quot;</span><span class="punctuation">:</span><span class="punctuation">[</span></span><br><span class="line">                        <span class="punctuation">&#123;</span><span class="attr">&quot;subcatid&quot;</span><span class="punctuation">:</span><span class="string">&quot;1wZfHzBeJmDOtNt3XdMysAQ1bhh&quot;</span><span class="punctuation">,</span><span class="attr">&quot;name&quot;</span><span class="punctuation">:</span><span class="string">&quot;aaa&quot;</span><span class="punctuation">&#125;</span></span><br><span class="line">                      <span class="punctuation">]</span></span><br><span class="line">                <span class="punctuation">&#125;</span></span><br><span class="line">             <span class="punctuation">]</span></span><br><span class="line"> <span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+<p>当想查询文档内catid为1wZezd7c961MNGZ0s0U8aUef4hq的片段，并且更新其subcatmenus字段为新的数组<br>db.menu.find({“catmenus.catid”:”1wZezd7c961MNGZ0s0U8aUef4hq”})是可以查询到该记录的，<br>但是这种查询只限于单个条件，<br>如果有多个条件如下db.menu.find({“catmenus.catid”:”1wZezd7c961MNGZ0s0U8aUef4hq”,”catmenus.name”:”Go”})<br>如果有多条记录分别满足条件，查询的就有可能是多条，而不是交集，mongo返回满足以上条件任意一条即可。<br>为了要实现交集选择器，则需要用elemMatch<br>db.menu.find({“catmenus”:  {“$elemMatch”:{“catid”:”1wZezd7c961MNGZ0s0U8aUef4hq”, “name”:”Go”}}})<br>转化为go代码实现查询</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">UpdateSortMenu</span><span class="params">(submenu *model.SortMenuReq)</span></span> <span class="type">error</span> &#123;</span><br><span class="line"></span><br><span class="line">    ctx, _ := context.WithTimeout(context.Background(), <span class="number">5</span>*time.Second)</span><br><span class="line">    <span class="comment">//指定连接集合</span></span><br><span class="line">    col := MongoDb.Collection(<span class="string">&quot;menu&quot;</span>)</span><br><span class="line">    <span class="comment">//设定更新filter</span></span><br><span class="line">    <span class="comment">//filter := bson.D&#123;&#123;&quot;catmenus.catid&quot;, submenu.ParentId&#125;&#125;</span></span><br><span class="line">    filter := bson.D&#123;&#123;<span class="string">&quot;catmenus&quot;</span>,</span><br><span class="line">        bson.D&#123;&#123;<span class="string">&quot;$elemMatch&quot;</span>,</span><br><span class="line">            bson.D&#123;&#123;<span class="string">&quot;catid&quot;</span>,</span><br><span class="line">                submenu.ParentId&#125;&#125;,</span><br><span class="line">        &#125;&#125;,</span><br><span class="line">    &#125;&#125;</span><br><span class="line">    update := bson.D&#123;&#123;<span class="string">&quot;$set&quot;</span>,</span><br><span class="line">        bson.D&#123;</span><br><span class="line">            &#123;<span class="string">&quot;catmenus.$.subcatmenus&quot;</span>, submenu.Menu&#125;,</span><br><span class="line">        &#125;&#125;&#125;</span><br><span class="line"></span><br><span class="line">    _, err := col.UpdateOne(ctx, filter, update)</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>目前收录了几种常见的go操作mongo的方法，都是基于mongo原生支持的操作实现的。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/golang/" rel="tag"># golang</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2021/01/05/js03/" rel="next" title="js继承的六种方案">
+                <i class="fa fa-chevron-left"></i> js继承的六种方案
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2021/11/30/golang35/" rel="prev" title="golang使用redis">
+                golang使用redis <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">219</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%A7%8B%E5%8C%96%E8%BF%9E%E6%8E%A5%E5%92%8C%E6%96%AD%E5%BC%80%E8%BF%9E%E6%8E%A5"><span class="nav-number">2.</span> <span class="nav-text">初始化连接和断开连接</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%87%E7%AB%A0%E8%A1%A8%E7%BB%93%E6%9E%84"><span class="nav-number">3.</span> <span class="nav-text">文章表结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9F%A5%E6%89%BE%E4%B8%80%E6%9D%A1%E6%95%B0%E6%8D%AE"><span class="nav-number">4.</span> <span class="nav-text">查找一条数据</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9F%A5%E6%89%BE%E5%A4%9A%E6%9D%A1%E6%95%B0%E6%8D%AE"><span class="nav-number">5.</span> <span class="nav-text">查找多条数据</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8F%92%E5%85%A5%E4%B8%80%E6%9D%A1%E6%95%B0%E6%8D%AE"><span class="nav-number">6.</span> <span class="nav-text">插入一条数据</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9B%B4%E6%96%B0%E4%B8%80%E6%9D%A1%E6%95%B0%E6%8D%AE"><span class="nav-number">7.</span> <span class="nav-text">更新一条数据</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9B%B4%E6%96%B0%E5%A4%9A%E6%9D%A1"><span class="nav-number">8.</span> <span class="nav-text">更新多条</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E9%A1%B5%E6%9F%A5%E8%AF%A2"><span class="nav-number">9.</span> <span class="nav-text">分页查询</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96%E6%96%87%E6%A1%A3%E6%80%BB%E8%AE%B0%E5%BD%95%E6%95%B0%E9%87%8F"><span class="nav-number">10.</span> <span class="nav-text">获取文档总记录数量</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A8%A1%E7%B3%8A%E6%9F%A5%E8%AF%A2"><span class="nav-number">11.</span> <span class="nav-text">模糊查询</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E7%BB%84%E6%9F%A5%E8%AF%A2"><span class="nav-number">12.</span> <span class="nav-text">分组查询</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%87%E6%A1%A3%E5%86%85%E6%9F%A5%E8%AF%A2"><span class="nav-number">13.</span> <span class="nav-text">文档内查询</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

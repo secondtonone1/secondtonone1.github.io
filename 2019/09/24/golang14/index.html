@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="golang," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="前文介绍过golang interface用法，本文详细剖析interface内部实现和细节。 empty interface实现细节interface底层使用两种类型实现的，一个是eface，一个是iface。当interface中没有方法的时候，底层是通过eface实现的。当interface包含方法时，那么它的底层是通过iface实现的。对于iface和eface具体实现在go源码runti">
+<meta property="og:type" content="article">
+<meta property="og:title" content="golang 接口内部实现">
+<meta property="og:url" content="http://www.limerence2017.com/2019/09/24/golang14/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="前文介绍过golang interface用法，本文详细剖析interface内部实现和细节。 empty interface实现细节interface底层使用两种类型实现的，一个是eface，一个是iface。当interface中没有方法的时候，底层是通过eface实现的。当interface包含方法时，那么它的底层是通过iface实现的。对于iface和eface具体实现在go源码runti">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.limerence2017.com/2019/09/24/golang14/1.jpg">
+<meta property="og:image" content="http://www.limerence2017.com/2019/09/24/golang14/2.jpg">
+<meta property="og:image" content="http://www.limerence2017.com/2019/09/24/golang14/3.jpg">
+<meta property="og:image" content="http://www.limerence2017.com/2019/09/24/golang14/4.jpg">
+<meta property="og:image" content="http://www.limerence2017.com/2019/09/24/golang14/wxgzh.jpg">
+<meta property="article:published_time" content="2019-09-24T06:16:53.000Z">
+<meta property="article:modified_time" content="2022-07-31T07:11:49.971Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="golang">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.limerence2017.com/2019/09/24/golang14/1.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2019/09/24/golang14/"/>
+
+
+
+
+
+  <title>golang 接口内部实现 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/09/24/golang14/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">golang 接口内部实现</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-09-24T14:16:53+08:00">
+                2019-09-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>前文介绍过golang interface用法，本文详细剖析interface内部实现和细节。</p>
+<h2 id="empty-interface实现细节"><a href="#empty-interface实现细节" class="headerlink" title="empty interface实现细节"></a>empty interface实现细节</h2><p>interface底层使用两种类型实现的，一个是eface，一个是iface。当interface中没有方法的时候，底层是通过eface实现的。<br>当interface包含方法时，那么它的底层是通过iface实现的。<br>对于iface和eface具体实现在go源码runtime2.go中，我们看下源码</p>
+<span id="more"></span>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> eface <span class="keyword">struct</span> &#123;</span><br><span class="line">	_type *_type</span><br><span class="line">	data  unsafe.Pointer</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以看到eface包含两个结构，一个是_type类型指针，一个是unsafe包的Pointer变量<br>继续追踪Pointer</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Pointer *ArbitraryType</span><br><span class="line"><span class="keyword">type</span> ArbitraryType <span class="type">int</span></span><br></pre></td></tr></table></figure>
+<p>可以看出Pointer实际上是int类型的指针。我们再看看_type类型</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> _type <span class="keyword">struct</span> &#123;</span><br><span class="line">	size       <span class="type">uintptr</span></span><br><span class="line">	ptrdata    <span class="type">uintptr</span> <span class="comment">// size of memory prefix holding all pointers</span></span><br><span class="line">	hash       <span class="type">uint32</span></span><br><span class="line">	tflag      tflag</span><br><span class="line">	align      <span class="type">uint8</span></span><br><span class="line">	fieldalign <span class="type">uint8</span></span><br><span class="line">	kind       <span class="type">uint8</span></span><br><span class="line">	alg        *typeAlg</span><br><span class="line">	<span class="comment">// gcdata stores the GC type data for the garbage collector.</span></span><br><span class="line">	<span class="comment">// If the KindGCProg bit is set in kind, gcdata is a GC program.</span></span><br><span class="line">	<span class="comment">// Otherwise it is a ptrmask bitmap. See mbitmap.go for details.</span></span><br><span class="line">	gcdata    *<span class="type">byte</span></span><br><span class="line">	str       nameOff</span><br><span class="line">	ptrToThis typeOff</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>size 为该类型所占用的字节数量。<br>kind 表示类型的种类，如 bool、int、float、string、struct、interface 等。<br>str 表示类型的名字信息，它是一个 nameOff(int32) 类型，通过这个 nameOff，可以找到类型的名字字符串</p>
+<p>eface结构总结图<br><img src="1.jpg" alt="1.jpg"><br>eface 分两个部分， *_type 类型为实际类型转化为type类型的指针，data为实际数据。</p>
+<h2 id="具体类型如何转化为eface"><a href="#具体类型如何转化为eface" class="headerlink" title="具体类型如何转化为eface"></a>具体类型如何转化为eface</h2><p>我们写一段程序efacedemo.go，然后用gobuild命令生成可执行文件，再用汇编查看下源码。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> EmpInter <span class="keyword">interface</span> &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> EmpStruct <span class="keyword">struct</span> &#123;</span><br><span class="line">	num <span class="type">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	emps := EmpStruct&#123;num: <span class="number">1</span>&#125;</span><br><span class="line">	<span class="keyword">var</span> empi EmpInter</span><br><span class="line">	empi = emps</span><br><span class="line">	fmt.Println(empi)</span><br><span class="line">	fmt.Println(emps)</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>先用gcflags标记编译生成可执行文件efacedemo<br>go build -gcflags “-l” -o efacedemo  efacedemo.go<br>然后执行go tool objdump 将 可执行程序efacedemo中main包的main函数转为汇编代码<br>go tool objdump -s “main.main” efacedemo</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">efacedemo.go:12       0<span class="title">x48ffa0</span>                65488<span class="title">b0c2528000000</span>      <span class="title">MOVQ</span> <span class="title">GS</span>:0<span class="title">x28</span>, <span class="title">CX</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:12       0<span class="title">x48ffa9</span>                488<span class="title">b8900000000</span>          <span class="title">MOVQ</span> 0(<span class="title">CX</span>), <span class="title">CX</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:12       0<span class="title">x48ffb0</span>                483<span class="title">b6110</span>                <span class="title">CMPQ</span> 0<span class="title">x10</span>(<span class="title">CX</span>), <span class="title">SP</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:12       0<span class="title">x48ffb4</span>                0<span class="title">f86ae000000</span>            <span class="title">JBE</span> 0<span class="title">x490068</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:12       0<span class="title">x48ffba</span>                4883<span class="title">ec48</span>                <span class="title">SUBQ</span> $0<span class="title">x48</span>, <span class="title">SP</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:12       0<span class="title">x48ffbe</span>                48896<span class="title">c2440</span>              <span class="title">MOVQ</span> <span class="title">BP</span>, 0<span class="title">x40</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:12       0<span class="title">x48ffc3</span>                488<span class="title">d6c2440</span>              <span class="title">LEAQ</span> 0<span class="title">x40</span>(<span class="title">SP</span>), <span class="title">BP</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:16       0<span class="title">x48ffc8</span>                48<span class="title">c7042401000000</span>        <span class="title">MOVQ</span> $0<span class="title">x1</span>, 0(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:16       0<span class="title">x48ffd0</span>                <span class="title">e8fb89f7ff</span>              <span class="title">CALL</span> <span class="title">runtime.convT64</span>(<span class="title">SB</span>)  //注意这里调用<span class="title">runtime</span>包的<span class="title">convT64</span>函数</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:16       0<span class="title">x48ffd5</span>                488<span class="title">b442408</span>              <span class="title">MOVQ</span> 0<span class="title">x8</span>(<span class="title">SP</span>), <span class="title">AX</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:17       0<span class="title">x48ffda</span>                0<span class="title">f57c0</span>                  <span class="title">XORPS</span> <span class="title">X0</span>, <span class="title">X0</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:17       0<span class="title">x48ffdd</span>                0<span class="title">f11442430</span>              <span class="title">MOVUPS</span> <span class="title">X0</span>, 0<span class="title">x30</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:17       0<span class="title">x48ffe2</span>                488<span class="title">d0d17c20100</span>          <span class="title">LEAQ</span> <span class="title">runtime.types</span>+111104(<span class="title">SB</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:17       0<span class="title">x48ffe9</span>                48894<span class="title">c2430</span>              <span class="title">MOVQ</span> <span class="title">CX</span>, 0<span class="title">x30</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:17       0<span class="title">x48ffee</span>                4889442438              <span class="title">MOVQ</span> <span class="title">AX</span>, 0<span class="title">x38</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:17       0<span class="title">x48fff3</span>                488<span class="title">d442430</span>              <span class="title">LEAQ</span> 0<span class="title">x30</span>(<span class="title">SP</span>), <span class="title">AX</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:17       0<span class="title">x48fff8</span>                48890424                <span class="title">MOVQ</span> <span class="title">AX</span>, 0(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:17       0<span class="title">x48fffc</span>                48<span class="title">c744240801000000</span>      <span class="title">MOVQ</span> $0<span class="title">x1</span>, 0<span class="title">x8</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:17       0<span class="title">x490005</span>                48<span class="title">c744241001000000</span>      <span class="title">MOVQ</span> $0<span class="title">x1</span>, 0<span class="title">x10</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:17       0<span class="title">x49000e</span>                <span class="title">e8fd98ffff</span>              <span class="title">CALL</span> <span class="title">fmt.Println</span>(<span class="title">SB</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:18       0<span class="title">x490013</span>                48<span class="title">c7042401000000</span>        <span class="title">MOVQ</span> $0<span class="title">x1</span>, 0(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:18       0<span class="title">x49001b</span>                <span class="title">e8b089f7ff</span>              <span class="title">CALL</span> <span class="title">runtime.convT64</span>(<span class="title">SB</span>)   //注意这里调用<span class="title">runtime</span>包的<span class="title">convT64</span>函数</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:18       0<span class="title">x490020</span>                488<span class="title">b442408</span>              <span class="title">MOVQ</span> 0<span class="title">x8</span>(<span class="title">SP</span>), <span class="title">AX</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:18       0<span class="title">x490025</span>                0<span class="title">f57c0</span>                  <span class="title">XORPS</span> <span class="title">X0</span>, <span class="title">X0</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:18       0<span class="title">x490028</span>                0<span class="title">f11442430</span>              <span class="title">MOVUPS</span> <span class="title">X0</span>, 0<span class="title">x30</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:18       0<span class="title">x49002d</span>                488<span class="title">d0dccc10100</span>          <span class="title">LEAQ</span> <span class="title">runtime.types</span>+111104(<span class="title">SB</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:18       0<span class="title">x490034</span>                48894<span class="title">c2430</span>              <span class="title">MOVQ</span> <span class="title">CX</span>, 0<span class="title">x30</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:18       0<span class="title">x490039</span>                4889442438              <span class="title">MOVQ</span> <span class="title">AX</span>, 0<span class="title">x38</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:18       0<span class="title">x49003e</span>                488<span class="title">d442430</span>              <span class="title">LEAQ</span> 0<span class="title">x30</span>(<span class="title">SP</span>), <span class="title">AX</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:18       0<span class="title">x490043</span>                48890424                <span class="title">MOVQ</span> <span class="title">AX</span>, 0(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:18       0<span class="title">x490047</span>                48<span class="title">c744240801000000</span>      <span class="title">MOVQ</span> $0<span class="title">x1</span>, 0<span class="title">x8</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:18       0<span class="title">x490050</span>                48<span class="title">c744241001000000</span>      <span class="title">MOVQ</span> $0<span class="title">x1</span>, 0<span class="title">x10</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:18       0<span class="title">x490059</span>                <span class="title">e8b298ffff</span>              <span class="title">CALL</span> <span class="title">fmt.Println</span>(<span class="title">SB</span>)</span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:20       0<span class="title">x49005e</span>                488<span class="title">b6c2440</span>              <span class="title">MOVQ</span> 0<span class="title">x40</span>(<span class="title">SP</span>), <span class="title">BP</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:20       0<span class="title">x490063</span>                4883<span class="title">c448</span>                <span class="title">ADDQ</span> $0<span class="title">x48</span>, <span class="title">SP</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:20       0<span class="title">x490067</span>                <span class="title">c3</span>                      <span class="title">RET</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:12       0<span class="title">x490068</span>                <span class="title">e883f2fbff</span>              <span class="title">CALL</span> <span class="title">runtime.morestack_noctx</span></span></span><br><span class="line"><span class="function">  <span class="title">efacedemo.go</span>:12       0<span class="title">x49006d</span>                <span class="title">e92effffff</span>              <span class="title">JMP</span> <span class="title">main.main</span>(<span class="title">SB</span>)</span></span><br></pre></td></tr></table></figure>
+<p>抛开寄存器寻址和寄存数据不谈，我们看到efacedemo.go:16行， CALL runtime.convT64(SB)语句说明调用了runtime包的convT64函数<br>这个函数在runtime.go 中有声明</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Specialized type-to-interface conversion.</span></span><br><span class="line"><span class="comment">// These return only a data pointer.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">convT16</span><span class="params">(val any)</span></span> unsafe.Pointer     <span class="comment">// val must be uint16-like (same size and alignment as a uint16)</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">convT32</span><span class="params">(val any)</span></span> unsafe.Pointer     <span class="comment">// val must be uint32-like (same size and alignment as a uint32)</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">convT64</span><span class="params">(val any)</span></span> unsafe.Pointer     <span class="comment">// val must be uint64-like (same size and alignment as a uint64 and contains no pointers)</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">convTstring</span><span class="params">(val any)</span></span> unsafe.Pointer <span class="comment">// val must be a string</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">convTslice</span><span class="params">(val any)</span></span> unsafe.Pointer  <span class="comment">// val must be a slice</span></span><br></pre></td></tr></table></figure>
+<p>看注释就知道是type类型转化为interface类型，计算机将EmpStruct强制转化为type类型后，type类型进一步转化为interface，并且将EmpStruct数据<br>转化为unsafe.Pointer,毕竟int在64位机器中为8字节，所以采用了convT64函数。<br>还有一个函数convT2E,这个函数是将type转化为eface类型，大家可以读一读runtime源码。<br>convT2E源码</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">convT2E</span><span class="params">(t *_type, elem unsafe.Pointer)</span></span> (e eface) &#123;</span><br><span class="line">	<span class="keyword">if</span> raceenabled &#123;</span><br><span class="line">		raceReadObjectPC(t, elem, getcallerpc(), funcPC(convT2E))</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> msanenabled &#123;</span><br><span class="line">		msanread(elem, t.size)</span><br><span class="line">	&#125;</span><br><span class="line">	x := mallocgc(t.size, t, <span class="literal">true</span>)</span><br><span class="line">	<span class="comment">// <span class="doctag">TODO:</span> We allocate a zeroed object only to overwrite it with actual data.</span></span><br><span class="line">	<span class="comment">// Figure out how to avoid zeroing. Also below in convT2Eslice, convT2I, convT2Islice.</span></span><br><span class="line">	typedmemmove(t, x, elem)</span><br><span class="line">	e._type = t</span><br><span class="line">	e.data = x</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>内部调用了typedmemove做类型判断，所以一个类能否转化为某个接口是在runtime这一层做判断的。判断条件就是我之前所说的是否<br>实现了该接口所有的方法。<br>将上面的代码用eface图解就是<br><img src="2.jpg" alt="2.jgp"></p>
+<h2 id="具体类型如何转换为iface"><a href="#具体类型如何转换为iface" class="headerlink" title="具体类型如何转换为iface"></a>具体类型如何转换为iface</h2><p>当接口中带有方法的时候，接口底层的实现就是通过iface结构实现的。我们下一个带方法的接口，然后反汇编一下。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> EmpInter <span class="keyword">interface</span> &#123;</span><br><span class="line">	GetNum() <span class="type">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> EmpStruct <span class="keyword">struct</span> &#123;</span><br><span class="line">	num <span class="type">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(es *EmpStruct)</span></span> GetNum() <span class="type">int</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> es.num</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	emps := EmpStruct&#123;num: <span class="number">1</span>&#125;</span><br><span class="line">	<span class="keyword">var</span> empi EmpInter</span><br><span class="line">	empi = &amp;emps</span><br><span class="line">	fmt.Println(empi)</span><br><span class="line">	fmt.Println(emps)</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>和之前操作一样，先编译<br>go build -gcflags “-l” -o ifacedemo  ifacedemo.go<br>然后反汇编找到指令<br>go tool objdump -s “main.main” ifacedemo<br>生成的汇编指令如下</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">ifacedemo.go:17       0<span class="title">x48ffb0</span>                65488<span class="title">b0c2528000000</span>      <span class="title">MOVQ</span> <span class="title">GS</span>:0<span class="title">x28</span>, <span class="title">CX</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:17       0<span class="title">x48ffb9</span>                488<span class="title">b8900000000</span>          <span class="title">MOVQ</span> 0(<span class="title">CX</span>), <span class="title">CX</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:17       0<span class="title">x48ffc0</span>                483<span class="title">b6110</span>                <span class="title">CMPQ</span> 0<span class="title">x10</span>(<span class="title">CX</span>), <span class="title">SP</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:17       0<span class="title">x48ffc4</span>                0<span class="title">f86c1000000</span>            <span class="title">JBE</span> 0<span class="title">x49008b</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:17       0<span class="title">x48ffca</span>                4883<span class="title">ec50</span>                <span class="title">SUBQ</span> $0<span class="title">x50</span>, <span class="title">SP</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:17       0<span class="title">x48ffce</span>                48896<span class="title">c2448</span>              <span class="title">MOVQ</span> <span class="title">BP</span>, 0<span class="title">x48</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:17       0<span class="title">x48ffd3</span>                488<span class="title">d6c2448</span>              <span class="title">LEAQ</span> 0<span class="title">x48</span>(<span class="title">SP</span>), <span class="title">BP</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:19       0<span class="title">x48ffd8</span>                488<span class="title">d0521c30100</span>          <span class="title">LEAQ</span> <span class="title">runtime.types</span>+111360(<span class="title">SB</span>), <span class="title">AX</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:19       0<span class="title">x48ffdf</span>                48890424                <span class="title">MOVQ</span> <span class="title">AX</span>, 0(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:19       0<span class="title">x48ffe3</span>                <span class="title">e868b3f7ff</span>              <span class="title">CALL</span> <span class="title">runtime.newobject</span>(<span class="title">SB</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:19       0<span class="title">x48ffe8</span>                488<span class="title">b442408</span>              <span class="title">MOVQ</span> 0<span class="title">x8</span>(<span class="title">SP</span>), <span class="title">AX</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:19       0<span class="title">x48ffed</span>                4889442430              <span class="title">MOVQ</span> <span class="title">AX</span>, 0<span class="title">x30</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:19       0<span class="title">x48fff2</span>                48<span class="title">c70001000000</span>          <span class="title">MOVQ</span> $0<span class="title">x1</span>, 0(<span class="title">AX</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:22       0<span class="title">x48fff9</span>                488<span class="title">b0d48ce0400</span>          <span class="title">MOVQ</span> <span class="title">go.itab</span>.*<span class="title">main.EmpStruct</span>,<span class="title">main.EmpInter</span>+8(<span class="title">SB</span>), <span class="title">CX</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:22       0<span class="title">x490000</span>                0<span class="title">f57c0</span>                  <span class="title">XORPS</span> <span class="title">X0</span>, <span class="title">X0</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:22       0<span class="title">x490003</span>                0<span class="title">f11442438</span>              <span class="title">MOVUPS</span> <span class="title">X0</span>, 0<span class="title">x38</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:22       0<span class="title">x490008</span>                48894<span class="title">c2438</span>              <span class="title">MOVQ</span> <span class="title">CX</span>, 0<span class="title">x38</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:22       0<span class="title">x49000d</span>                4889442440              <span class="title">MOVQ</span> <span class="title">AX</span>, 0<span class="title">x40</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:22       0<span class="title">x490012</span>                488<span class="title">d4c2438</span>              <span class="title">LEAQ</span> 0<span class="title">x38</span>(<span class="title">SP</span>), <span class="title">CX</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:22       0<span class="title">x490017</span>                48890<span class="title">c24</span>                <span class="title">MOVQ</span> <span class="title">CX</span>, 0(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:22       0<span class="title">x49001b</span>                48<span class="title">c744240801000000</span>      <span class="title">MOVQ</span> $0<span class="title">x1</span>, 0<span class="title">x8</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:22       0<span class="title">x490024</span>                48<span class="title">c744241001000000</span>      <span class="title">MOVQ</span> $0<span class="title">x1</span>, 0<span class="title">x10</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:22       0<span class="title">x49002d</span>                <span class="title">e8de98ffff</span>              <span class="title">CALL</span> <span class="title">fmt.Println</span>(<span class="title">SB</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:23       0<span class="title">x490032</span>                488<span class="title">b442430</span>              <span class="title">MOVQ</span> 0<span class="title">x30</span>(<span class="title">SP</span>), <span class="title">AX</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:23       0<span class="title">x490037</span>                488<span class="title">b00</span>                  <span class="title">MOVQ</span> 0(<span class="title">AX</span>), <span class="title">AX</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:23       0<span class="title">x49003a</span>                48890424                <span class="title">MOVQ</span> <span class="title">AX</span>, 0(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:23       0<span class="title">x49003e</span>                <span class="title">e88d89f7ff</span>              <span class="title">CALL</span> <span class="title">runtime.convT64</span>(<span class="title">SB</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:23       0<span class="title">x490043</span>                488<span class="title">b442408</span>              <span class="title">MOVQ</span> 0<span class="title">x8</span>(<span class="title">SP</span>), <span class="title">AX</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:23       0<span class="title">x490048</span>                0<span class="title">f57c0</span>                  <span class="title">XORPS</span> <span class="title">X0</span>, <span class="title">X0</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:23       0<span class="title">x49004b</span>                0<span class="title">f11442438</span>              <span class="title">MOVUPS</span> <span class="title">X0</span>, 0<span class="title">x38</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:23       0<span class="title">x490050</span>                488<span class="title">d0da9c20100</span>          <span class="title">LEAQ</span> <span class="title">runtime.types</span>+111360(<span class="title">SB</span>), <span class="title">CX</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:23       0<span class="title">x490057</span>                48894<span class="title">c2438</span>              <span class="title">MOVQ</span> <span class="title">CX</span>, 0<span class="title">x38</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:23       0<span class="title">x49005c</span>                4889442440              <span class="title">MOVQ</span> <span class="title">AX</span>, 0<span class="title">x40</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:23       0<span class="title">x490061</span>                488<span class="title">d442438</span>              <span class="title">LEAQ</span> 0<span class="title">x38</span>(<span class="title">SP</span>), <span class="title">AX</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:23       0<span class="title">x490066</span>                48890424                <span class="title">MOVQ</span> <span class="title">AX</span>, 0(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:23       0<span class="title">x49006a</span>                48<span class="title">c744240801000000</span>      <span class="title">MOVQ</span> $0<span class="title">x1</span>, 0<span class="title">x8</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:23       0<span class="title">x490073</span>                48<span class="title">c744241001000000</span>      <span class="title">MOVQ</span> $0<span class="title">x1</span>, 0<span class="title">x10</span>(<span class="title">SP</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:23       0<span class="title">x49007c</span>                <span class="title">e88f98ffff</span>              <span class="title">CALL</span> <span class="title">fmt.Println</span>(<span class="title">SB</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:25       0<span class="title">x490081</span>                488<span class="title">b6c2448</span>              <span class="title">MOVQ</span> 0<span class="title">x48</span>(<span class="title">SP</span>), <span class="title">BP</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:25       0<span class="title">x490086</span>                4883<span class="title">c450</span>                <span class="title">ADDQ</span> $0<span class="title">x50</span>, <span class="title">SP</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:25       0<span class="title">x49008a</span>                <span class="title">c3</span>                      <span class="title">RET</span></span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:17       0<span class="title">x49008b</span>                <span class="title">e860f2fbff</span>              <span class="title">CALL</span> <span class="title">runtime.morestack_noctxt</span>(<span class="title">SB</span>)</span></span><br><span class="line"><span class="function"> <span class="title">ifacedemo.go</span>:17       0<span class="title">x490090</span>                <span class="title">e91bffffff</span>              <span class="title">JMP</span> <span class="title">main.main</span>(<span class="title">SB</span>)</span></span><br><span class="line"><span class="function"> :-1                   0<span class="title">x490095</span>                <span class="title">cc</span>                      <span class="title">INT</span> $0<span class="title">x3</span></span></span><br><span class="line"><span class="function"> :-1                   0<span class="title">x490096</span>                <span class="title">cc</span>                      <span class="title">INT</span> $0<span class="title">x3</span></span></span><br><span class="line"><span class="function"> :-1                   0<span class="title">x490097</span>                <span class="title">cc</span>                      <span class="title">INT</span> $0<span class="title">x3</span></span></span><br><span class="line"><span class="function"> :-1                   0<span class="title">x490098</span>                <span class="title">cc</span>                      <span class="title">INT</span> $0<span class="title">x3</span></span></span><br><span class="line"><span class="function"> :-1                   0<span class="title">x490099</span>                <span class="title">cc</span>                      <span class="title">INT</span> $0<span class="title">x3</span></span></span><br><span class="line"><span class="function"> :-1                   0<span class="title">x49009a</span>                <span class="title">cc</span>                      <span class="title">INT</span> $0<span class="title">x3</span></span></span><br><span class="line"><span class="function"> :-1                   0<span class="title">x49009b</span>                <span class="title">cc</span>                      <span class="title">INT</span> $0<span class="title">x3</span></span></span><br><span class="line"><span class="function"> :-1                   0<span class="title">x49009c</span>                <span class="title">cc</span>                      <span class="title">INT</span> $0<span class="title">x3</span></span></span><br><span class="line"><span class="function"> :-1                   0<span class="title">x49009d</span>                <span class="title">cc</span>                      <span class="title">INT</span> $0<span class="title">x3</span></span></span><br><span class="line"><span class="function"> :-1                   0<span class="title">x49009e</span>                <span class="title">cc</span>                      <span class="title">INT</span> $0<span class="title">x3</span></span></span><br><span class="line"><span class="function"> :-1                   0<span class="title">x49009f</span>                <span class="title">cc</span>                      <span class="title">INT</span> $0<span class="title">x3</span></span></span><br><span class="line"><span class="function"></span></span><br></pre></td></tr></table></figure>
+<p>抛开寄存器寻址和移动数据，我们查看call和重要的数据copy<br>19行LEAQ runtime.types+111360(SB), AX做了类型上的转换<br>19行CALL runtime.newobject(SB)调用了runtime包的newobject方法，开辟我们结构体的指针<br>22行MOVQ go.itab.*main.EmpStruct,main.EmpInter+8(SB), CX将我们结构体部分信息保存在itab中。<br>23行 CALL runtime.convT64(SB)， 实际上将64位的num转化为数据存在data域中。<br>这些函数都可以在runtime包中找到，读者可以自己阅读。另外，还有个重要函数convT2I</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">convT2I</span><span class="params">(tab *itab, elem unsafe.Pointer)</span></span> (i iface) &#123;</span><br><span class="line">	t := tab._type</span><br><span class="line">	<span class="keyword">if</span> raceenabled &#123;</span><br><span class="line">		raceReadObjectPC(t, elem, getcallerpc(), funcPC(convT2I))</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> msanenabled &#123;</span><br><span class="line">		msanread(elem, t.size)</span><br><span class="line">	&#125;</span><br><span class="line">	x := mallocgc(t.size, t, <span class="literal">true</span>)</span><br><span class="line">	typedmemmove(t, x, elem)</span><br><span class="line">	i.tab = tab</span><br><span class="line">	i.data = x</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个函数将Type类型转化为Iface类型。类似的函数还有convT2Inoptr(Type转Iface指针)。读者可以自己阅读源码。<br>通过上面的调试和分析，我们知道iface中结构和eface略有不同，多出一个itab类型的结构，我们看看iface源码</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> iface <span class="keyword">struct</span> &#123;</span><br><span class="line">	tab  *itab</span><br><span class="line">	data unsafe.Pointer</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>和eface不同，iface的第一个字段是itab指针。我们继续查看itab的定义</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> itab <span class="keyword">struct</span> &#123;</span><br><span class="line">	inter *interfacetype</span><br><span class="line">	_type *_type</span><br><span class="line">	hash  <span class="type">uint32</span> <span class="comment">// copy of _type.hash. Used for type switches.</span></span><br><span class="line">	_     [<span class="number">4</span>]<span class="type">byte</span></span><br><span class="line">	fun   [<span class="number">1</span>]<span class="type">uintptr</span> <span class="comment">// variable sized. fun[0]==0 means _type does not implement inter.</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>itab 各参数含义<br>inter和_type共同确认实际的类型信息，因为在接口中有方法的时候，itab要保存接口方法的一些额外信息，如名字，类型等。<br>hash 用于查询类型和判断类型，比如接口赋值，接口转换判断等。<br>fun 为具体的方法集，所有的方法保存在fun里。虽然fun大小为1，但是这其实是一个柔型数组，后面的地址空间连续且安全，<br>后面能存多少函数，取决于itab初始化多大的空间。</p>
+<p>图解iface结构<br><img src="3.jpg" alt="3.jpg"><br>结合代码，具象化的绘制一下<br><img src="4.jpg" alt="4.jpg"><br>以上就是interface内部结构和动态调用的原理。根据fun方法集动态调用具体类的方法，从而实现了多态。</p>
+<h2 id="gdb调试"><a href="#gdb调试" class="headerlink" title="gdb调试"></a>gdb调试</h2><p>除了可以通过反汇编的方式查看代码指令，其实通过汇编查看函数调用也是很不错的手段。<br> go build -gcflags “-N -l” -o ifacedemo  ifacedemo.go<br> 先编译出可执行文件, -N 忽略优化<br> 然后gdb调试<br> gdb ifacedemo<br> 进入gdb调试界面<br> <figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"> (gdb) list <span class="number">20</span></span><br><span class="line"><span class="number">15</span>	&#125;</span><br><span class="line"><span class="number">16</span>	</span><br><span class="line"><span class="number">17</span>	func main() &#123;</span><br><span class="line"><span class="number">18</span>	</span><br><span class="line"><span class="number">19</span>		emps := EmpStruct&#123;num: <span class="number">1</span>&#125;</span><br><span class="line"><span class="number">20</span>		var empi EmpInter</span><br><span class="line"><span class="number">21</span>		empi = &amp;emps</span><br><span class="line"><span class="number">22</span>		fmt.Println(empi)</span><br><span class="line"><span class="number">23</span>		fmt.Println(emps)</span><br><span class="line"><span class="number">24</span>	</span><br></pre></td></tr></table></figure><br> 输入list 20 为了列举 20行左右代码，然后我们在22行处打个断点,执行run让程序跑在断点处停止<br> <figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">(gdb) <span class="built_in">break</span> <span class="number">22</span></span><br><span class="line">Breakpoint <span class="number">1</span> <span class="built_in">at</span> <span class="number">0</span>x4872ea: file /home/secondtonone/workspace/goProject/src/golang-/ifacedemo/ifacedemo.go, line <span class="number">22</span>.</span><br><span class="line">(gdb) run </span><br><span class="line">Starting program: /home/secondtonone/workspace/goProject/src/golang-/ifacedemo/ifacedemo </span><br><span class="line">[New LWP <span class="number">9562</span>]</span><br><span class="line">[New LWP <span class="number">9563</span>]</span><br><span class="line">[New LWP <span class="number">9564</span>]</span><br><span class="line"></span><br><span class="line">Thread <span class="number">1</span> &quot;ifacedemo&quot; hit Breakpoint <span class="number">1</span>, main.main () <span class="built_in">at</span> /home/secondtonone/workspace/goProject/src/golang-/ifacedemo/ifacedemo.go:<span class="number">22</span></span><br><span class="line"><span class="number">22</span>		fmt.Println(empi)</span><br></pre></td></tr></table></figure><br> 接下来我们查看下empi这个接口的数据信息<br> <figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">(gdb) p empi</span><br><span class="line">$<span class="number">1</span> = &#123;tab = <span class="number">0</span>x4d0ee0 &lt;EmpStruct,main.EmpInter&gt;, data = <span class="number">0</span>xc000078010&#125;</span><br></pre></td></tr></table></figure><br> 看得出empi是iface结构的，包含tab和data两个字段。<br> 我们查看下tab里的内容<br> <figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">(gdb) p empi.tab </span><br><span class="line">$<span class="number">2</span> = (runtime.itab *) <span class="number">0</span>x4d0ee0 &lt;EmpStruct,main.EmpInter&gt;</span><br><span class="line">(gdb) p *empi.tab</span><br><span class="line">$<span class="number">3</span> = &#123;inter = <span class="number">0</span>x4a17a0, _type = <span class="number">0</span>x49f3c0, hash = <span class="number">4144246241</span>, _ = &quot;\<span class="number">000</span>\<span class="number">000</span>\<span class="number">000</span>&quot;, fun = &#123;<span class="number">4747840</span>&#125;&#125;</span><br></pre></td></tr></table></figure><br> 可以看得出 tab是个地址，我们*解引用看到内部内容和上面所述一样，inter, _type, hash, 函数集合fun<br> 接下来我们将代码反汇编<br> <figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"> (gdb) disass</span><br><span class="line">Dump of assembler code <span class="keyword">for</span> function main.main:</span><br><span class="line">   <span class="number">0</span>x0000000000487260 &lt;+<span class="number">0</span>&gt;:	mov    <span class="variable">%fs:0xfffffffffffffff8,%</span>rcx</span><br><span class="line">   <span class="number">0</span>x0000000000487269 &lt;+<span class="number">9</span>&gt;:	lea    -<span class="number">0</span>x58(<span class="variable">%rsp),%</span>rax</span><br><span class="line">   <span class="number">0</span>x000000000048726e &lt;+<span class="number">14</span>&gt;:	cmp    <span class="number">0</span>x10(<span class="variable">%rcx),%</span>rax</span><br><span class="line">   <span class="number">0</span>x0000000000487272 &lt;+<span class="number">18</span>&gt;:	jbe    <span class="number">0</span>x487443 &lt;main.main+<span class="number">483</span>&gt;</span><br><span class="line">   <span class="number">0</span>x0000000000487278 &lt;+<span class="number">24</span>&gt;:	sub    $<span class="number">0</span>xd8,%rsp</span><br><span class="line">   <span class="number">0</span>x000000000048727f &lt;+<span class="number">31</span>&gt;:	mov    <span class="variable">%rbp,0xd0(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x0000000000487287 &lt;+<span class="number">39</span>&gt;:	lea    <span class="number">0</span>xd0(<span class="variable">%rsp),%</span>rbp</span><br><span class="line">   <span class="number">0</span>x000000000048728f &lt;+<span class="number">47</span>&gt;:	lea    <span class="number">0</span>x1b22a(<span class="variable">%rip),%</span>rax        # <span class="number">0</span>x4a24c0</span><br><span class="line">   <span class="number">0</span>x0000000000487296 &lt;+<span class="number">54</span>&gt;:	mov    <span class="variable">%rax,(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x000000000048729a &lt;+<span class="number">58</span>&gt;:	callq  <span class="number">0</span>x40b070 &lt;runtime.newobject&gt;</span><br><span class="line">   <span class="number">0</span>x000000000048729f &lt;+<span class="number">63</span>&gt;:	mov    <span class="number">0</span>x8(<span class="variable">%rsp),%</span>rax</span><br><span class="line">   <span class="number">0</span>x00000000004872a4 &lt;+<span class="number">68</span>&gt;:	mov    <span class="variable">%rax,0x68(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x00000000004872a9 &lt;+<span class="number">73</span>&gt;:	movq   $<span class="number">0</span>x0,<span class="number">0</span>x30(%rsp)</span><br><span class="line">   <span class="number">0</span>x00000000004872b2 &lt;+<span class="number">82</span>&gt;:	movq   $<span class="number">0</span>x1,<span class="number">0</span>x30(%rsp)</span><br><span class="line">   <span class="number">0</span>x00000000004872bb &lt;+<span class="number">91</span>&gt;:	mov    <span class="number">0</span>x68(<span class="variable">%rsp),%</span>rax</span><br><span class="line">   <span class="number">0</span>x00000000004872c0 &lt;+<span class="number">96</span>&gt;:	movq   $<span class="number">0</span>x1,(%rax)</span><br><span class="line">   <span class="number">0</span>x00000000004872c7 &lt;+<span class="number">103</span>&gt;:	xorps  <span class="variable">%xmm0,%</span>xmm0</span><br><span class="line">   <span class="number">0</span>x00000000004872ca &lt;+<span class="number">106</span>&gt;:	movups <span class="variable">%xmm0,0x70(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x00000000004872cf &lt;+<span class="number">111</span>&gt;:	mov    <span class="number">0</span>x68(<span class="variable">%rsp),%</span>rax</span><br><span class="line">   <span class="number">0</span>x00000000004872d4 &lt;+<span class="number">116</span>&gt;:	mov    <span class="variable">%rax,0x50(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x00000000004872d9 &lt;+<span class="number">121</span>&gt;:	lea    <span class="number">0</span>x49c00(<span class="variable">%rip),%</span>rcx        # <span class="number">0</span>x4d0ee0 &lt;go.itab.*main.EmpStruct,main.EmpInter&gt;</span><br><span class="line">   <span class="number">0</span>x00000000004872e0 &lt;+<span class="number">128</span>&gt;:	mov    <span class="variable">%rcx,0x70(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x00000000004872e5 &lt;+<span class="number">133</span>&gt;:	mov    <span class="variable">%rax,0x78(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x00000000004872ea &lt;+<span class="number">138</span>&gt;:	mov    <span class="number">0</span>x78(<span class="variable">%rsp),%</span>rax</span><br><span class="line">   <span class="number">0</span>x00000000004872ef &lt;+<span class="number">143</span>&gt;:	mov    <span class="number">0</span>x70(<span class="variable">%rsp),%</span>rcx</span><br><span class="line">   <span class="number">0</span>x00000000004872f4 &lt;+<span class="number">148</span>&gt;:	mov    <span class="variable">%rcx,0x80(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x00000000004872fc &lt;+<span class="number">156</span>&gt;:	mov    <span class="variable">%rax,0x88(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x0000000000487304 &lt;+<span class="number">164</span>&gt;:	mov    <span class="variable">%rcx,0x48(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x0000000000487309 &lt;+<span class="number">169</span>&gt;:	cmpq   $<span class="number">0</span>x0,<span class="number">0</span>x48(%rsp)</span><br><span class="line">   <span class="number">0</span>x000000000048730f &lt;+<span class="number">175</span>&gt;:	jne    <span class="number">0</span>x487316 &lt;main.main+<span class="number">182</span>&gt;</span><br><span class="line">   <span class="number">0</span>x0000000000487311 &lt;+<span class="number">177</span>&gt;:	jmpq   <span class="number">0</span>x48743e &lt;main.main+<span class="number">478</span>&gt;</span><br><span class="line">   <span class="number">0</span>x0000000000487316 &lt;+<span class="number">182</span>&gt;:	test   <span class="variable">%al,(%</span>rcx)</span><br><span class="line">   <span class="number">0</span>x0000000000487318 &lt;+<span class="number">184</span>&gt;:	mov    <span class="number">0</span>x8(<span class="variable">%rcx),%</span>rax</span><br><span class="line">   <span class="number">0</span>x000000000048731c &lt;+<span class="number">188</span>&gt;:	mov    <span class="variable">%rax,0x48(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x0000000000487321 &lt;+<span class="number">193</span>&gt;:	jmp    <span class="number">0</span>x487323 &lt;main.main+<span class="number">195</span>&gt;</span><br><span class="line">   <span class="number">0</span>x0000000000487323 &lt;+<span class="number">195</span>&gt;:	xorps  <span class="variable">%xmm0,%</span>xmm0</span><br><span class="line">   <span class="number">0</span>x0000000000487326 &lt;+<span class="number">198</span>&gt;:	movups <span class="variable">%xmm0,0x90(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x000000000048732e &lt;+<span class="number">206</span>&gt;:	lea    <span class="number">0</span>x90(<span class="variable">%rsp),%</span>rax</span><br><span class="line">   <span class="number">0</span>x0000000000487336 &lt;+<span class="number">214</span>&gt;:	mov    <span class="variable">%rax,0x40(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x000000000048733b &lt;+<span class="number">219</span>&gt;:	test   <span class="variable">%al,(%</span>rax)</span><br><span class="line">   <span class="number">0</span>x000000000048733d &lt;+<span class="number">221</span>&gt;:	mov    <span class="number">0</span>x48(<span class="variable">%rsp),%</span>rcx</span><br><span class="line">   <span class="number">0</span>x0000000000487342 &lt;+<span class="number">226</span>&gt;:	mov    <span class="number">0</span>x88(<span class="variable">%rsp),%</span>rdx</span><br><span class="line">   <span class="number">0</span>x000000000048734a &lt;+<span class="number">234</span>&gt;:	mov    <span class="variable">%rcx,0x90(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x0000000000487352 &lt;+<span class="number">242</span>&gt;:	mov    <span class="variable">%rdx,0x98(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x000000000048735a &lt;+<span class="number">250</span>&gt;:	test   <span class="variable">%al,(%</span>rax)</span><br><span class="line">   <span class="number">0</span>x000000000048735c &lt;+<span class="number">252</span>&gt;:	jmp    <span class="number">0</span>x48735e &lt;main.main+<span class="number">254</span>&gt;</span><br><span class="line">   <span class="number">0</span>x000000000048735e &lt;+<span class="number">254</span>&gt;:	mov    <span class="variable">%rax,0xa0(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x0000000000487366 &lt;+<span class="number">262</span>&gt;:	movq   $<span class="number">0</span>x1,<span class="number">0</span>xa8(%rsp)</span><br><span class="line">   <span class="number">0</span>x0000000000487372 &lt;+<span class="number">274</span>&gt;:	movq   $<span class="number">0</span>x1,<span class="number">0</span>xb0(%rsp)</span><br><span class="line">   <span class="number">0</span>x000000000048737e &lt;+<span class="number">286</span>&gt;:	mov    <span class="variable">%rax,(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x0000000000487382 &lt;+<span class="number">290</span>&gt;:	movq   $<span class="number">0</span>x1,<span class="number">0</span>x8(%rsp)</span><br><span class="line">   <span class="number">0</span>x000000000048738b &lt;+<span class="number">299</span>&gt;:	movq   $<span class="number">0</span>x1,<span class="number">0</span>x10(%rsp)</span><br><span class="line">   <span class="number">0</span>x0000000000487394 &lt;+<span class="number">308</span>&gt;:	callq  <span class="number">0</span>x480c60 &lt;fmt.Println&gt;</span><br><span class="line">=&gt; <span class="number">0</span>x0000000000487399 &lt;+<span class="number">313</span>&gt;:	mov    <span class="number">0</span>x68(<span class="variable">%rsp),%</span>rax</span><br><span class="line">   <span class="number">0</span>x000000000048739e &lt;+<span class="number">318</span>&gt;:	mov    (<span class="variable">%rax),%</span>rax</span><br><span class="line">   <span class="number">0</span>x00000000004873a1 &lt;+<span class="number">321</span>&gt;:	mov    <span class="variable">%rax,0x38(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x00000000004873a6 &lt;+<span class="number">326</span>&gt;:	mov    <span class="variable">%rax,(%</span>rsp)</span><br><span class="line">   <span class="number">0</span>x00000000004873aa &lt;+<span class="number">330</span>&gt;:	callq  <span class="number">0</span>x408950 &lt;runtime.convT64&gt;</span><br><span class="line">   <span class="number">0</span>x00000000004873af &lt;+<span class="number">335</span>&gt;:	mov    <span class="number">0</span>x8(<span class="variable">%rsp),%</span>rax</span><br><span class="line">---<span class="built_in">Type</span> &lt;return&gt; to continue, or q &lt;return&gt; to quit---</span><br></pre></td></tr></table></figure><br> 显示的就是在main包main函数的反汇编。和我们之前用tool工具看到的一样。<br> 到此为止，interface内部结构和特性介绍完毕<br> 感谢关注我的公众号<br> <img src="wxgzh.jpg" alt="wxgzh.jpg"></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/golang/" rel="tag"># golang</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/09/12/golang13/" rel="next" title="golang接口">
+                <i class="fa fa-chevron-left"></i> golang接口
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/10/11/golang15/" rel="prev" title="Go进阶篇(01) interface应用和复习">
+                Go进阶篇(01) interface应用和复习 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">219</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#empty-interface%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82"><span class="nav-number">1.</span> <span class="nav-text">empty interface实现细节</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B7%E4%BD%93%E7%B1%BB%E5%9E%8B%E5%A6%82%E4%BD%95%E8%BD%AC%E5%8C%96%E4%B8%BAeface"><span class="nav-number">2.</span> <span class="nav-text">具体类型如何转化为eface</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B7%E4%BD%93%E7%B1%BB%E5%9E%8B%E5%A6%82%E4%BD%95%E8%BD%AC%E6%8D%A2%E4%B8%BAiface"><span class="nav-number">3.</span> <span class="nav-text">具体类型如何转换为iface</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#gdb%E8%B0%83%E8%AF%95"><span class="nav-number">4.</span> <span class="nav-text">gdb调试</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

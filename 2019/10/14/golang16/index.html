@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="golang," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="反射是什么反射其实就是通过变量动态获取其值和类型的一种技术，有些语言是支持反射的比如python, golang,有些是不支持反射的比如C++前文我们分析过interface的结构，无论空接口还是有方法的接口，其内部都包含type和value两个类型，type指向了变量实际的类型value指向了变量实际的值。而反射就是获取这两个类型的数据。golang总类型分为包括 static type和con">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go进阶篇(02) 反射用法详解">
+<meta property="og:url" content="http://www.limerence2017.com/2019/10/14/golang16/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="反射是什么反射其实就是通过变量动态获取其值和类型的一种技术，有些语言是支持反射的比如python, golang,有些是不支持反射的比如C++前文我们分析过interface的结构，无论空接口还是有方法的接口，其内部都包含type和value两个类型，type指向了变量实际的类型value指向了变量实际的值。而反射就是获取这两个类型的数据。golang总类型分为包括 static type和con">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.limerence2017.com/2019/10/14/golang16/3.jpg">
+<meta property="og:image" content="http://www.limerence2017.com/2019/10/14/golang16/wxgzh.jpg">
+<meta property="article:published_time" content="2019-10-14T08:44:41.000Z">
+<meta property="article:modified_time" content="2022-07-31T07:11:49.975Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="golang">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.limerence2017.com/2019/10/14/golang16/3.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2019/10/14/golang16/"/>
+
+
+
+
+
+  <title>Go进阶篇(02) 反射用法详解 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/10/14/golang16/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Go进阶篇(02) 反射用法详解</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-10-14T16:44:41+08:00">
+                2019-10-14
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="反射是什么"><a href="#反射是什么" class="headerlink" title="反射是什么"></a>反射是什么</h2><p>反射其实就是通过变量动态获取其值和类型的一种技术，有些语言是支持反射的比如python, golang,有些是不支持反射的比如C++<br>前文我们分析过interface的结构，无论空接口还是有方法的接口，其内部都包含type和value两个类型，type指向了变量实际的类型<br>value指向了变量实际的值。而反射就是获取这两个类型的数据。<br>golang总类型分为包括 static type和concrete type. 简单来说 static type是你在编码是看见的类型(如int、string)，<br>concrete type是runtime系统看见的类型<br>反射只能作用于interface{}类型，interface{}类型时concrete类型<br>下面介绍golang反射的基本用法</p>
+<h2 id="reflect-ValueOf与reflect-TypeOf"><a href="#reflect-ValueOf与reflect-TypeOf" class="headerlink" title="reflect.ValueOf与reflect.TypeOf"></a>reflect.ValueOf与reflect.TypeOf</h2><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">   <span class="keyword">var</span> num <span class="type">float64</span> = <span class="number">13.14</span></span><br><span class="line">rtype := reflect.TypeOf(num)</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect type is &quot;</span>, rtype)</span><br><span class="line">rvalue := reflect.ValueOf(num)</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect value is &quot;</span>, rvalue)</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect  value kind is&quot;</span>, rvalue.Kind())</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect type kind is&quot;</span>, rtype.Kind())</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect  value type is&quot;</span>, rvalue.Type())</span><br></pre></td></tr></table></figure>
+<p>golang 提供了反射功能的包reflect, reflect中ValueOf能够将变量转化为reflect.Value类型，reflect.TypeOf可以将变量<br>转化为reflect.Type类型。</p>
+<span id="more"></span>
+<p>reflect.Type  表示变量的实际类型。<br>reflect.Value 表示变量的实际值。</p>
+<p>reflect.Value类型提供了Kind()方法，获取变量实际的种类。<br>reflect.Value类型提供了Type()方法，获取变量实际的类型。<br>relfect.Type 同样提供了Kind()方法，获取变量的种类。<br>上面程序的输出结果为</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">reflect <span class="built_in">type</span> is  float64</span><br><span class="line">reflect value is  <span class="number">13</span>.<span class="number">14</span></span><br><span class="line">reflect  value kind is float64</span><br><span class="line">reflect <span class="built_in">type</span> kind is float64</span><br><span class="line">reflect  value <span class="built_in">type</span> is float64</span><br></pre></td></tr></table></figure>
+<p>可见通过反射可以获取变量的实际类型和数值，那么Kind和Type有什么区别呢？这个区别在于结构体，之后再谈。如果您只需要了解<br>反射的基础知识，看到这里就可以了，下面介绍反射复杂的玩法。</p>
+<h2 id="通过reflect-Value修改变量"><a href="#通过reflect-Value修改变量" class="headerlink" title="通过reflect.Value修改变量"></a>通过reflect.Value修改变量</h2><p>如果一个变量是reflect.Value类型，则可以通过SetInt,SetFloat,SetString等方法修改变量的值，但是reflect.Value必须是<br>指针类型，否则无法修改原变量的值。可以通过Canset方法判断reflect.Value是否可以修改。<br>另外如果reflect.Value为指针类型，需要通过Elem()解引用方可使用其方法。<br>我们继续上面的例子补充代码。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> num <span class="type">float64</span> = <span class="number">13.14</span></span><br><span class="line">rtype := reflect.TypeOf(num)</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect type is &quot;</span>, rtype)</span><br><span class="line">rvalue := reflect.ValueOf(num)</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect value is &quot;</span>, rvalue)</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect  value kind is&quot;</span>, rvalue.Kind())</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect type kind is&quot;</span>, rtype.Kind())</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect  value type is&quot;</span>, rvalue.Type())</span><br><span class="line"></span><br><span class="line">rptrvalue := reflect.ValueOf(&amp;num)</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect value is &quot;</span>, rptrvalue)</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect  value kind is&quot;</span>, rptrvalue.Kind())</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect type kind is&quot;</span>, rptrvalue.Kind())</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect  value type is&quot;</span>, rptrvalue.Type())</span><br><span class="line"><span class="keyword">if</span> rptrvalue.Elem().CanSet() &#123;</span><br><span class="line">	rptrvalue.Elem().SetFloat(<span class="number">131.4</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">fmt.Println(num)</span><br></pre></td></tr></table></figure>
+<p>输出如下</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">reflect <span class="built_in">type</span> is  float64</span><br><span class="line">reflect value is  <span class="number">13</span>.<span class="number">14</span></span><br><span class="line">reflect  value kind is float64</span><br><span class="line">reflect <span class="built_in">type</span> kind is float64</span><br><span class="line">reflect  value <span class="built_in">type</span> is float64</span><br><span class="line">reflect value is  <span class="number">0</span>xc000012098</span><br><span class="line">reflect  value kind is ptr</span><br><span class="line">reflect <span class="built_in">type</span> kind is ptr</span><br><span class="line">reflect  value <span class="built_in">type</span> is *float64</span><br><span class="line"><span class="number">131</span>.<span class="number">4</span></span><br></pre></td></tr></table></figure>
+<p>可以看到通过rptrvalue.Elem().SetFloat(131.4)成功修改了num的数值。<br>而且通过打印rptrvalue的Kind为ptr指针种类，Type为float64的指针类型<br>注意，如果通过rptrvalue.SetFloat(131.4)会导致panic崩溃，因为此时rptrvalue为指针类型<br>需要通过Elem()解引用才可以使用方法。这个Elem()相当于C++编程中解引用的*</p>
+<h2 id="通过Interface-将relect-Value类型转换为interface-类型"><a href="#通过Interface-将relect-Value类型转换为interface-类型" class="headerlink" title="通过Interface()将relect.Value类型转换为interface{}类型"></a>通过Interface()将relect.Value类型转换为interface{}类型</h2><p>我们可通过Interface()将relect.Value类型转换为interface{}类型，进而转换为原始类型。<br>继续上边的代码，我们完善代码</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> num <span class="type">float64</span> = <span class="number">13.14</span></span><br><span class="line">rtype := reflect.TypeOf(num)</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect type is &quot;</span>, rtype)</span><br><span class="line">rvalue := reflect.ValueOf(num)</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect value is &quot;</span>, rvalue)</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect  value kind is&quot;</span>, rvalue.Kind())</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect type kind is&quot;</span>, rtype.Kind())</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect  value type is&quot;</span>, rvalue.Type())</span><br><span class="line"></span><br><span class="line">rptrvalue := reflect.ValueOf(&amp;num)</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect value is &quot;</span>, rptrvalue)</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect  value kind is&quot;</span>, rptrvalue.Kind())</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect type kind is&quot;</span>, rptrvalue.Kind())</span><br><span class="line">fmt.Println(<span class="string">&quot;reflect  value type is&quot;</span>, rptrvalue.Type())</span><br><span class="line"><span class="keyword">if</span> rptrvalue.Elem().CanSet() &#123;</span><br><span class="line">	rptrvalue.Elem().SetFloat(<span class="number">131.4</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">fmt.Println(num)</span><br><span class="line"><span class="comment">//rvalue 为reflect包的Value类型</span></span><br><span class="line"><span class="comment">//可通过Interface()转化为interface&#123;&#125;类型，进而转化为原始类型</span></span><br><span class="line">rawvalue := rvalue.Interface().(<span class="type">float64</span>)</span><br><span class="line">fmt.Println(<span class="string">&quot;rawvalue is &quot;</span>, rawvalue)</span><br><span class="line"></span><br><span class="line">rawptrvalue := rptrvalue.Interface().(*<span class="type">float64</span>)</span><br><span class="line">fmt.Println(<span class="string">&quot;rawptrvalue is &quot;</span>, *rawptrvalue)</span><br></pre></td></tr></table></figure>
+<p>输出如下</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">reflect value is  <span class="number">13</span>.<span class="number">14</span></span><br><span class="line">reflect  value kind is float64</span><br><span class="line">reflect <span class="built_in">type</span> kind is float64</span><br><span class="line">reflect  value <span class="built_in">type</span> is float64</span><br><span class="line">reflect value is  <span class="number">0</span>xc000012098</span><br><span class="line">reflect  value kind is ptr</span><br><span class="line">reflect <span class="built_in">type</span> kind is ptr</span><br><span class="line">reflect  value <span class="built_in">type</span> is *float64</span><br><span class="line"><span class="number">131</span>.<span class="number">4</span></span><br><span class="line">rawvalue is  <span class="number">13</span>.<span class="number">14</span></span><br><span class="line">rawptrvalue is  <span class="number">131</span>.<span class="number">4</span></span><br></pre></td></tr></table></figure>
+<p>可以看出rvalue.Interface().(float64)将reflect.Value类型转换为float类型<br>rptrvalue.Interface().(*float64)将reflect.Value类型转换为float指针类型<br>在这两个转换前，我们不是已经将num值修改为131.4了吗？<br>为什么rvalue.Interface().(float64)转换后还是13.14呢？<br>因为rvalue为值类型不是指针类型，只是存储了num未修改前的一个副本，其值为13.14，<br>所以转化为float类型值仍为13.14。<br>而rptrvalue为指针类型，指向的空间为num所在的空间，所以转化为float指针后指向num所在空间。<br>num修改了，rptrvalue指向空间的数据就修改了。<br>到目前为止第一个例子就完整的写完了。</p>
+<h2 id="Kind和Type有何不同？"><a href="#Kind和Type有何不同？" class="headerlink" title="Kind和Type有何不同？"></a>Kind和Type有何不同？</h2><p>我们先定义一个结构体Hero</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Hero <span class="keyword">struct</span> &#123;</span><br><span class="line">	name <span class="type">string</span></span><br><span class="line">	id   <span class="type">int</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>接着我们实现一个函数，通过反射判断结构体类型</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ReflectTypeValue</span><span class="params">(itf <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	rtype := reflect.TypeOf(itf)</span><br><span class="line">	fmt.Println(<span class="string">&quot;reflect type is &quot;</span>, rtype)</span><br><span class="line">	rvalue := reflect.ValueOf(itf)</span><br><span class="line">	fmt.Println(<span class="string">&quot;reflect value is &quot;</span>, rvalue)</span><br><span class="line">	fmt.Println(<span class="string">&quot;reflect  value kind is&quot;</span>, rvalue.Kind())</span><br><span class="line">	fmt.Println(<span class="string">&quot;reflect type kind is&quot;</span>, rtype.Kind())</span><br><span class="line">	fmt.Println(<span class="string">&quot;reflect  value type is&quot;</span>, rvalue.Type())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面函数参数为空接口，可以接受任何类型数据，内部调用了反射的TypeOf和ValueOf转化，判断参数类型和种类<br>我们在main函数测试下</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ReflectTypeValue(Hero&#123;name: <span class="string">&quot;zack&quot;</span>, id: <span class="number">1</span>&#125;)</span><br><span class="line">ReflectTypeValue(&amp;Hero&#123;name: <span class="string">&quot;zack&quot;</span>, id: <span class="number">1</span>&#125;)</span><br></pre></td></tr></table></figure>
+<p>输出如下</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">reflect <span class="built_in">type</span> is  main.Hero</span><br><span class="line">reflect value is  &#123;zack <span class="number">1</span>&#125;</span><br><span class="line">reflect  value kind is struct</span><br><span class="line">reflect <span class="built_in">type</span> kind is struct</span><br><span class="line">reflect  value <span class="built_in">type</span> is main.Hero</span><br><span class="line">reflect <span class="built_in">type</span> is  *main.Hero</span><br><span class="line">reflect value is  &amp;&#123;zack <span class="number">1</span>&#125;</span><br><span class="line">reflect  value kind is ptr</span><br><span class="line">reflect <span class="built_in">type</span> kind is ptr</span><br><span class="line">reflect  value <span class="built_in">type</span> is *main.Hero</span><br></pre></td></tr></table></figure>
+<p>看的出来，Hero结构体的Kind为struct,Type为main.Hero,因为Hero定义在main包，所以为main.Hero<br>结构体的值为{zack 1}<br>Hero指针的Kind为ptr,Type也为*main.Hero，值为&amp;{zack 1}<br>这其实就是Kind和Type的区别，Type为具体的类型，Kind为种类，比如指针ptr，结构体struct,<br>整形int等。<br>下面我们进行更复杂的结构体遍历和探测</p>
+<h2 id="通过reflect-Value的NumField函数获取结构体成员数量"><a href="#通过reflect-Value的NumField函数获取结构体成员数量" class="headerlink" title="通过reflect.Value的NumField函数获取结构体成员数量"></a>通过reflect.Value的NumField函数获取结构体成员数量</h2><p>reflect.Value类型提供了NumField()函数，用来返回结构体成员数量。我们先实现一个函数遍历探测<br>结构体成员。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">	<span class="function"><span class="keyword">func</span> <span class="title">ReflectStructElem</span><span class="params">(itf <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">		rvalue := reflect.ValueOf(itf)</span><br><span class="line">		<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; rvalue.NumField(); i++ &#123;</span><br><span class="line">			elevalue := rvalue.Field(i)</span><br><span class="line">			fmt.Println(<span class="string">&quot;element &quot;</span>, i, <span class="string">&quot; its type is &quot;</span>, elevalue.Type())</span><br><span class="line">			fmt.Println(<span class="string">&quot;element &quot;</span>, i, <span class="string">&quot; its kind is &quot;</span>, elevalue.Kind())</span><br><span class="line">			fmt.Println(<span class="string">&quot;element &quot;</span>, i, <span class="string">&quot; its value is &quot;</span>, elevalue)</span><br><span class="line">		&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>ReflectStructElem函数首先通过reflect.ValueOf获取reflect.Value类型，在通过reflect.Value类型<br>的NumField获取实际结构体内的成员个数。<br>rvalue.Field(i)根据索引依次获取结构体每个成员，elevalue类型为reflect.Value类型，所以可以通过<br>Kind,Type等方法获取成员的类型和种类。<br>我们在主函数调用上面的方法</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ReflectTypeValue(Hero&#123;name: <span class="string">&quot;zack&quot;</span>, id: <span class="number">1</span>&#125;)</span><br></pre></td></tr></table></figure>
+<p>Hero为我们上个例子定义的结构体，输出如下</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">element  <span class="number">0</span>  its <span class="built_in">type</span> is  string</span><br><span class="line">element  <span class="number">0</span>  its kind is  string</span><br><span class="line">element  <span class="number">0</span>  its value is  zack fair</span><br><span class="line">element  <span class="number">1</span>  its <span class="built_in">type</span> is  int</span><br><span class="line">element  <span class="number">1</span>  its kind is  int</span><br><span class="line">element  <span class="number">1</span>  its value is  <span class="number">2</span></span><br></pre></td></tr></table></figure>
+<p>可见通过reflect.Value的NumField是可以遍历探测结构体成员的值得。<br>下面我们试试在main函数中加入这样一段代码</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ReflectStructElem(&amp;Hero&#123;name: <span class="string">&quot;Rolin&quot;</span>, id: <span class="number">20</span>&#125;)</span><br></pre></td></tr></table></figure>
+<p>这次ReflectStructElem的参数为Hero指针类型,运行发现程序崩溃了。<br>我们查看下NumField的源码</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(v Value)</span></span> NumField() <span class="type">int</span> &#123;</span><br><span class="line">	v.mustBe(Struct)</span><br><span class="line">	tt := (*structType)(unsafe.Pointer(v.typ))</span><br><span class="line">	<span class="keyword">return</span> <span class="built_in">len</span>(tt.fields)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以看出NumField内部判断v必须为Struct类型，然后取出v的typ字段转化为结构体指针进行操作。<br>所以NumField只能用在探测结构体类型,指针，int，float，string等类型都不能使用NumField方法。<br>那如果我们想遍历结构体指针类型怎么办？比如*Hero类型？<br>答案是可以的，通过Elem()解引用即可。我们再实现一个函数，用来探测结构体指针类型成员变量。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ReflectStructPtrElem</span><span class="params">(itf <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">	rvalue := reflect.ValueOf(itf)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; rvalue.Elem().NumField(); i++ &#123;</span><br><span class="line">		elevalue := rvalue.Elem().Field(i)</span><br><span class="line">		fmt.Println(<span class="string">&quot;element &quot;</span>, i, <span class="string">&quot; its type is &quot;</span>, elevalue.Type())</span><br><span class="line">		fmt.Println(<span class="string">&quot;element &quot;</span>, i, <span class="string">&quot; its kind is &quot;</span>, elevalue.Kind())</span><br><span class="line">		fmt.Println(<span class="string">&quot;element &quot;</span>, i, <span class="string">&quot; its value is &quot;</span>, elevalue)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>ReflectStructPtrElem先通过reflect.ValueOf接口类型转化为reflect.Value类型的rvalue,<br>此时rvalue实际类型为结构体指针类型，所以通过Elem()解除引用,这样rvalue.Elem()为Hero类型。<br>接下来就可以遍历和获取结构体成员了。main函数中添加如下代码</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">heroptr := &amp;Hero&#123;name: <span class="string">&quot;zack fair&quot;</span>, id: <span class="number">2</span>&#125;</span><br><span class="line">ReflectStructPtrElem(heroptr)</span><br></pre></td></tr></table></figure>
+<p>输出</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">element  <span class="number">0</span>  its <span class="built_in">type</span> is  string</span><br><span class="line">element  <span class="number">0</span>  its kind is  string</span><br><span class="line">element  <span class="number">0</span>  its value is  zack fair</span><br><span class="line">element  <span class="number">1</span>  its <span class="built_in">type</span> is  int</span><br><span class="line">element  <span class="number">1</span>  its kind is  int</span><br><span class="line">element  <span class="number">1</span>  its value is  <span class="number">2</span></span><br></pre></td></tr></table></figure>
+<p>到目前为止，我们学会了通过反射获取基本类型(int,string,float等)的变量，也可以获取结构体类型和<br>结构体指针类型的变量，以及探测其内部成员。接下来我们考虑修改结构体成员的值。</p>
+<h2 id="通过reflect-Value的NumMethod获取结构体方法"><a href="#通过reflect-Value的NumMethod获取结构体方法" class="headerlink" title="通过reflect.Value的NumMethod获取结构体方法"></a>通过reflect.Value的NumMethod获取结构体方法</h2><p>我们要修改结构体成员变量的值，可以通过之前的Set方法吗？答案是可以的，但是要求比较苛刻，要求反射的对象<br>是结构体指针，并且修改的成员也是指针类型才可以。而对于非指针类型的成员变量怎么修改呢？<br>我们先完善函数 ReflectStructPtrElem</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ReflectStructPtrElem</span><span class="params">(itf <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">	rvalue := reflect.ValueOf(itf)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; rvalue.Elem().NumField(); i++ &#123;</span><br><span class="line">		elevalue := rvalue.Elem().Field(i)</span><br><span class="line">		fmt.Println(<span class="string">&quot;element &quot;</span>, i, <span class="string">&quot; its type is &quot;</span>, elevalue.Type())</span><br><span class="line">		fmt.Println(<span class="string">&quot;element &quot;</span>, i, <span class="string">&quot; its kind is &quot;</span>, elevalue.Kind())</span><br><span class="line">		fmt.Println(<span class="string">&quot;element &quot;</span>, i, <span class="string">&quot; its value is &quot;</span>, elevalue)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> rvalue.Elem().Field(<span class="number">1</span>).CanSet() &#123;</span><br><span class="line">		rvalue.Elem().Field(<span class="number">1</span>).SetInt(<span class="number">100</span>)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">&quot;struct element 1 can&#x27;t be changed&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面代码添加了功能，获取结构体指针类型的变量的第二个成员，判断是否可以修改。测试下</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">heroptr := &amp;Hero&#123;name: <span class="string">&quot;zack fair&quot;</span>, id: <span class="number">2</span>&#125;</span><br><span class="line">ReflectStructPtrElem(heroptr)</span><br></pre></td></tr></table></figure>
+<p>输出如下</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">element  <span class="number">0</span>  its <span class="built_in">type</span> is  string</span><br><span class="line">element  <span class="number">0</span>  its kind is  string</span><br><span class="line">element  <span class="number">0</span>  its value is  zack fair</span><br><span class="line">element  <span class="number">1</span>  its <span class="built_in">type</span> is  int</span><br><span class="line">element  <span class="number">1</span>  its kind is  int</span><br><span class="line">element  <span class="number">1</span>  its value is  <span class="number">2</span></span><br><span class="line">struct element <span class="number">1</span> can&#x27;t be changed</span><br></pre></td></tr></table></figure>
+<p>可见*Hero虽然为结构体指针类型，但是成员id为int类型，不可被更改。<br>有什么办法更改Hero成员变量吗？答案是有的，通过Hero的方法，我们给Hero完善几个方法</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Hero <span class="keyword">struct</span> &#123;</span><br><span class="line">	name <span class="type">string</span></span><br><span class="line">	id   <span class="type">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h Hero)</span></span> PrintData() &#123;</span><br><span class="line">	fmt.Println(<span class="string">&quot;Hero name is &quot;</span>, h.name, <span class="string">&quot; id is &quot;</span>, h.id)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h Hero)</span></span> SetName(name <span class="type">string</span>) &#123;</span><br><span class="line">	h.name = name</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h *Hero)</span></span> SetName2(name <span class="type">string</span>) &#123;</span><br><span class="line">	h.name = name</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h *Hero)</span></span> PrintData2() &#123;</span><br><span class="line">	fmt.Println(<span class="string">&quot;Hero name is &quot;</span>, h.name, <span class="string">&quot; id is &quot;</span>, h.id)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们分别为Hero类增加了四个方法，两个为Hero实现，两个为<em>Hero实现。通过前面几篇文章我介绍过<br>Hero类型变量只能访问基于Hero实现的方法，而Hero指针类型的变量可以访问所有Hero方法。<br>包括Hero和</em>Hero实现的所有方法。与探测结构体成员变量一样，反射提供了方法探测和调用的api。<br>reflect.Value提供了MethodField方法获取结构体实现的方法数量，<br>通过reflect.Value的Method方法获取指定方法并调用。<br>我们实现一个函数</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ReflectStructMethod</span><span class="params">(itf <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">	rvalue := reflect.ValueOf(itf)</span><br><span class="line">	rtype := reflect.TypeOf(itf)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; rvalue.NumMethod(); i++ &#123;</span><br><span class="line">		methodvalue := rvalue.Method(i)</span><br><span class="line">		fmt.Println(<span class="string">&quot;method &quot;</span>, i, <span class="string">&quot; value is &quot;</span>, methodvalue)</span><br><span class="line">		methodtype := rtype.Method(i)</span><br><span class="line">		fmt.Println(<span class="string">&quot;method &quot;</span>, i, <span class="string">&quot; type is &quot;</span>, methodtype)</span><br><span class="line">		fmt.Println(<span class="string">&quot;method &quot;</span>, i, <span class="string">&quot; name is &quot;</span>, methodtype.Name)</span><br><span class="line">		fmt.Println(<span class="string">&quot;method &quot;</span>, i, <span class="string">&quot; method.type is &quot;</span>, methodtype.Type)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//reflect.ValueOf 方法调用,无参方法调用</span></span><br><span class="line">	fmt.Println(rvalue.Method(<span class="number">0</span>).Call(<span class="literal">nil</span>))</span><br><span class="line">	<span class="comment">//有参方法调用</span></span><br><span class="line">	params := []reflect.Value&#123;reflect.ValueOf(<span class="string">&quot;Rolin&quot;</span>)&#125;</span><br><span class="line">	fmt.Println(rvalue.Method(<span class="number">1</span>).Call(params))</span><br><span class="line">	<span class="comment">//虽然修改了，但是并没有生效</span></span><br><span class="line">	fmt.Println(rvalue.Method(<span class="number">0</span>).Call(<span class="literal">nil</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对上面的函数做详细讲解<br>rvalue := reflect.ValueOf(itf) 将参数itf转化为reflect.Value类型<br>rtype := reflect.TypeOf(itf)   将参数itf转化为reflect.Type类型<br>rvalue.NumMethod 获取结构体实现的方法个数<br>methodvalue := rvalue.Method(i)根据索引i获取对应的方法，<br>methodvalue 为reflect.Value类型<br>methodtype := rtype.Method(i)  根据索引i获取对应的方法，<br>methodtype 为reflect.Method类型，可以进一步获取方法类型，名字等信息。<br>rvalue.Method(0).Call(nil)为方法调用，如果itf为Hero类型，<br>则调用了结构体的第一个方法PrintData,<br>Call的参数为一个reflect.Value类型的slice。这个slice存储的就是函数调用所需的参数。<br>由于PrintData参数为空，所以这里传nil就行。<br>params := []reflect.Value{reflect.ValueOf(“Rolin”)}构造了参数列表<br>如果itf为Hero类型<br>rvalue.Method(1).Call(params)调用了结构体实现的第二个方法SetName<br>那么综上所述，其实上面的函数ReflectStructMethod功能就是遍历结构体所实现的方法，<br>打印方法地址和名字，类型等信息。然后调用了打印方法和修改方法。<br>我们在main函数里添加代码测试</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ReflectStructMethod(Hero&#123;name: <span class="string">&quot;zack fair&quot;</span>, id: <span class="number">2</span>&#125;)</span><br></pre></td></tr></table></figure>
+<p>输出</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">method  <span class="number">0</span>  value is  <span class="number">0</span>x4945d0</span><br><span class="line">method  <span class="number">0</span>  <span class="built_in">type</span> is  &#123;PrintData  func(main.Hero) &lt;func(main.Hero) Value&gt; <span class="number">0</span>&#125;</span><br><span class="line">method  <span class="number">0</span>  name is  PrintData</span><br><span class="line">method  <span class="number">0</span>  method.<span class="built_in">type</span> is  func(main.Hero)</span><br><span class="line">method  <span class="number">1</span>  value is  <span class="number">0</span>x4945d0</span><br><span class="line">method  <span class="number">1</span>  <span class="built_in">type</span> is  &#123;SetName  func(main.Hero, string) &lt;func(main.Hero, string) Value&gt; <span class="number">1</span>&#125;</span><br><span class="line">method  <span class="number">1</span>  name is  SetName</span><br><span class="line">method  <span class="number">1</span>  method.<span class="built_in">type</span> is  func(main.Hero, string)</span><br><span class="line">Hero name is  zack fair  id is  <span class="number">2</span></span><br><span class="line">Hero name is  zack fair  id is  <span class="number">2</span></span><br></pre></td></tr></table></figure>
+<p>可以看出每次遍历我们打印的方法地址methodvalue都为0x4945d0,<br>其实这个地址就是存储在interface的itab中的fun方法集地址。<br>还记得我之前剖析interface内部实现的这个图吗?<br><img src="3.jpg" alt="3.jpg"><br>fun我之前说过为unitptr类型的数组，大小为1，其实这是一个柔性数组，实际大小取决于方法个数<br>0x4945d0就是个柔型数组的首地址。<br>接着打印methodtype，其实就是Method类型的结构体，包含方法名，参数，方法的索引。<br>方法在fun数组中是按照字符大小排序的，这个读者可以自己gdb调试或者查看汇编源码。<br>接着我们在循环外调用了打印函数PrintData()和修改函数SetName()<br>但是我们看到，修改函数并没有生效。<br>因为SetName是基于Hero实现的，达不到修改自身属性的目的。需要调用SetName2来修改。<br>SetName2是基于*Hero实现的。<br>为了达到修改成员变量的目的，我们在实现一个函数</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ReflectStructPtrMethod</span><span class="params">(itf <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">	rvalue := reflect.ValueOf(itf)</span><br><span class="line">	rtype := reflect.TypeOf(itf)</span><br><span class="line">	fmt.Println(<span class="string">&quot;Hero pointer struct method list......................&quot;</span>)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; rvalue.NumMethod(); i++ &#123;</span><br><span class="line">		methodvalue := rvalue.Method(i)</span><br><span class="line">		fmt.Println(<span class="string">&quot;method &quot;</span>, i, <span class="string">&quot; value is &quot;</span>, methodvalue)</span><br><span class="line">		methodtype := rtype.Method(i)</span><br><span class="line">		fmt.Println(<span class="string">&quot;method &quot;</span>, i, <span class="string">&quot; type is &quot;</span>, methodtype)</span><br><span class="line">		fmt.Println(<span class="string">&quot;method &quot;</span>, i, <span class="string">&quot; name is &quot;</span>, methodtype.Name)</span><br><span class="line">		fmt.Println(<span class="string">&quot;method &quot;</span>, i, <span class="string">&quot; method.type is &quot;</span>, methodtype.Type)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//reflect.ValueOf 方法调用,无参方法调用</span></span><br><span class="line">	fmt.Println(rvalue.Method(<span class="number">1</span>).Call(<span class="literal">nil</span>))</span><br><span class="line">	<span class="comment">//有参方法调用</span></span><br><span class="line">	params := []reflect.Value&#123;reflect.ValueOf(<span class="string">&quot;Rolin&quot;</span>)&#125;</span><br><span class="line">	fmt.Println(rvalue.Method(<span class="number">3</span>).Call(params))</span><br><span class="line">	<span class="comment">//修改了，生效</span></span><br><span class="line">	fmt.Println(rvalue.Method(<span class="number">0</span>).Call(<span class="literal">nil</span>))</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="string">&quot;Hero Struct method list......................&quot;</span>)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; rvalue.Elem().NumMethod(); i++ &#123;</span><br><span class="line">		methodvalue := rvalue.Elem().Method(i)</span><br><span class="line">		fmt.Println(<span class="string">&quot;method &quot;</span>, i, <span class="string">&quot; value is &quot;</span>, methodvalue)</span><br><span class="line">		methodtype := rtype.Elem().Method(i)</span><br><span class="line">		fmt.Println(<span class="string">&quot;method &quot;</span>, i, <span class="string">&quot; type is &quot;</span>, methodtype)</span><br><span class="line">		fmt.Println(<span class="string">&quot;method &quot;</span>, i, <span class="string">&quot; name is &quot;</span>, methodtype.Name)</span><br><span class="line">		fmt.Println(<span class="string">&quot;method &quot;</span>, i, <span class="string">&quot; method.type is &quot;</span>, methodtype.Type)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>ReflectStructPtrMethod 用来接收结构体指针<br>rvalue 实际为结构体指针类型<br>rvalue.NumMethod获取结构体指针实现的方法，这其中包含结构体实现的方法和结构体指针实现的方法。<br>如果参数itf为*Hero类型，则NumMethod为4，包括基于Hero指针和Hero结构体实现的方法。<br>这里可能有读者会问如果rvalue为指针类型为什么不需要用Elem()解引用再调用NumMethod?<br>我们看下NumMethod的方法源码</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(v Value)</span></span> NumMethod() <span class="type">int</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> v.typ == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(&amp;ValueError&#123;<span class="string">&quot;reflect.Value.NumMethod&quot;</span>, Invalid&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> v.flag&amp;flagMethod != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> v.typ.NumMethod()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可见NumMethod和NumField不同，并没有要求v为结构体类型，所以结构体指针也能调用NumMethod。<br>只是结构体指针和结构体调用NumMethod会返回不同的数量，比如rvalue实际类型为*Hero类型,<br>rvalue.Elem().NumMethod()解引用返回值为2,因为Hero实现了PrintData和SetName方法。<br>我们调用了方法进行修改，然后为了测试解引用和不解引用调用NumMethod的区别，分别进行了打印。<br>在main函数中测试</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">Hero pointer struct method list......................</span><br><span class="line">method  <span class="number">0</span>  value is  <span class="number">0</span>x4945d0</span><br><span class="line">method  <span class="number">0</span>  <span class="built_in">type</span> is  &#123;PrintData  func(*main.Hero) &lt;func(*main.Hero) Value&gt; <span class="number">0</span>&#125;</span><br><span class="line">method  <span class="number">0</span>  name is  PrintData</span><br><span class="line">method  <span class="number">0</span>  method.<span class="built_in">type</span> is  func(*main.Hero)</span><br><span class="line">method  <span class="number">1</span>  value is  <span class="number">0</span>x4945d0</span><br><span class="line">method  <span class="number">1</span>  <span class="built_in">type</span> is  &#123;PrintData2  func(*main.Hero) &lt;func(*main.Hero) Value&gt; <span class="number">1</span>&#125;</span><br><span class="line">method  <span class="number">1</span>  name is  PrintData2</span><br><span class="line">method  <span class="number">1</span>  method.<span class="built_in">type</span> is  func(*main.Hero)</span><br><span class="line">method  <span class="number">2</span>  value is  <span class="number">0</span>x4945d0</span><br><span class="line">method  <span class="number">2</span>  <span class="built_in">type</span> is  &#123;SetName  func(*main.Hero, string) &lt;func(*main.Hero, string) Value&gt; <span class="number">2</span>&#125;</span><br><span class="line">method  <span class="number">2</span>  name is  SetName</span><br><span class="line">method  <span class="number">2</span>  method.<span class="built_in">type</span> is  func(*main.Hero, string)</span><br><span class="line">method  <span class="number">3</span>  value is  <span class="number">0</span>x4945d0</span><br><span class="line">method  <span class="number">3</span>  <span class="built_in">type</span> is  &#123;SetName2  func(*main.Hero, string) &lt;func(*main.Hero, string) Value&gt; <span class="number">3</span>&#125;</span><br><span class="line">method  <span class="number">3</span>  name is  SetName2</span><br><span class="line">method  <span class="number">3</span>  method.<span class="built_in">type</span> is  func(*main.Hero, string)</span><br><span class="line">Hero name is  zack fair  id is  <span class="number">2</span></span><br><span class="line">Hero name is  Rolin  id is  <span class="number">2</span></span><br><span class="line">Hero Struct method list......................</span><br><span class="line">method  <span class="number">0</span>  value is  <span class="number">0</span>x4945d0</span><br><span class="line">method  <span class="number">0</span>  <span class="built_in">type</span> is  &#123;PrintData  func(main.Hero) &lt;func(main.Hero) Value&gt; <span class="number">0</span>&#125;</span><br><span class="line">method  <span class="number">0</span>  name is  PrintData</span><br><span class="line">method  <span class="number">0</span>  method.<span class="built_in">type</span> is  func(main.Hero)</span><br><span class="line">method  <span class="number">1</span>  value is  <span class="number">0</span>x4945d0</span><br><span class="line">method  <span class="number">1</span>  <span class="built_in">type</span> is  &#123;SetName  func(main.Hero, string) &lt;func(main.Hero, string) Value&gt; <span class="number">1</span>&#125;</span><br><span class="line">method  <span class="number">1</span>  name is  SetName</span><br><span class="line">method  <span class="number">1</span>  method.<span class="built_in">type</span> is  func(main.Hero, string)</span><br></pre></td></tr></table></figure>
+<p>可以看到Hero指针的方法个数为4个，Hero结构体方法个数为2个，并且通过调用SetName2方法<br>达到修改成员变量的目的了。</p>
+<h2 id="通过方法名获取方法"><a href="#通过方法名获取方法" class="headerlink" title="通过方法名获取方法"></a>通过方法名获取方法</h2><p>reflect.Value提供了MethodByName方法，根据名字获取具体方法<br>我们写一个函数，获取方法并调用</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetMethodByName</span><span class="params">(itf <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">	rvalue := reflect.ValueOf(itf)</span><br><span class="line">	methodvalue := rvalue.MethodByName(<span class="string">&quot;PrintData2&quot;</span>)</span><br><span class="line">	<span class="keyword">if</span> !methodvalue.IsValid() &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	methodvalue.Call(<span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line">	methodset := rvalue.MethodByName(<span class="string">&quot;SetName2&quot;</span>)</span><br><span class="line">	<span class="keyword">if</span> !methodset.IsValid() &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	params := []reflect.Value&#123;reflect.ValueOf(<span class="string">&quot;Hurricane&quot;</span>)&#125;</span><br><span class="line">	methodset.Call(params)</span><br><span class="line"></span><br><span class="line">	methodvalue.Call(<span class="literal">nil</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>rvalue.MethodByName(“PrintData2”)获取名字为PrintData2的方法。<br>methodvalue.IsValid() 判断是否获取成功。<br>methodvalue.Call(nil) 调用方法。<br>我们在main函数里调用这个函数测试下</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GetMethodByName(&amp;Hero&#123;name: <span class="string">&quot;zack fair&quot;</span>, id: <span class="number">2</span>&#125;)</span><br></pre></td></tr></table></figure>
+<p>输出如下</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Hero name is  zack fair  id is  <span class="number">2</span></span><br><span class="line">Hero name is  Hurricane  id is  <span class="number">2</span></span><br></pre></td></tr></table></figure>
+<p>可见通过名字获取方法并调用，也能达到修改Hero成员属性的目的。<br>读者可以在main函数中添加如下代码，测试下，看看效果，并想想为什么</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GetMethodByName(Hero&#123;name: <span class="string">&quot;Itach&quot;</span>, id: <span class="number">20</span>&#125;)</span><br></pre></td></tr></table></figure>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文提供了golang反射包的基本api和方法，讲述了如何使用reflect包动态获取参数类型和种类，<br>以及结构体和机构体指针成员等。接着我们讨论了方法的获取和调用。反射是golang提供的强大<br>功能，可以动态获取和判断类型，调用成员方法等。<br>反射是一把双刃剑，提供动态获取类型和动态调用的强大功能，同时也会造成程序效率的衰退，<br>因为反射是通过类型转换和循环遍历探测其类型达到的，建议适度使用，在能确定类型时尽量用<br>interface进行转换。<br>感谢关注我的公众号<br><img src="wxgzh.jpg" alt="wxgzh.jpg"></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/golang/" rel="tag"># golang</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/10/11/golang15/" rel="next" title="Go进阶篇(01) interface应用和复习">
+                <i class="fa fa-chevron-left"></i> Go进阶篇(01) interface应用和复习
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/10/22/python29/" rel="prev" title="python学习(28) Tinker+BeautifulSoup+Request抓取美女壁纸">
+                python学习(28) Tinker+BeautifulSoup+Request抓取美女壁纸 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">219</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%8D%E5%B0%84%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-number">1.</span> <span class="nav-text">反射是什么</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reflect-ValueOf%E4%B8%8Ereflect-TypeOf"><span class="nav-number">2.</span> <span class="nav-text">reflect.ValueOf与reflect.TypeOf</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E8%BF%87reflect-Value%E4%BF%AE%E6%94%B9%E5%8F%98%E9%87%8F"><span class="nav-number">3.</span> <span class="nav-text">通过reflect.Value修改变量</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E8%BF%87Interface-%E5%B0%86relect-Value%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2%E4%B8%BAinterface-%E7%B1%BB%E5%9E%8B"><span class="nav-number">4.</span> <span class="nav-text">通过Interface()将relect.Value类型转换为interface{}类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Kind%E5%92%8CType%E6%9C%89%E4%BD%95%E4%B8%8D%E5%90%8C%EF%BC%9F"><span class="nav-number">5.</span> <span class="nav-text">Kind和Type有何不同？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E8%BF%87reflect-Value%E7%9A%84NumField%E5%87%BD%E6%95%B0%E8%8E%B7%E5%8F%96%E7%BB%93%E6%9E%84%E4%BD%93%E6%88%90%E5%91%98%E6%95%B0%E9%87%8F"><span class="nav-number">6.</span> <span class="nav-text">通过reflect.Value的NumField函数获取结构体成员数量</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E8%BF%87reflect-Value%E7%9A%84NumMethod%E8%8E%B7%E5%8F%96%E7%BB%93%E6%9E%84%E4%BD%93%E6%96%B9%E6%B3%95"><span class="nav-number">7.</span> <span class="nav-text">通过reflect.Value的NumMethod获取结构体方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E8%BF%87%E6%96%B9%E6%B3%95%E5%90%8D%E8%8E%B7%E5%8F%96%E6%96%B9%E6%B3%95"><span class="nav-number">8.</span> <span class="nav-text">通过方法名获取方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">9.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

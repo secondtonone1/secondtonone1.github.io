@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="区块链eos," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="controller::block_status，区块状态枚举类，包括：irreversible &#x3D; 0，该区块已经被当前节点应用，并且被认为是不可逆的。validated &#x3D; 1，这是由一个有效生产者签名的完整区块，并且之前已经被当前节点应用，因此该区块已被验证但未成为不可逆。complete &#x3D; 2，这是一个由有效生产者签名的完整区块，但是还没有成为不可逆，也没有被当前节点应用。incompl">
+<meta property="og:type" content="article">
+<meta property="og:title" content="eos源码剖析之controller">
+<meta property="og:url" content="http://www.limerence2017.com/2019/04/09/eos9/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="controller::block_status，区块状态枚举类，包括：irreversible &#x3D; 0，该区块已经被当前节点应用，并且被认为是不可逆的。validated &#x3D; 1，这是由一个有效生产者签名的完整区块，并且之前已经被当前节点应用，因此该区块已被验证但未成为不可逆。complete &#x3D; 2，这是一个由有效生产者签名的完整区块，但是还没有成为不可逆，也没有被当前节点应用。incompl">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-04-09T03:01:39.000Z">
+<meta property="article:modified_time" content="2022-07-31T07:11:49.940Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="区块链eos">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2019/04/09/eos9/"/>
+
+
+
+
+
+  <title>eos源码剖析之controller | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/04/09/eos9/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">eos源码剖析之controller</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-04-09T11:01:39+08:00">
+                2019-04-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/blockchain/" itemprop="url" rel="index">
+                    <span itemprop="name">区块链</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="controller-block-status，区块状态枚举类，包括："><a href="#controller-block-status，区块状态枚举类，包括：" class="headerlink" title="controller::block_status，区块状态枚举类，包括："></a>controller::block_status，区块状态枚举类，包括：</h2><p>irreversible = 0，该区块已经被当前节点应用，并且被认为是不可逆的。<br>validated = 1，这是由一个有效生产者签名的完整区块，并且之前已经被当前节点应用，因此该区块已被验证但未成为不可逆。<br>complete = 2，这是一个由有效生产者签名的完整区块，但是还没有成为不可逆，也没有被当前节点应用。<br>incomplete = 3，这是一个未完成的区块，未被生产者签名也没有被某个节点生产。<br>实际上块的状态就是，1未签名未应用 2已签名未应用 3 已签名和应用，未变成不可逆 4 变成不可逆</p>
+<h2 id="controller的私有成员："><a href="#controller的私有成员：" class="headerlink" title="controller的私有成员："></a>controller的私有成员：</h2><p>apply_context,应用上下文，处理节点应用区块的上下文环境，其中包含了迭代器缓存iterator_cache<key_value_object><br>transaction_context，事务上下文环境。包括controller，db的session，signed_transaction等。<br>mutable_db()，返回一个chainbase::database的引用<br>controller_impl结构体的实例的唯一指针my。controller核心功能都是通过impl实现调用的。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">controller_impl</span> &#123;</span><br><span class="line">   controller&amp;                    self;</span><br><span class="line">   chainbase::database            db;       <span class="comment">// 用于存储已执行的区块，这些区块可以回滚，一旦提交就成了不可逆的区块</span></span><br><span class="line">   chainbase::database            reversible_blocks; <span class="comment">///&lt; a special database to persist blocks that have successfully been applied but are still reversible</span></span><br><span class="line">   block_log                      blog;</span><br><span class="line">   optional&lt;pending_state&gt;        pending;  <span class="comment">// 尚未出的块</span></span><br><span class="line">   block_state_ptr                head;     <span class="comment">// 当前区块的状态</span></span><br><span class="line">   fork_database                  fork_db;  <span class="comment">// 用于存储可分叉区块的数据库，可分叉的区块都放到这里</span></span><br><span class="line">   wasm_interface                 wasmif;   <span class="comment">// wasm虚拟机的runtime</span></span><br><span class="line">   resource_limits_manager        resource_limits;  <span class="comment">// 资源管理</span></span><br><span class="line">   authorization_manager          authorization;    <span class="comment">// 权限管理</span></span><br><span class="line">   controller::config             conf;</span><br><span class="line">   chain_id_type                  chain_id;</span><br><span class="line">   <span class="type">bool</span>                           replaying = <span class="literal">false</span>;</span><br><span class="line">   <span class="type">bool</span>                           in_trx_requiring_checks = <span class="literal">false</span>; <span class="comment">///&lt; if true, checks that are normally skipped on replay (e.g. auth checks) cannot be skipped</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>controller_impl 几个重要的成员<br>db用于存储已执行的区块，这些区块可以回滚，一旦提交就不可逆<br>reversible_blocks用于存储已执行，但是这些区块是可逆的<br>pending用于存放当前正在生产或者验证（收到）的区块<br>fork_db用于存放所有区块（包括自己生产和收到的），这些区块链是可分叉的</p>
+<span id="more"></span>
+<h2 id="controller的信号"><a href="#controller的信号" class="headerlink" title="controller的信号"></a>controller的信号</h2><p>controller 包括了以下几个信号：<br>signal&lt;void(const signed_block_ptr&amp;)&gt; pre_accepted_block; // 预承认区块(承认其他节点广播过来的区块是正确的)<br>signal&lt;void(const block_state_ptr&amp;)&gt; accepted_block_header; // 承认区块头(对区块头做过校验)<br>signal&lt;void(const block_state_ptr&amp;)&gt; accepted_block; // 承认区块<br>signal&lt;void(const block_state_ptr&amp;)&gt; irreversible_block; // 不可逆区块<br>signal&lt;void(const transaction_metadata_ptr&amp;)&gt; accepted_transaction; // 承认事务<br>signal&lt;void(const transaction_trace_ptr&amp;)&gt; applied_transaction; // 应用事务(承认其他节点数据要先校验，通过以后可以应用在本地节点)<br>signal&lt;void(const header_confirmation&amp;)&gt; accepted_confirmation; // 承认确认<br>signal&lt;void(const int&amp;)&gt; bad_alloc; // 内存分配错误信号<br>所有信号的发射时机都是在controller中。<br>分别介绍每个信号发射和接收时机</p>
+<ol>
+<li>pre_accepted_block<br>发射时机：push_block函数，在producer_plugin中 on_incoming_block中会对已签区块校验，包括不能有pending块，不能push空块，区块状态不能是incomplete。通过校验后，调用push_block会发射该信号，携带该区块。<br>on_incoming_block函数<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">producer_plugin::on_incoming_block</span><span class="params">(<span class="type">const</span> signed_block_ptr&amp; block)</span> </span>&#123;</span><br><span class="line">         <span class="comment">//判断是否在fork_db中</span></span><br><span class="line">         <span class="keyword">auto</span> existing = chain.<span class="built_in">fetch_block_by_id</span>( id );</span><br><span class="line">         <span class="keyword">if</span>( existing ) &#123; <span class="keyword">return</span>; &#125;</span><br><span class="line">         <span class="comment">// 开始创建一个blockstate</span></span><br><span class="line">         <span class="keyword">auto</span> bsf = chain.<span class="built_in">create_block_state_future</span>( block );</span><br><span class="line">         <span class="comment">// 清除 pending状态，将交易放到unappliedtrx map中</span></span><br><span class="line">         chain.<span class="built_in">abort_block</span>();</span><br><span class="line">         <span class="comment">// 当抛出异常时，重启loop</span></span><br><span class="line">         <span class="keyword">auto</span> ensure = fc::<span class="built_in">make_scoped_exit</span>([<span class="keyword">this</span>]()&#123;</span><br><span class="line">            <span class="built_in">schedule_production_loop</span>();</span><br><span class="line">         &#125;);</span><br><span class="line">         <span class="comment">// push the new block</span></span><br><span class="line">         <span class="type">bool</span> except = <span class="literal">false</span>;</span><br><span class="line">         <span class="keyword">try</span> &#123;</span><br><span class="line">            chain.<span class="built_in">push_block</span>( bsf );</span><br><span class="line">         &#125; <span class="built_in">catch</span> ( <span class="type">const</span> guard_exception&amp; e ) &#123;</span><br><span class="line">            chain_plug-&gt;<span class="built_in">handle_guard_exception</span>(e);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">         &#125; <span class="built_in">catch</span>( <span class="type">const</span> fc::exception&amp; e ) &#123;</span><br><span class="line">            <span class="built_in">elog</span>((e.<span class="built_in">to_detail_string</span>()));</span><br><span class="line">            except = <span class="literal">true</span>;</span><br><span class="line">         &#125; <span class="built_in">catch</span> ( boost::interprocess::bad_alloc&amp; ) &#123;</span><br><span class="line">            chain_plugin::<span class="built_in">handle_db_exhaustion</span>();</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">         &#125;</span><br><span class="line">        </span><br></pre></td></tr></table></figure>
+on_incoming_block做了这样几个事，<br>1 判断forkdb是否有该新来的块，<br>2 其次根据该块投递到线程池生成blockstate，<br>3 清除之前的pending状态，pending中的交易取出放到unapplied map中.(以后会通过schedule_production_loop调用producer_plugin::start_block处理unapplied map,内部调用controller::start_block重新组织pending)<br>4 为防止producer异常退出，设置schedule_production_loop重启。<br>5 调用controller的push_block<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">controller::push_block</span><span class="params">( std::future&lt;block_state_ptr&gt;&amp; block_state_future )</span> </span>&#123;</span><br><span class="line">      controller::block_status s = controller::block_status::complete;</span><br><span class="line">      <span class="built_in">EOS_ASSERT</span>(!pending, block_validate_exception, <span class="string">&quot;it is not valid to push a block when there is a pending block&quot;</span>);</span><br><span class="line"></span><br><span class="line">      <span class="keyword">auto</span> reset_prod_light_validation = fc::<span class="built_in">make_scoped_exit</span>([old_value=trusted_producer_light_validation, <span class="keyword">this</span>]() &#123;</span><br><span class="line">         trusted_producer_light_validation = old_value;</span><br><span class="line">      &#125;);</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">         block_state_ptr new_header_state = block_state_future.<span class="built_in">get</span>();</span><br><span class="line">         <span class="keyword">auto</span>&amp; b = new_header_state-&gt;block;</span><br><span class="line">         <span class="built_in">emit</span>( self.pre_accepted_block, b );</span><br><span class="line"></span><br><span class="line">         fork_db.<span class="built_in">add</span>( new_header_state, <span class="literal">false</span> );</span><br><span class="line"></span><br><span class="line">         <span class="keyword">if</span> (conf.trusted_producers.<span class="built_in">count</span>(b-&gt;producer)) &#123;</span><br><span class="line">            trusted_producer_light_validation = <span class="literal">true</span>;</span><br><span class="line">         &#125;;</span><br><span class="line">         <span class="built_in">emit</span>( self.accepted_block_header, new_header_state );</span><br><span class="line"></span><br><span class="line">         <span class="keyword">if</span> ( read_mode != db_read_mode::IRREVERSIBLE ) &#123;</span><br><span class="line">            <span class="built_in">maybe_switch_forks</span>( s );</span><br><span class="line">         &#125;</span><br><span class="line"></span><br><span class="line">      &#125; <span class="built_in">FC_LOG_AND_RETHROW</span>( )</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+在push_block中发送了pre_accepted_block信号<br>插件捕捉处理： chain_plugin连接该信号，在plugin_initialize中绑定了信号的处理<br>但是该channel没有订阅者。<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// relay signals to channels</span></span><br><span class="line">      my-&gt;pre_accepted_block_connection = my-&gt;chain-&gt;pre_accepted_block.<span class="built_in">connect</span>([<span class="keyword">this</span>](<span class="type">const</span> signed_block_ptr&amp; blk) &#123;</span><br><span class="line">         <span class="keyword">auto</span> itr = my-&gt;loaded_checkpoints.<span class="built_in">find</span>( blk-&gt;<span class="built_in">block_num</span>() );</span><br><span class="line">         <span class="keyword">if</span>( itr != my-&gt;loaded_checkpoints.<span class="built_in">end</span>() ) &#123;</span><br><span class="line">            <span class="keyword">auto</span> id = blk-&gt;<span class="built_in">id</span>();</span><br><span class="line">            <span class="built_in">EOS_ASSERT</span>( itr-&gt;second == id, checkpoint_exception,</span><br><span class="line">                        <span class="string">&quot;Checkpoint does not match for block number $&#123;num&#125;: expected: $&#123;expected&#125; actual: $&#123;actual&#125;&quot;</span>,</span><br><span class="line">                        (<span class="string">&quot;num&quot;</span>, blk-&gt;<span class="built_in">block_num</span>())(<span class="string">&quot;expected&quot;</span>, itr-&gt;second)(<span class="string">&quot;actual&quot;</span>, id)</span><br><span class="line">            );</span><br><span class="line">         &#125;</span><br><span class="line"></span><br><span class="line">         my-&gt;pre_accepted_block_channel.<span class="built_in">publish</span>(priority::medium, blk);</span><br><span class="line">      &#125;);</span><br></pre></td></tr></table></figure></li>
+<li>accepted_block_header</li>
+</ol>
+<p>发射时机1： commit_block函数，</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">commit_block</span><span class="params">( <span class="type">bool</span> add_to_fork_db )</span> </span>&#123;</span><br><span class="line">         <span class="keyword">if</span> (add_to_fork_db) &#123;</span><br><span class="line">            pending-&gt;_pending_block_state-&gt;validated = <span class="literal">true</span>;</span><br><span class="line">            <span class="keyword">auto</span> new_bsp = fork_db.<span class="built_in">add</span>(pending-&gt;_pending_block_state, <span class="literal">true</span>);</span><br><span class="line">            <span class="built_in">emit</span>(self.accepted_block_header, pending-&gt;_pending_block_state);</span><br><span class="line">            head = fork_db.<span class="built_in">head</span>();</span><br><span class="line">            <span class="built_in">EOS_ASSERT</span>(new_bsp == head, fork_database_exception, <span class="string">&quot;committed block did not become the new head in fork database&quot;</span>);</span><br><span class="line">         &#125;     </span><br><span class="line">      &#125;</span><br></pre></td></tr></table></figure>
+<p>add_to_fork_db为true,将_pending_block_state-&gt;validated设置为true,_pending_block_state放入fork_db,然后发送accepted_block_header</p>
+<p>发射时机2： push_block函数，获取区块的可信状态,发射完pre_accepted_block以后，添加可信状态至fork_db，然后发射accepted_block_header信号，携带fork_db添加成功后返回的状态区块。</p>
+<p>插件捕捉处理： chain_plugin连接该信号，</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">chain_plugin::plugin_initialize</span><span class="params">(<span class="type">const</span> variables_map&amp; options)</span> </span>&#123;</span><br><span class="line">my-&gt;accepted_block_header_connection = my-&gt;chain-&gt;accepted_block_header.<span class="built_in">connect</span>(</span><br><span class="line">            [<span class="keyword">this</span>]( <span class="type">const</span> block_state_ptr&amp; blk ) &#123;</span><br><span class="line">               my-&gt;accepted_block_header_channel.<span class="built_in">publish</span>( priority::medium, blk );</span><br><span class="line">            &#125; );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由信号槽转播到channel，accepted_block_header_channel发布该区块,bnet_plugin订阅该channel</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">bnet_plugin::plugin_startup</span><span class="params">()</span> </span>&#123;</span><br><span class="line">   my-&gt;_on_accepted_block_header_handle = <span class="built_in">app</span>().<span class="built_in">get_channel</span>&lt;channels::accepted_block_header&gt;()</span><br><span class="line">                                         .<span class="built_in">subscribe</span>( [<span class="keyword">this</span>]( block_state_ptr s )&#123;</span><br><span class="line">                                                my-&gt;<span class="built_in">on_accepted_block_header</span>(s);</span><br><span class="line">                                         &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>绑定了回调函数，回调函数内部调用bnet_plugin_impl的on_accepted_block_header(s);</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">on_accepted_block_header</span><span class="params">( <span class="type">const</span> block_state_ptr&amp; s )</span> </span>&#123;</span><br><span class="line">           ...</span><br><span class="line">           <span class="type">const</span> <span class="keyword">auto</span>&amp; id = s-&gt;id;</span><br><span class="line">           <span class="keyword">if</span>( fc::time_point::<span class="built_in">now</span>() - s-&gt;block-&gt;timestamp  &lt; fc::<span class="built_in">seconds</span>(<span class="number">6</span>) ) &#123;</span><br><span class="line">              <span class="keyword">auto</span> itr = _block_status.<span class="built_in">find</span>( id );</span><br><span class="line">              <span class="comment">//_remote_request_irreversible_only(对端请求可逆)且(之前状态集合中没有该块或没收到过该块)</span></span><br><span class="line">              <span class="keyword">if</span>( !_remote_request_irreversible_only &amp;&amp; ( itr == _block_status.<span class="built_in">end</span>() || !itr-&gt;received_from_peer ) ) &#123;</span><br><span class="line">                 <span class="comment">//加入通知集合，通知对方防止对方重复发送区块头</span></span><br><span class="line">                 _block_header_notices.<span class="built_in">insert</span>( id );</span><br><span class="line">              &#125;</span><br><span class="line">              <span class="comment">//加入状态集合</span></span><br><span class="line">              <span class="keyword">if</span>( itr == _block_status.<span class="built_in">end</span>() ) &#123;</span><br><span class="line">                 _block_status.<span class="built_in">insert</span>( <span class="built_in">block_status</span>(id, <span class="literal">false</span>, <span class="literal">false</span>) );</span><br><span class="line">              &#125;</span><br><span class="line">           &#125;</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+<ol start="3">
+<li>accepted_block<br>发射时机: commit_block函数，fork_db以及重播的处理结束后，发射承认区块的信号，携带pending状态区块数据。<br>插件捕捉处理<br>1 net_plugin连接该信号，绑定处理函数，打印日志的同时调用dispatch_manager::bcast_block，传入区块数据。send_all向所有连接发送广播<br>2 chain_plugin连接该信号，由信号槽转播到channel，accepted_block_channel发布该区块<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">chain_plugin::plugin_initialize</span><span class="params">(<span class="type">const</span> variables_map&amp; options)</span> </span>&#123;</span><br><span class="line">    my-&gt;accepted_block_connection = my-&gt;chain-&gt;accepted_block.<span class="built_in">connect</span>( [<span class="keyword">this</span>]( <span class="type">const</span> block_state_ptr&amp; blk ) &#123;</span><br><span class="line">         my-&gt;accepted_block_channel.<span class="built_in">publish</span>( priority::high, blk );</span><br><span class="line">      &#125; );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+bnet_plugin订阅该channel<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">bnet_plugin::plugin_startup</span><span class="params">()</span> </span>&#123;</span><br><span class="line">      my-&gt;_on_accepted_block_handle = <span class="built_in">app</span>().<span class="built_in">get_channel</span>&lt;channels::accepted_block&gt;()</span><br><span class="line">                                         .<span class="built_in">subscribe</span>( [<span class="keyword">this</span>]( block_state_ptr s )&#123;</span><br><span class="line">                                                my-&gt;<span class="built_in">on_accepted_block</span>(s);</span><br><span class="line">                                         &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">on_accepted_block</span><span class="params">( <span class="type">const</span> block_state_ptr&amp; s )</span> </span>&#123;</span><br><span class="line">           <span class="built_in">verify_strand_in_this_thread</span>(_strand, __func__, __LINE__);</span><br><span class="line">           <span class="type">const</span> <span class="keyword">auto</span>&amp; id = s-&gt;id;</span><br><span class="line"></span><br><span class="line">           _local_head_block_id = id;</span><br><span class="line">           _local_head_block_num = block_header::<span class="built_in">num_from_id</span>(id);</span><br><span class="line"></span><br><span class="line">           <span class="keyword">if</span>( _local_head_block_num &lt; _last_sent_block_num ) &#123;</span><br><span class="line">              _last_sent_block_num = _local_lib;</span><br><span class="line">              _last_sent_block_id  = _local_lib_id;</span><br><span class="line">           &#125;</span><br><span class="line"></span><br><span class="line">           <span class="built_in">purge_transaction_cache</span>();</span><br><span class="line"></span><br><span class="line">           <span class="keyword">for</span>( <span class="type">const</span> <span class="keyword">auto</span>&amp; receipt : s-&gt;block-&gt;transactions ) &#123;</span><br><span class="line">              <span class="keyword">if</span>( receipt.trx.<span class="built_in">which</span>() == <span class="number">1</span> ) &#123;</span><br><span class="line">                 <span class="type">const</span> <span class="keyword">auto</span>&amp; pt = receipt.trx.<span class="built_in">get</span>&lt;packed_transaction&gt;();</span><br><span class="line">                 <span class="type">const</span> <span class="keyword">auto</span>&amp; tid = pt.<span class="built_in">id</span>();</span><br><span class="line">                 <span class="keyword">auto</span> itr = _transaction_status.<span class="built_in">find</span>( tid );</span><br><span class="line">                 <span class="keyword">if</span>( itr != _transaction_status.<span class="built_in">end</span>() )</span><br><span class="line">                    _transaction_status.<span class="built_in">erase</span>(itr);</span><br><span class="line">              &#125;</span><br><span class="line">           &#125;</span><br><span class="line"></span><br><span class="line">           <span class="built_in">maybe_send_next_message</span>(); <span class="comment">/// attempt to send if we are idle</span></span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure></li>
+</ol>
+<p>on_accepted_block函数，删除缓存中的所有事务，遍历接收到的区块的事务receipt，获得事务的打包对象，事务id，在多索引表_transaction_status中查找该id，如果找到了则删除。接下来如果在空闲状态下，尝试发送下一条pingpong心跳连接信息。<br>3 mongo_db_plugin连接该信号，绑定其mongo_db_plugin_impl::accepted_block函数，传入区块内容。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">my-&gt;accepted_block_connection.<span class="built_in">emplace</span>( chain.accepted_block.<span class="built_in">connect</span>( [&amp;]( <span class="type">const</span> chain::block_state_ptr&amp; bs ) &#123;</span><br><span class="line">            my-&gt;<span class="built_in">accepted_block</span>( bs );</span><br><span class="line">         &#125; ));</span><br></pre></td></tr></table></figure>
+<p>accepted_block_connection.emplace 插入信号连接器，当accepted_block从controller发出后，mongodb同样捕获到该信号，调用my-&gt;accepted_block( bs );</p>
+<p>插件捕捉处理④： producer_plugin连接该信号，执行其on_block函数，传入区块数据。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">my-&gt;_accepted_block_connection.<span class="built_in">emplace</span>(chain.accepted_block.<span class="built_in">connect</span>( [<span class="keyword">this</span>]( <span class="type">const</span> <span class="keyword">auto</span>&amp; bsp )&#123; my-&gt;<span class="built_in">on_block</span>( bsp ); &#125; ));</span><br></pre></td></tr></table></figure>
+<p>on_block该函数主要是<br>函数首先做了校验，包括时间是否大于最后签名区块的时间以及大于当前时间，还有区块号是否大于最后签名区块号。校验通过以后，活跃生产者账户集合active_producers开辟新空间，插入计划出块生产者。接下来利用set_intersection取本地生产者与集合active_producers的交集(如果结果为空，说明本地生产者没有出块权利不属于活跃生产者的一份子)。<br>将结果存入一个迭代器，迭代执行内部函数，如果交集生产者不等于接收区块的生产者，说明是校验别人生产的区块，如果是相等的不必做特殊处理。校验别人生产的区块，首先要在活跃生产者的key中找到匹配的key(本地生产者账户公钥)，否则说明该区块不是合法生产者签名抛弃不处理。接下来，获取本地生产者私钥，组装生产确认数据字段，包括区块id，区块摘要，生产者，签名。更新producer插件本地标志位_last_signed_block_time和_last_signed_block_num。最后发射信号confirmed_block，携带以上组装好的数据。但经过搜索，项目中目前没有对该信号设置槽connection。在区块创建之前要为该区块的生产者设置水印用来标示该区块的生产者是谁。</p>
+<ol start="4">
+<li><p>irreversible_block<br>发射时机<br>on_irreversible函数，更改区块状态为irreversible的函数，操作成功最后发射该信号。<br>插件捕捉处理</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">my-&gt;irreversible_block_connection = my-&gt;chain-&gt;irreversible_block.<span class="built_in">connect</span>( [<span class="keyword">this</span>]( <span class="type">const</span> block_state_ptr&amp; blk ) &#123;</span><br><span class="line">        my-&gt;irreversible_block_channel.<span class="built_in">publish</span>( priority::low, blk );</span><br><span class="line">     &#125; );</span><br></pre></td></tr></table></figure>
+<p>chain_plugin连接该信号，由信号槽转播到channel,irreversible_block_channel发布该区块。bnet_plugin订阅该channel，</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">my-&gt;_on_irb_handle = <span class="built_in">app</span>().<span class="built_in">get_channel</span>&lt;channels::irreversible_block&gt;()</span><br><span class="line">                                .<span class="built_in">subscribe</span>( [<span class="keyword">this</span>]( block_state_ptr s )&#123;</span><br><span class="line">                                       my-&gt;<span class="built_in">on_irreversible_block</span>(s);</span><br><span class="line">                                &#125;);</span><br></pre></td></tr></table></figure>
+<p>依然线程池遍历会话，执行on_new_lib函数，当本地库领先时可以清除历史直到满足当前库，或者直到最后一个被远端节点所知道的区块。最后如果空闲，尝试发送下一条pingpong心跳连接信息。<br>3 mongo_db_plugin连接该信号，执行applied_irreversible_block函数，仍旧参照mongo配置项的值决定是否储存区块、状态区块以及事务数据，然后将区块数据塞入队列等待消费。<br>4 producer_plugin连接该信号，绑定执行函数on_irreversible_block，设置producer成员_irreversible_block_time的值为区块的时间。</p>
+</li>
+<li><p>accepted_transaction</p>
+</li>
+</ol>
+<p>发射时机：<br>1 push_scheduled_transaction函数，推送计划事务时，将事务体经过一系列转型以及校验，接着发射该信号，承认事务。<br>2 push_transaction函数，新事务到大状态区块，要经过身份认证以及决定是否现在执行还是延期执行，最后要插入到pending区块的receipt接收事务中去。当检查事务未被承认时，发射一次该信号。最后全部函数处理完毕，再次发射该信号。<br>插件捕捉处理<br>1 chain_plugin连接该信号，由信号槽转播到channel，accepted_transaction_channel发布该事务。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">my-&gt;accepted_transaction_connection = my-&gt;chain-&gt;accepted_transaction.<span class="built_in">connect</span>(</span><br><span class="line">            [<span class="keyword">this</span>]( <span class="type">const</span> transaction_metadata_ptr&amp; meta ) &#123;</span><br><span class="line">               my-&gt;accepted_transaction_channel.<span class="built_in">publish</span>( priority::low, meta );</span><br><span class="line">            &#125; );</span><br></pre></td></tr></table></figure>
+<p>bnet_plugin订阅该channel，线程池遍历会话，执行函数on_accepted_transaction。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">my-&gt;_on_appled_trx_handle = <span class="built_in">app</span>().<span class="built_in">get_channel</span>&lt;channels::accepted_transaction&gt;()</span><br><span class="line">                               .<span class="built_in">subscribe</span>( [<span class="keyword">this</span>]( transaction_metadata_ptr t )&#123;</span><br><span class="line">                                      my-&gt;<span class="built_in">on_accepted_transaction</span>(t);</span><br><span class="line">                               &#125;);</span><br></pre></td></tr></table></figure>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">on_accepted_transaction</span><span class="params">( transaction_metadata_ptr t )</span> </span>&#123;</span><br><span class="line">           <span class="keyword">auto</span> itr = _transaction_status.<span class="built_in">find</span>( t-&gt;id );</span><br><span class="line">           <span class="keyword">if</span>( itr != _transaction_status.<span class="built_in">end</span>() ) &#123;</span><br><span class="line">              <span class="keyword">if</span>( !itr-&gt;<span class="built_in">known_by_peer</span>() ) &#123;</span><br><span class="line">                 <span class="comment">//对端未接受过该交易，修改过期时间</span></span><br><span class="line">                 _transaction_status.<span class="built_in">modify</span>( itr, [&amp;]( <span class="keyword">auto</span>&amp; stat ) &#123;</span><br><span class="line">                    stat.expired = std::<span class="built_in">min</span>&lt;fc::time_point&gt;( fc::time_point::<span class="built_in">now</span>() + fc::<span class="built_in">seconds</span>(<span class="number">5</span>), t-&gt;packed_trx-&gt;<span class="built_in">expiration</span>() );</span><br><span class="line">                 &#125;);</span><br><span class="line">              &#125;</span><br><span class="line">              <span class="keyword">return</span>;</span><br><span class="line">           &#125;</span><br><span class="line"></span><br><span class="line">           transaction_status stat;</span><br><span class="line">           stat.received = fc::time_point::<span class="built_in">now</span>();</span><br><span class="line">           <span class="comment">//每一次事务被“accepted”，都会延时5秒钟。</span></span><br><span class="line">           <span class="comment">//每次一个区块被应用，所有超过5秒未被应用的但被承认的事务都将被清除。</span></span><br><span class="line">           stat.expired  = stat.received + fc::<span class="built_in">seconds</span>(<span class="number">5</span>);</span><br><span class="line">           stat.id       = t-&gt;id;</span><br><span class="line">           stat.trx      = t;</span><br><span class="line">           <span class="comment">//添加到multiindex中，用于判断是否发送过该交易，防止重复发送</span></span><br><span class="line">           _transaction_status.<span class="built_in">insert</span>( stat );</span><br><span class="line"></span><br><span class="line">           <span class="built_in">maybe_send_next_message</span>();</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<p>2 mongo_db_plugin连接该信号，执行函数accepted_transaction，校验加入队列待消费。</p>
+<ol start="6">
+<li>applied_transaction</li>
+</ol>
+<p>发射时机<br>1 push_scheduled_transaction函数，事务过期时间小于pending区块时间处理后发射该信号。反之大于等于处理后发射该信号。当事务的sender发送者不为空且没有主观失败的处理后发射该信号。基于生产和校验的主观修改，主观处理后发射该信号，非主观处理发射该信号。<br>2 push_transaction函数，发射两次该信号，逻辑较多，这段包括以上那个函数的可读性很差，注释几乎没有。<br>插件捕捉处理<br>1 net_plugin连接该信号，绑定函数applied_transaction，打印日志。<br>2 chain_plugin连接该信号，由信号槽转播到channel，原理基本同上，不再重复。<br>3 mongo_db_plugin同上。</p>
+<ol start="7">
+<li>accepted_confirmation</li>
+</ol>
+<p>发射时机：<br>1 push_confirmation函数，推送确认信息，在此阶段不允许有pending区块存在，接着fork_db添加确认信息，发射该信号。<br>插件捕捉处理<br>2 net_plugin连接该信号，绑定函数accepted_confirmation，打印日志。<br>插件捕捉处理<br>1： chain_plugin连接该信号，由信号槽转播到channel，基本同上。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/%E5%8C%BA%E5%9D%97%E9%93%BEeos/" rel="tag"># 区块链eos</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/04/01/golang02/" rel="next" title="Go(02)windows环境搭建和vscode配置">
+                <i class="fa fa-chevron-left"></i> Go(02)windows环境搭建和vscode配置
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/04/27/golang03/" rel="prev" title="Go(03)golang 基本变量和demo">
+                Go(03)golang 基本变量和demo <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">219</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#controller-block-status%EF%BC%8C%E5%8C%BA%E5%9D%97%E7%8A%B6%E6%80%81%E6%9E%9A%E4%B8%BE%E7%B1%BB%EF%BC%8C%E5%8C%85%E6%8B%AC%EF%BC%9A"><span class="nav-number">1.</span> <span class="nav-text">controller::block_status，区块状态枚举类，包括：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#controller%E7%9A%84%E7%A7%81%E6%9C%89%E6%88%90%E5%91%98%EF%BC%9A"><span class="nav-number">2.</span> <span class="nav-text">controller的私有成员：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#controller%E7%9A%84%E4%BF%A1%E5%8F%B7"><span class="nav-number">3.</span> <span class="nav-text">controller的信号</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="golang," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="非缓冲chan，读写对称非缓冲channel,要求一端读取，一端写入。channel大小为零，所以读写操作一定要匹配。 123456789func main() &amp;#123;	nochan :&#x3D; make(chan int)	go func(ch chan int) &amp;#123;		data :&#x3D; &lt;-ch		fmt.Println(&quot;receive data &quot;, da">
+<meta property="og:type" content="article">
+<meta property="og:title" content="golang channel详解和协程优雅退出">
+<meta property="og:url" content="http://www.limerence2017.com/2019/11/08/golang19/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="非缓冲chan，读写对称非缓冲channel,要求一端读取，一端写入。channel大小为零，所以读写操作一定要匹配。 123456789func main() &amp;#123;	nochan :&#x3D; make(chan int)	go func(ch chan int) &amp;#123;		data :&#x3D; &lt;-ch		fmt.Println(&quot;receive data &quot;, da">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-11-08T07:57:04.000Z">
+<meta property="article:modified_time" content="2022-07-31T07:11:49.981Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="golang">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2019/11/08/golang19/"/>
+
+
+
+
+
+  <title>golang channel详解和协程优雅退出 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/11/08/golang19/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">golang channel详解和协程优雅退出</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-11-08T15:57:04+08:00">
+                2019-11-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="非缓冲chan，读写对称"><a href="#非缓冲chan，读写对称" class="headerlink" title="非缓冲chan，读写对称"></a>非缓冲chan，读写对称</h2><p>非缓冲channel,要求一端读取，一端写入。channel大小为零，所以读写操作一定要匹配。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	nochan := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(ch <span class="keyword">chan</span> <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">		data := &lt;-ch</span><br><span class="line">		fmt.Println(<span class="string">&quot;receive data &quot;</span>, data)</span><br><span class="line">	&#125;(nochan)</span><br><span class="line">	nochan &lt;- <span class="number">5</span></span><br><span class="line">	fmt.Println(<span class="string">&quot;send data &quot;</span>, <span class="number">5</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们启动了一个协程从channel中读取数据，在主协程中写入，程序的运行流程是主协程优先启动，运行到nochan&lt;-5写入是阻塞，然后启动协程读取，从而完成协程间通信。<br>程序输出</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">receive data  <span class="number">5</span></span><br><span class="line">send data  <span class="number">5</span></span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+<p>如果将启动协程的代码放在nochan&lt;-5下边，这样会造成主协程阻塞，无法启动协程，一直挂起。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	nochan := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>)</span><br><span class="line">	nochan &lt;- <span class="number">5</span></span><br><span class="line">	fmt.Println(<span class="string">&quot;send data &quot;</span>, <span class="number">5</span>)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(ch <span class="keyword">chan</span> <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">			data := &lt;-ch</span><br><span class="line">			fmt.Println(<span class="string">&quot;receive data &quot;</span>, data)</span><br><span class="line">		&#125;(nochan)	</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述代码在运行时golang会直接panic，日志输出dead lock警告。<br>我们可以通过go run -race 选项检测并运行，是可以看到主协程一直阻塞，子协程无法启动的。</p>
+<h2 id="WaitGroup-待时而动"><a href="#WaitGroup-待时而动" class="headerlink" title="WaitGroup 待时而动"></a>WaitGroup 待时而动</h2><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	nochan := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>)</span><br><span class="line">	waiter := &amp;sync.WaitGroup&#123;&#125;</span><br><span class="line">	waiter.Add(<span class="number">2</span>)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(ch <span class="keyword">chan</span> <span class="type">int</span>, wt *sync.WaitGroup)</span></span> &#123;</span><br><span class="line">		data := &lt;-ch</span><br><span class="line">		fmt.Println(<span class="string">&quot;receive data &quot;</span>, data)</span><br><span class="line">		wt.Done()</span><br><span class="line">	&#125;(nochan, waiter)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(ch <span class="keyword">chan</span> <span class="type">int</span>, wt *sync.WaitGroup)</span></span> &#123;</span><br><span class="line">		ch &lt;- <span class="number">5</span></span><br><span class="line">		fmt.Println(<span class="string">&quot;send data &quot;</span>, <span class="number">5</span>)</span><br><span class="line">		wt.Done()</span><br><span class="line">	&#125;(nochan, waiter)</span><br><span class="line">	waiter.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过waitgroup管理两个协程，主协程等待两个子协程退出。</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">receive data  <span class="number">5</span></span><br><span class="line">send data  <span class="number">5</span></span><br></pre></td></tr></table></figure>
+<h2 id="range-自动读取"><a href="#range-自动读取" class="headerlink" title="range 自动读取"></a>range 自动读取</h2><p>使用range可以自动的从channel中读取，当channel被关闭时，for循环退出,否则一直挂起</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	catchan := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>, <span class="number">2</span>)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(ch <span class="keyword">chan</span> <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">2</span>; i++ &#123;</span><br><span class="line">			ch &lt;- i</span><br><span class="line">			fmt.Println(<span class="string">&quot;send data is &quot;</span>, i)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//不关闭close，主协程将无法range退出</span></span><br><span class="line">		<span class="built_in">close</span>(ch)</span><br><span class="line">		fmt.Println(<span class="string">&quot;goroutine1 exited&quot;</span>)</span><br><span class="line">	&#125;(catchan)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> data := <span class="keyword">range</span> catchan &#123;</span><br><span class="line">		fmt.Println(<span class="string">&quot;receive data is &quot;</span>, data)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="string">&quot;main exited&quot;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出如下</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">receive data is  <span class="number">0</span></span><br><span class="line">send data is  <span class="number">0</span></span><br><span class="line">send data is  <span class="number">1</span></span><br><span class="line">goroutine1 exited</span><br><span class="line">receive data is  <span class="number">1</span></span><br><span class="line">main exited</span><br></pre></td></tr></table></figure>
+<p>如果不写close(ch)，主协程将一直挂起，编译会出现死锁panic。<br>可以通过go run -race 选项检查看到主协程一直挂起。</p>
+<h2 id="缓冲channel-先进先出"><a href="#缓冲channel-先进先出" class="headerlink" title="缓冲channel, 先进先出"></a>缓冲channel, 先进先出</h2><p>非缓冲channel内部其实是一个加锁的队列，先进先出。先写入的数据优先读出来。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	catchan := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>, <span class="number">2</span>)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(ch <span class="keyword">chan</span> <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">2</span>; i++ &#123;</span><br><span class="line">			ch &lt;- i</span><br><span class="line">			fmt.Println(<span class="string">&quot;send data is &quot;</span>, i)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;(catchan)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">2</span>; i++ &#123;</span><br><span class="line">		data := &lt;-catchan</span><br><span class="line">		fmt.Println(<span class="string">&quot;receive data is &quot;</span>, data)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出如下</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">send data is  <span class="number">0</span></span><br><span class="line">send data is  <span class="number">1</span></span><br><span class="line">receive data is  <span class="number">0</span></span><br><span class="line">receive data is  <span class="number">1</span></span><br></pre></td></tr></table></figure>
+<p>主协程从catchan中读取数据，子协程先catchan中写数据。主协程运行到读取位置先阻塞，子协程启动后向catchan中写数据后，主协程继续读取。<br>如果将主协程的for循环卸载go启动子协程之前，会造成编译警告死锁，当然可以通过go run -race 查看到主协程一直挂起。</p>
+<h2 id="读取关闭的channel"><a href="#读取关闭的channel" class="headerlink" title="读取关闭的channel"></a>读取关闭的channel</h2><p>从关闭的channel中读取数据，优先读出其中没有取出的数据，然后读出存储类型的空置。循环读取关闭的channel不会阻塞，会一直读取空值。可以通过读取结果的bool值判断该channel是否关闭。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	nochan := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(ch <span class="keyword">chan</span> <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">		ch &lt;- <span class="number">100</span></span><br><span class="line">		fmt.Println(<span class="string">&quot;send data&quot;</span>, <span class="number">100</span>)</span><br><span class="line">		<span class="built_in">close</span>(ch)</span><br><span class="line">		fmt.Println(<span class="string">&quot;goroutine exit&quot;</span>)</span><br><span class="line">	&#125;(nochan)</span><br><span class="line">	data := &lt;-nochan</span><br><span class="line">	fmt.Println(<span class="string">&quot;receive data is &quot;</span>, data)</span><br><span class="line">	<span class="comment">//从关闭的</span></span><br><span class="line">	data, ok := &lt;-nochan</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		fmt.Println(<span class="string">&quot;receive close chan&quot;</span>)</span><br><span class="line">		fmt.Println(<span class="string">&quot;receive data is &quot;</span>, data)</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Println(<span class="string">&quot;main exited&quot;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出如下</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">receive data is  <span class="number">100</span></span><br><span class="line">send data <span class="number">100</span></span><br><span class="line">goroutine <span class="keyword">exit</span></span><br><span class="line">receive close chan</span><br><span class="line">receive data is  <span class="number">0</span></span><br><span class="line">main exited</span><br></pre></td></tr></table></figure>
+<p>主协程运行到data := &lt;- nochan阻塞，子协程启动后向ch中写入数据，并关闭ch,此时主协程继续执行，取出一个数据后，再次取出为空值，并且ok为false表示ch已经被关闭。</p>
+<h2 id="切忌重复关闭channel"><a href="#切忌重复关闭channel" class="headerlink" title="切忌重复关闭channel"></a>切忌重复关闭channel</h2><p>重复关闭channel会导致panic</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	nochan := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(ch <span class="keyword">chan</span> <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">		<span class="built_in">close</span>(ch)</span><br><span class="line">		fmt.Println(<span class="string">&quot;goroutine exit&quot;</span>)</span><br><span class="line">	&#125;(nochan)</span><br><span class="line"></span><br><span class="line">	data, ok := &lt;-nochan</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		fmt.Println(<span class="string">&quot;receive close chan&quot;</span>)</span><br><span class="line">		fmt.Println(<span class="string">&quot;receive data is &quot;</span>, data)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//二次关闭</span></span><br><span class="line">	<span class="built_in">close</span>(nochan)</span><br><span class="line">	fmt.Println(<span class="string">&quot;main exited&quot;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出如下</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">goroutine <span class="keyword">exit</span></span><br><span class="line">receive close chan</span><br><span class="line">receive data is  <span class="number">0</span></span><br><span class="line"><span class="function">panic: <span class="title">close</span> <span class="title">of</span> <span class="title">closed</span> <span class="title">channel</span></span></span><br></pre></td></tr></table></figure>
+<p>子协程退出后，主协程读取到退出信息，主协程再次关闭chan导致主协程崩溃。</p>
+<h2 id="切忌向关闭的channel写数据"><a href="#切忌向关闭的channel写数据" class="headerlink" title="切忌向关闭的channel写数据"></a>切忌向关闭的channel写数据</h2><p>向关闭的channel写数据会导致panic</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	nochan := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(ch <span class="keyword">chan</span> <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">		<span class="built_in">close</span>(ch)</span><br><span class="line">		fmt.Println(<span class="string">&quot;goroutine1 exit&quot;</span>)</span><br><span class="line">	&#125;(nochan)</span><br><span class="line"></span><br><span class="line">	data, ok := &lt;-nochan</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		fmt.Println(<span class="string">&quot;receive close chan&quot;</span>)</span><br><span class="line">		fmt.Println(<span class="string">&quot;receive data is &quot;</span>, data)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(ch <span class="keyword">chan</span> <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">		&lt;-ch</span><br><span class="line">		fmt.Println(<span class="string">&quot;goroutine2 exit&quot;</span>)</span><br><span class="line">	&#125;(nochan)</span><br><span class="line"></span><br><span class="line">	<span class="comment">//向关闭的channel中写数据</span></span><br><span class="line">	nochan &lt;- <span class="number">200</span></span><br><span class="line">	fmt.Println(<span class="string">&quot;main exited&quot;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>主线程运行到nochan读取数据阻塞，此时子协程1关闭，主协程继续执行获知nochan被关闭，然后启动子协程2，继续运行nochan&lt;-200，此时nochan已被关闭，导致panic，效果如下</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">receive close chan</span><br><span class="line">receive data is  <span class="number">0</span></span><br><span class="line">goroutine1 <span class="keyword">exit</span></span><br><span class="line">goroutine2 <span class="keyword">exit</span></span><br><span class="line"><span class="function">panic: <span class="title">send</span> <span class="title">on</span> <span class="title">closed</span> <span class="title">channel</span></span></span><br></pre></td></tr></table></figure>
+<h2 id="切忌关闭nil的channel"><a href="#切忌关闭nil的channel" class="headerlink" title="切忌关闭nil的channel"></a>切忌关闭nil的channel</h2><p>关闭nil值的channel会导致panic</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> nochan <span class="keyword">chan</span> <span class="type">int</span> = <span class="literal">nil</span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(ch <span class="keyword">chan</span> <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">		<span class="comment">//关闭nil channel会panic</span></span><br><span class="line">		<span class="built_in">close</span>(ch)</span><br><span class="line">		fmt.Println(<span class="string">&quot;goroutine exit&quot;</span>)</span><br><span class="line">	&#125;(nochan)</span><br><span class="line"></span><br><span class="line">	<span class="comment">//从nil channel中读取会阻塞</span></span><br><span class="line">	data, ok := &lt;-nochan</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		fmt.Println(<span class="string">&quot;receive close chan&quot;</span>)</span><br><span class="line">		fmt.Println(<span class="string">&quot;receive data is &quot;</span>, data)</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Println(<span class="string">&quot;main exited&quot;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>主协程定义了一个nil值的nochan，并未开辟空间。运行至data, ok := &lt;-nochan 阻塞，此时启动子协程，关闭nochan，导致panic<br>效果如下</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">panic: <span class="title">close</span> <span class="title">of</span> <span class="title">nil</span> <span class="title">channel</span></span></span><br></pre></td></tr></table></figure>
+<h2 id="读或写nil的channel都会阻塞"><a href="#读或写nil的channel都会阻塞" class="headerlink" title="读或写nil的channel都会阻塞"></a>读或写nil的channel都会阻塞</h2><p>向nil的channel写数据，或者读取nil的channel也会导致阻塞。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> nochan <span class="keyword">chan</span> <span class="type">int</span> = <span class="literal">nil</span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(ch <span class="keyword">chan</span> <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">&quot;goroutine begin receive data&quot;</span>)</span><br><span class="line">		data, ok := &lt;-nochan</span><br><span class="line">		<span class="keyword">if</span> !ok &#123;</span><br><span class="line">			fmt.Println(<span class="string">&quot;receive close chan&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		fmt.Println(<span class="string">&quot;receive data is &quot;</span>, data)</span><br><span class="line">		fmt.Println(<span class="string">&quot;goroutine exit&quot;</span>)</span><br><span class="line">	&#125;(nochan)</span><br><span class="line">	fmt.Println(<span class="string">&quot;main begin send data&quot;</span>)</span><br><span class="line">	<span class="comment">//向nil channel中写数据会阻塞</span></span><br><span class="line">	nochan &lt;- <span class="number">100</span></span><br><span class="line">	fmt.Println(<span class="string">&quot;main exited&quot;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果直接编译系统会判断死锁panic，我们用go run -race main.go死锁检测，并运行，看到主协程一直挂起，子协程也一直挂起。<br>结果如下</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">goroutine begin receive data</span><br><span class="line">main begin send data</span><br></pre></td></tr></table></figure>
+<p>主协程和子协程都阻塞了，一直挂起。</p>
+<h2 id="select-多路复用，大巧不工"><a href="#select-多路复用，大巧不工" class="headerlink" title="select 多路复用，大巧不工"></a>select 多路复用，大巧不工</h2><p>select 内部可以写多个协程读写，通过case完成多路复用，其结构如下</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line">	<span class="keyword">case</span> ch &lt;- <span class="number">100</span>:</span><br><span class="line">		...</span><br><span class="line">	<span class="keyword">case</span> &lt;- ch2:</span><br><span class="line">		...</span><br><span class="line">	dafault:</span><br><span class="line">		...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果有多个case满足条件，则select随机选择一个执行。否则进入dafault执行。<br>我们可以利用上面的九种原理配合select创造出各种并发场景。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>1 当我们不使用一个channel时将其置为nil，这样select就不会检测它了。<br>2 当多个子协程想获取主协程退出通知时，可以从同一个chan中读取，如果主协程退出则关闭这个chan，那么所有从chan读取的子协程就会获得退出消息。从而实现广播。<br>3 为保证协程优雅退出，关闭channel的操作尽量放在对channel执行写操作的协程中。</p>
+<h2 id="并发实战"><a href="#并发实战" class="headerlink" title="并发实战"></a>并发实战</h2><p>假设有这样的需求：<br>1 主协程启动两个协程，协程1负责发送数据给协程2，协程2负责接收并累加获得的数据。<br>2 主协程等待两个子协程退出，当主协程意外退出时通知两个子协程退出。<br>3 当发送协程崩溃和主动退出时通知接收协程也要退出，然后主协程退出<br>4 当接收协程崩溃或主动退出时通知发送协程退出，然后主协程退出。<br>5 无论三个协程主动退出还是panic，都要保证所有资源手动回收。<br>下面我们用上面总结的十招完成这个需求</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">datachan := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>)</span><br><span class="line">groutineclose := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">mainclose := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line"><span class="keyword">var</span> onceclose sync.Once</span><br><span class="line"><span class="keyword">var</span> readclose sync.Once</span><br><span class="line"><span class="keyword">var</span> sendclose sync.Once</span><br><span class="line"><span class="keyword">var</span> waitgroup sync.WaitGroup</span><br><span class="line">waitgroup.Add(<span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+<p>datachan: 用来装载发送协程给接收协程的数据<br>groutineclose: 用于发送协程和接收协程之间关闭通知<br>onceclose: 保证datachan一次关闭。<br>readclose: 保证接收协程资源一次回收。<br>sendclose: 保证发送协程资源一次回收。<br>waitgroup: 主协程管理两个子协程。<br>接下来我们实现发送协程</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(datachan <span class="keyword">chan</span> <span class="type">int</span>, gclose <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, mclose <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, group *sync.WaitGroup)</span></span> &#123;</span><br><span class="line">		<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			onceclose.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">				<span class="built_in">close</span>(gclose)</span><br><span class="line">			&#125;)</span><br><span class="line">			sendclose.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">				<span class="built_in">close</span>(datachan)</span><br><span class="line">				fmt.Println(<span class="string">&quot;send goroutine closed !&quot;</span>)</span><br><span class="line">				group.Done()</span><br><span class="line">			&#125;)</span><br><span class="line">		&#125;()</span><br><span class="line"></span><br><span class="line">		<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">100</span>; i++ &#123;</span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="keyword">case</span> &lt;-gclose:</span><br><span class="line">				fmt.Println(<span class="string">&quot;other goroutine exited&quot;</span>)</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			<span class="keyword">case</span> &lt;-mclose:</span><br><span class="line">				fmt.Println(<span class="string">&quot;main goroutine exited&quot;</span>)</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">				<span class="comment">/*</span></span><br><span class="line"><span class="comment">					default:</span></span><br><span class="line"><span class="comment">						datachan &lt;- i</span></span><br><span class="line"><span class="comment">				*/</span></span><br><span class="line">			<span class="keyword">case</span> datachan &lt;- i:</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;(datachan, groutineclose, mainclose, &amp;waitgroup)</span><br></pre></td></tr></table></figure>
+<p>发送协程在defer函数中回收了和接收协程公用的chan，也主动关闭了数据chan，这么做保证关闭不会panic。此外还对group做了释放。<br>其实将datachan &lt;- i 放在default分支也是可以的。但是为了保证接收协程退出后该发送协程也要及时退出，就放在case逻辑中，这样不会死锁。<br>发送协程累计发送100次数据给接收协程，然后退出。<br>接下来我们实现接收协程</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(datachan <span class="keyword">chan</span> <span class="type">int</span>, gclose <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, mclose <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, group *sync.WaitGroup)</span></span> &#123;</span><br><span class="line">		sum := <span class="number">0</span></span><br><span class="line">		<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			onceclose.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">				<span class="built_in">close</span>(gclose)</span><br><span class="line">			&#125;)</span><br><span class="line">			readclose.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">				fmt.Println(<span class="string">&quot;sum is &quot;</span>, sum)</span><br><span class="line">				fmt.Println(<span class="string">&quot;receive goroutine closed !&quot;</span>)</span><br><span class="line">				group.Done()</span><br><span class="line">			&#125;)</span><br><span class="line">		&#125;()</span><br><span class="line"></span><br><span class="line">		<span class="keyword">for</span> i := <span class="number">0</span>; ; i++ &#123;</span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="keyword">case</span> &lt;-gclose:</span><br><span class="line">				fmt.Println(<span class="string">&quot;other goroutine exited&quot;</span>)</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			<span class="keyword">case</span> &lt;-mclose:</span><br><span class="line">				fmt.Println(<span class="string">&quot;main goroutine exited&quot;</span>)</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			<span class="keyword">case</span> data, ok := &lt;-datachan:</span><br><span class="line">				<span class="keyword">if</span> !ok &#123;</span><br><span class="line">					fmt.Println(<span class="string">&quot;receive close chan data&quot;</span>)</span><br><span class="line">					<span class="keyword">return</span></span><br><span class="line">				&#125;</span><br><span class="line">				sum += data</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;(datachan, groutineclose, mainclose, &amp;waitgroup)</span><br></pre></td></tr></table></figure>
+<p>和发送协程一样，接收协程也通过once操作保证公用的通知chan只回收一次。然后回收了自己的资源。接收协程一直循环获取数据，如果收到主协程退出或者发送协程退出的通知，就退出。<br>接下来我们继续编写主协程的等待和回收操作</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="built_in">close</span>(mainclose)</span><br><span class="line">		time.Sleep(time.Second * <span class="number">5</span>)</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	waitgroup.Wait()</span><br><span class="line">	fmt.Println(<span class="string">&quot;main exited&quot;</span>)</span><br></pre></td></tr></table></figure>
+<p>这些逻辑我们都写在main函数里即可。主协程通过waitgroup等待两个协程，并通过defer通知两个协程退出。<br>运行代码效果如下</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">send goroutine closed !</span><br><span class="line">receive close chan data</span><br><span class="line">sum is  <span class="number">4950</span></span><br><span class="line">receive goroutine closed !</span><br><span class="line">main exited</span><br></pre></td></tr></table></figure>
+<p>可以看出发送协程退出接收协程也退出了，接收协程正好计算100次累加，数值为4950。主协程也退出了。</p>
+<h2 id="测试接收协程异常退出"><a href="#测试接收协程异常退出" class="headerlink" title="测试接收协程异常退出"></a>测试接收协程异常退出</h2><p>接下来我们测试接收协程异常退出后，发送协程和主协程退出是否回收资源。<br>我们将接收协程的case逻辑改为i&gt;=20时该接收协程主动panic</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> data, ok := &lt;-datachan:</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">				fmt.Println(<span class="string">&quot;receive close chan data&quot;</span>)</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			&#125;</span><br><span class="line">		sum += data</span><br><span class="line">	<span class="keyword">if</span> i &gt;= <span class="number">20</span> &#123;</span><br><span class="line">				<span class="built_in">panic</span>(<span class="string">&quot;receive goroutine test panic !!&quot;</span>)</span><br><span class="line">			&#125;</span><br></pre></td></tr></table></figure>
+<p>运行代码看下效果</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">recover</span> !</span><br><span class="line">close gclose channel</span><br><span class="line">sum is  <span class="number">210</span></span><br><span class="line">receive goroutine closed !</span><br><span class="line">other goroutine exited</span><br><span class="line">send goroutine closed !</span><br><span class="line">main exited</span><br><span class="line">defer main close</span><br></pre></td></tr></table></figure>
+<p>我们在接收协程的defer里增加了recover逻辑，可以看到三个协程都正常退出并回收了各自的资源。</p>
+<h2 id="测试主协程主动退出"><a href="#测试主协程主动退出" class="headerlink" title="测试主协程主动退出"></a>测试主协程主动退出</h2><p>我们将主协程的等待代码去掉，并且在defer中增加延时退出，方便看到两个协程退出情况</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">&quot;defer main close&quot;</span>)</span><br><span class="line">	<span class="built_in">close</span>(mainclose)</span><br><span class="line">	time.Sleep(time.Second * <span class="number">10</span>)</span><br><span class="line">&#125;()</span><br><span class="line"></span><br><span class="line">time.Sleep(time.Second * <span class="number">10</span>)</span><br><span class="line">fmt.Println(<span class="string">&quot;main exited&quot;</span>)</span><br></pre></td></tr></table></figure>
+<p>运行看效果</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">main exited</span><br><span class="line">defer main close</span><br><span class="line">main goroutine exited</span><br><span class="line">sum is  <span class="number">88074498378441</span></span><br><span class="line">receive goroutine closed !</span><br><span class="line">main goroutine exited</span><br><span class="line">send goroutine closed !</span><br></pre></td></tr></table></figure>
+<p>看到三个协程正常退出，并回收了资源。</p>
+<h2 id="源码下载"><a href="#源码下载" class="headerlink" title="源码下载"></a>源码下载</h2><p><a target="_blank" rel="noopener" href="https://github.com/secondtonone1/golang-/tree/master/channelpractice">https://github.com/secondtonone1/golang-/tree/master/channelpractice</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/golang/" rel="tag"># golang</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/11/05/golang17/" rel="next" title="图解Go协程调度原理，小白都能理解">
+                <i class="fa fa-chevron-left"></i> 图解Go协程调度原理，小白都能理解
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/11/08/golang18/" rel="prev" title="golang实现生产者消费者模型">
+                golang实现生产者消费者模型 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">219</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9D%9E%E7%BC%93%E5%86%B2chan%EF%BC%8C%E8%AF%BB%E5%86%99%E5%AF%B9%E7%A7%B0"><span class="nav-number">1.</span> <span class="nav-text">非缓冲chan，读写对称</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#WaitGroup-%E5%BE%85%E6%97%B6%E8%80%8C%E5%8A%A8"><span class="nav-number">2.</span> <span class="nav-text">WaitGroup 待时而动</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#range-%E8%87%AA%E5%8A%A8%E8%AF%BB%E5%8F%96"><span class="nav-number">3.</span> <span class="nav-text">range 自动读取</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%93%E5%86%B2channel-%E5%85%88%E8%BF%9B%E5%85%88%E5%87%BA"><span class="nav-number">4.</span> <span class="nav-text">缓冲channel, 先进先出</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AF%BB%E5%8F%96%E5%85%B3%E9%97%AD%E7%9A%84channel"><span class="nav-number">5.</span> <span class="nav-text">读取关闭的channel</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%87%E5%BF%8C%E9%87%8D%E5%A4%8D%E5%85%B3%E9%97%ADchannel"><span class="nav-number">6.</span> <span class="nav-text">切忌重复关闭channel</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%87%E5%BF%8C%E5%90%91%E5%85%B3%E9%97%AD%E7%9A%84channel%E5%86%99%E6%95%B0%E6%8D%AE"><span class="nav-number">7.</span> <span class="nav-text">切忌向关闭的channel写数据</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%87%E5%BF%8C%E5%85%B3%E9%97%ADnil%E7%9A%84channel"><span class="nav-number">8.</span> <span class="nav-text">切忌关闭nil的channel</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AF%BB%E6%88%96%E5%86%99nil%E7%9A%84channel%E9%83%BD%E4%BC%9A%E9%98%BB%E5%A1%9E"><span class="nav-number">9.</span> <span class="nav-text">读或写nil的channel都会阻塞</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#select-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%8C%E5%A4%A7%E5%B7%A7%E4%B8%8D%E5%B7%A5"><span class="nav-number">10.</span> <span class="nav-text">select 多路复用，大巧不工</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">11.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B9%B6%E5%8F%91%E5%AE%9E%E6%88%98"><span class="nav-number">12.</span> <span class="nav-text">并发实战</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E6%8E%A5%E6%94%B6%E5%8D%8F%E7%A8%8B%E5%BC%82%E5%B8%B8%E9%80%80%E5%87%BA"><span class="nav-number">13.</span> <span class="nav-text">测试接收协程异常退出</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E4%B8%BB%E5%8D%8F%E7%A8%8B%E4%B8%BB%E5%8A%A8%E9%80%80%E5%87%BA"><span class="nav-number">14.</span> <span class="nav-text">测试主协程主动退出</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E4%B8%8B%E8%BD%BD"><span class="nav-number">15.</span> <span class="nav-text">源码下载</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

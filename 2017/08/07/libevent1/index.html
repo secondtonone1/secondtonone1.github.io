@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="网络编程,Linux环境编程," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="参考libevent官方提供的文档： http:&#x2F;&#x2F;www.wangafu.net&#x2F;~nickm&#x2F;libevent-book&#x2F;Ref1_libsetup.html 这一篇主要翻译libevent多线程的使用接口和文档。 As you probably know if you’re writing multithreaded programs, it isn’t always safe to acc">
+<meta property="og:type" content="article">
+<meta property="og:title" content="libevent文档学习(一)多线程接口和使用">
+<meta property="og:url" content="http://www.limerence2017.com/2017/08/07/libevent1/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="参考libevent官方提供的文档： http:&#x2F;&#x2F;www.wangafu.net&#x2F;~nickm&#x2F;libevent-book&#x2F;Ref1_libsetup.html 这一篇主要翻译libevent多线程的使用接口和文档。 As you probably know if you’re writing multithreaded programs, it isn’t always safe to acc">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2017-08-07T02:44:51.000Z">
+<meta property="article:modified_time" content="2022-07-31T07:11:50.040Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="网络编程">
+<meta property="article:tag" content="Linux环境编程">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2017/08/07/libevent1/"/>
+
+
+
+
+
+  <title>libevent文档学习(一)多线程接口和使用 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/07/libevent1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">libevent文档学习(一)多线程接口和使用</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-07T10:44:51+08:00">
+                2017-08-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/netprogram/" itemprop="url" rel="index">
+                    <span itemprop="name">网络编程</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>参考libevent官方提供的文档： <a target="_blank" rel="noopener" href="http://www.wangafu.net/~nickm/libevent-book/Ref1_libsetup.html">http://www.wangafu.net/~nickm/libevent-book/Ref1_libsetup.html</a></p>
+<p>这一篇主要翻译<code>libevent多线程</code>的使用接口和文档。</p>
+<p>As you probably know if you’re writing multithreaded programs, it isn’t always safe to access the same data from multiple threads at the same time.</p>
+<p>Libevent structures can generally work three ways with multithreading.</p>
+<p>Some structures are inherently single-threaded: it is never safe to use them from more than one thread at the same time.</p>
+<p>Some structures are optionally locked: you can tell Libevent for each object whether you need to use it from multiple threads at once.</p>
+<p>Some structures are always locked: if Libevent is running with lock support, then they are always safe to use from multiple threads at once.</p>
+<p>当你编写多线程程序的时候，多个线程访问同一块数据并不安全。对于多线程libevent通常采取以下三种方式工作，</p>
+<p><code>1 一些结构内不是单线程的，多线程同时访问这个结构是不安全的。</code></p>
+<p><code>2一些结构内部是选择性加锁的，你需要通知libevent，对于每个对象你是否采用多线程的方式使用它。</code></p>
+<p><code>3一些结构总是加锁的，如果libevent设置了加锁的模式，采用多线程方式是安全的。</code></p>
+<p>To get locking in Libevent, you must tell Libevent which locking functions to use. You need to do this before you call any Libevent function</p>
+<p>that allocates a structure that needs to be shared between threads.</p>
+<p>If you are using the pthreads library, or the native Windows threading code, you’re in luck. There are pre-defined functions that will set</p>
+<p>Libevent up to use the right pthreads or Windows functions for you.</p>
+<p>如果要使用libevent多线程锁的功能，需要开辟一个线程共享的结构，如果您使用windows或者linux提供的pthread库，libevent已经定义好了。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifdef</span> WIN32</span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">evthread_use_windows_threads</span><span class="params">(<span class="type">void</span>)</span></span>;</span><br><span class="line"><span class="meta">#<span class="keyword">define</span> EVTHREAD_USE_WINDOWS_THREADS_IMPLEMENTED</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> _EVENT_HAVE_PTHREADS</span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">evthread_use_pthreads</span><span class="params">(<span class="type">void</span>)</span></span>;</span><br><span class="line"><span class="meta">#<span class="keyword">define</span> EVTHREAD_USE_PTHREADS_IMPLEMENTED</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+<p>libevent针对win32平台定义了<code>evthread_use_windows_threads</code>,</p>
+<p>libevent针对Linux thread库 定义了<code>evthread_use_pthreads</code></p>
+<p>evthread_use_pthread函数是这样的</p>
+<span id="more"></span>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span></span></span><br><span class="line"><span class="function"><span class="title">evthread_use_pthreads</span><span class="params">(<span class="type">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//pthread lock callback结构体对象</span></span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">evthread_lock_callbacks</span> cbs = &#123;</span><br><span class="line">        <span class="comment">//锁的版本</span></span><br><span class="line">        EVTHREAD_LOCK_API_VERSION,</span><br><span class="line">        <span class="comment">//锁的属性</span></span><br><span class="line">        EVTHREAD_LOCKTYPE_RECURSIVE,</span><br><span class="line">        <span class="comment">//创建锁</span></span><br><span class="line">        evthread_posix_lock_alloc,</span><br><span class="line">        <span class="comment">//回收锁</span></span><br><span class="line">        evthread_posix_lock_free,</span><br><span class="line">        <span class="comment">//加锁回调函数</span></span><br><span class="line">        evthread_posix_lock,</span><br><span class="line">        <span class="comment">//解锁回调函数</span></span><br><span class="line">        evthread_posix_unlock</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="comment">//条件变量回调结构体对象</span></span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">evthread_condition_callbacks</span> cond_cbs = &#123;</span><br><span class="line">        <span class="comment">//条件变量的版本</span></span><br><span class="line">        EVTHREAD_CONDITION_API_VERSION,</span><br><span class="line">        <span class="comment">//创建条件变量</span></span><br><span class="line">        evthread_posix_cond_alloc,</span><br><span class="line">        <span class="comment">//回收条件变量</span></span><br><span class="line">        evthread_posix_cond_free,</span><br><span class="line">        <span class="comment">//激活条件的回调函数</span></span><br><span class="line">        evthread_posix_cond_signal,</span><br><span class="line">        <span class="comment">//条件不满足阻塞的回调函数</span></span><br><span class="line">        evthread_posix_cond_wait</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//设置互斥锁的属性</span></span><br><span class="line">    <span class="comment">/* Set ourselves up to get recursive locks. */</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">pthread_mutexattr_init</span>(&amp;attr_recursive))</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">pthread_mutexattr_settype</span>(&amp;attr_recursive, PTHREAD_MUTEX_RECURSIVE))</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    <span class="comment">//将cbs的属性设置到全局变量中，分为调试和正常模式</span></span><br><span class="line">    <span class="built_in">evthread_set_lock_callbacks</span>(&amp;cbs);</span><br><span class="line">    <span class="comment">//同样将cond_cbs设置到全局变量</span></span><br><span class="line">    <span class="built_in">evthread_set_condition_callbacks</span>(&amp;cond_cbs);</span><br><span class="line">    <span class="comment">//设置线程id到全局变量</span></span><br><span class="line">    <span class="built_in">evthread_set_id_callback</span>(evthread_posix_get_id);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这几个结构体如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> EVTHREAD_WRITE  0x04</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> EVTHREAD_READ   0x08</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> EVTHREAD_TRY    0x10</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> EVTHREAD_LOCKTYPE_RECURSIVE 1</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> EVTHREAD_LOCKTYPE_READWRITE 2</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> EVTHREAD_LOCK_API_VERSION 1</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">evthread_lock_callbacks</span> &#123;</span><br><span class="line">       <span class="type">int</span> lock_api_version;</span><br><span class="line">       <span class="type">unsigned</span> supported_locktypes;</span><br><span class="line">       <span class="type">void</span> *(*alloc)(<span class="type">unsigned</span> locktype);</span><br><span class="line">       <span class="built_in">void</span> (*free)(<span class="type">void</span> *lock, <span class="type">unsigned</span> locktype);</span><br><span class="line">       <span class="built_in">int</span> (*lock)(<span class="type">unsigned</span> mode, <span class="type">void</span> *lock);</span><br><span class="line">       <span class="built_in">int</span> (*unlock)(<span class="type">unsigned</span> mode, <span class="type">void</span> *lock);</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">evthread_set_lock_callbacks</span><span class="params">(<span class="type">const</span> <span class="keyword">struct</span> evthread_lock_callbacks *)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">evthread_set_id_callback</span><span class="params">(<span class="type">unsigned</span> <span class="type">long</span> (*id_fn)(<span class="type">void</span>))</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">evthread_condition_callbacks</span> &#123;</span><br><span class="line">        <span class="type">int</span> condition_api_version;</span><br><span class="line">        <span class="type">void</span> *(*alloc_condition)(<span class="type">unsigned</span> condtype);</span><br><span class="line">        <span class="built_in">void</span> (*free_condition)(<span class="type">void</span> *cond);</span><br><span class="line">        <span class="built_in">int</span> (*signal_condition)(<span class="type">void</span> *cond, <span class="type">int</span> broadcast);</span><br><span class="line">        <span class="built_in">int</span> (*wait_condition)(<span class="type">void</span> *cond, <span class="type">void</span> *lock,</span><br><span class="line">            <span class="type">const</span> <span class="keyword">struct</span> timeval *timeout);</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">evthread_set_condition_callbacks</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">        <span class="type">const</span> <span class="keyword">struct</span> evthread_condition_callbacks *)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>The evthread_lock_callbacks structure describes your locking callbacks and their abilities. For the version described above, the lock_api_version field must be set to</p>
+<p>EVTHREAD_LOCK_API_VERSION. The supported_locktypes field must be set to a bitmask of the EVTHREAD_LOCKTYPE_* constants to describe which lock types you can support.</p>
+<p>(As of 2.0.4-alpha, EVTHREAD_LOCK_RECURSIVE</p>
+<p>is mandatory and EVTHREAD_LOCK_READWRITE is unused.) The alloc function must return a new lock of the specified type. The free function must release all resources held by a lock of the</p>
+<p>specified type. The lock function must try to acquire the lock in the specified mode, returning 0 on success and nonzero on failure. The unlock function must try to unlock the lock, returning 0 on success and nonzero on failure.</p>
+<p>理解：</p>
+<p><code>evthread_lock_callbacks</code> 包括了锁的回调函数和他们的功能，<code>lock_api_version</code> 要被设置为EVTHREAD_LOCK_API_VERSION，</p>
+<p><code>supported_locktypes</code> 应该设置为自己需要的EVTHREAD_LOCKTYPE_开头的几个类型的bitmask按位或alloc 函数返回指定类型的锁，free</p>
+<p> 函数释放指定类型的锁的所有资源，lock 函数试图获取制定模式的锁，成功返回0，失败返回非0.</p>
+<p><code>unlock</code> 解锁函数释放指定的锁，成功返回0，失败返回非0</p>
+<p>Recognized lock types are:</p>
+<p>0<br>A regular, not-necessarily recursive lock.</p>
+<p>EVTHREAD_LOCKTYPE_RECURSIVE<br>A lock that does not block a thread already holding it from requiring it again. Other threads can acquire the lock once the thread holding it has unlocked it as many times</p>
+<p>as it was initially locked.</p>
+<p><code>EVTHREAD_LOCKTYPE_READWRITE</code><br>A lock that allows multiple threads to hold it at once for reading, but only one thread at a time to hold it for writing. A writer excludes all readers.</p>
+<p>0表示常规锁，不可以被重复上锁</p>
+<p><code>EVTHREAD_LOCKTYPE_RECURSIVE</code>：这种锁当一个线程持有，该线程可以继续获取他而不被阻塞，其他线程需要等到该线程释放这个锁后可以获取到这个锁，</p>
+<p>并且可以多次加锁。</p>
+<p><code>EVTHREAD_LOCKTYPE_READWRITE</code>：这种锁多线程可以在读的时候都获取到他，但是写操作时只允许一个线程持有。</p>
+<p>Recognized lock modes are:</p>
+<p><code>EVTHREAD_READ</code><br>For READWRITE locks only: acquire or release the lock for reading.</p>
+<p><code>EVTHREAD_WRITE</code><br>For READWRITE locks only: acquire or release the lock for writing.</p>
+<p><code>EVTHREAD_TRY</code><br>For locking only: acquire the lock only if the lock can be acquired immediately.</p>
+<p><code>EVTHREAD_READ和EVTHREAD_WRITE</code>都是针对READWRITE 锁的获取和释放。</p>
+<p><code>EVTHREAD_TRY</code>：这个模式只在能立即获得锁的时候获取锁，否则不等待。</p>
+<p>The id_fn argument must be a function returning an unsigned long identifying what thread is calling the function. It must always return the same number for the same thread, and must not ever return the same number for two different threads if they are both executing at the same time.</p>
+<p>id_fn函数返回一个unsigned long标识调用该函数的线程。不同线程的返回值不同，同一个线程的返回值相同。</p>
+<p>The evthread_condition_callbacks structure describes callbacks related to condition variables. For the version described above, the lock_api_version field must be set to EVTHREAD_CONDITION_API_VERSION. The alloc_condition function must return a pointer to a new condition variable. It receives 0 as its argument. The free_condition function must release storage and resources held by a condition variable. The wait_condition function takes three arguments: a condition allocated by alloc_condition, a lock allocated by the evthread_lock_callbacks.alloc function you provided, and an optional timeout. The lock will be held whenever the function is called; the function must release the lock, and wait until the condition becomes signalled or until the (optional) timeout has elapsed. The wait_condition function should return -1 on an error, 0 if the condition is signalled, and 1 on a timeout. Before it returns, it should make sure it holds the lock again. Finally, the signal_condition function should cause one thread waiting on the condition to wake up (if its broadcast argument is false) and all threads currently waiting on the condition to wake up (if its broadcast argument is true). It will only be held while holding the lock associated with the condition.</p>
+<p><code>evthread_condition_callbacks</code> 描述了几个跟条件变量相关的回调函数。lock_api_version 应该被设置为EVTHREAD_CONDITION_API_VERSION，alloc_condition 喊回一个指向新的环境变量的指针，</p>
+<p><code>free_condition</code> 释放条件变量的资源，<code>wait_condition</code> 带有三个参数，分别是alloc_condition开辟的条件变量，<code>evthread_lock_callbacks</code>开辟的锁，以及一个可选的超时值，在调用这个函数时lock要提前加锁，</p>
+<p>之后，函数内部必须释放锁，等待条件被唤醒或者超时，wait_condition 在错误时返回-1，超时返回1，被激活返回0.在该函数内部返回之前，他要自己上锁。signal_condition 激活单个线程，broadcast 参数设为true时</p>
+<p>所有等待该条件的线程被激活。只有持有和条件相关的锁的时候线程才会被挂起。</p>
+<p>libevent中开辟锁和释放等等的回调函数以及条件变量的相关函数实现比较简单，就不展开了，可以查看evthread_pthread.c文件。</p>
+<p>下面看下系统是如何调用</p>
+<p><code>evthread_set_condition_callbacks</code>()和<code>evthread_set_lock_callbacks()</code>分别将条件回调的结构体对象和锁相关功能的结构体对象</p>
+<p>赋值给全局变量</p>
+<p>_evthread_cond_fns和_evthread_lock_fns,</p>
+<p>libevent封装了几个通过<code>_evthread_cond_fns</code>和 <code>_evthread_lock_fns</code> 调用锁和条件变量的接口，</p>
+<p>都在evthread-internal.h文件里。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">EVTHREAD_ALLOC_LOCK</span>(lockvar, locktype);</span><br><span class="line"></span><br><span class="line"><span class="built_in">EVTHREAD_FREE_LOCK</span>(lockvar, locktype);</span><br><span class="line"></span><br><span class="line"><span class="built_in">EVLOCK_LOCK</span>(lockvar,mode);</span><br><span class="line"></span><br><span class="line"><span class="built_in">EVLOCK_UNLOCK</span>(lockvar,mode);</span><br><span class="line"></span><br><span class="line"><span class="built_in">EVTHREAD_ALLOC_COND</span>(condvar);</span><br><span class="line"></span><br><span class="line"><span class="built_in">EVTHREAD_FREE_COND</span>(cond);</span><br><span class="line"></span><br><span class="line"><span class="built_in">EVTHREAD_COND_SIGNAL</span>(cond);</span><br><span class="line"></span><br><span class="line"><span class="built_in">EVTHREAD_COND_WAIT</span>(cond, lock);</span><br></pre></td></tr></table></figure>
+<p>等等，就不展开了，读者自己阅读。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" rel="tag"># 网络编程</a>
+          
+            <a href="/tags/Linux%E7%8E%AF%E5%A2%83%E7%BC%96%E7%A8%8B/" rel="tag"># Linux环境编程</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/08/07/libevent2/" rel="next" title="libevent学习文档(二)eventbase相关接口和参数">
+                <i class="fa fa-chevron-left"></i> libevent学习文档(二)eventbase相关接口和参数
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/08/07/winlibevent/" rel="prev" title="windows环境libevent搭建和demo分析">
+                windows环境libevent搭建和demo分析 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">219</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

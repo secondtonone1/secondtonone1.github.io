@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="golang," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="生产者消费者模型分析操作系统中的经典模型，由若干个消费者和生产者，消费者消耗系统资源，生产者创造系统资源，资源的数量要保持在一个合理范围(小于数量上限，大约0)。而消费者和生产者是通过并发或并行方式访问系统资源的，需要保持资源的原子操作。其实就是生产者线程增加资源数，如果资源数大于最大值则生产者线程挂起等待，当收到消费者线程的通知后继续生产。消费者线程减少资源数，如果资源数为0，则消费者线程挂起，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="golang实现生产者消费者模型">
+<meta property="og:url" content="http://www.limerence2017.com/2019/11/08/golang18/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="生产者消费者模型分析操作系统中的经典模型，由若干个消费者和生产者，消费者消耗系统资源，生产者创造系统资源，资源的数量要保持在一个合理范围(小于数量上限，大约0)。而消费者和生产者是通过并发或并行方式访问系统资源的，需要保持资源的原子操作。其实就是生产者线程增加资源数，如果资源数大于最大值则生产者线程挂起等待，当收到消费者线程的通知后继续生产。消费者线程减少资源数，如果资源数为0，则消费者线程挂起，">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.limerence2017.com/2019/11/08/golang18/1.jpg">
+<meta property="og:image" content="http://www.limerence2017.com/2019/11/08/golang18/2.jpg">
+<meta property="og:image" content="http://www.limerence2017.com/2019/11/08/golang18/3.jpg">
+<meta property="og:image" content="http://www.limerence2017.com/2019/11/08/golang18/wxgzh.jpg">
+<meta property="article:published_time" content="2019-11-08T07:57:04.000Z">
+<meta property="article:modified_time" content="2022-07-31T07:11:49.979Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="golang">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.limerence2017.com/2019/11/08/golang18/1.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2019/11/08/golang18/"/>
+
+
+
+
+
+  <title>golang实现生产者消费者模型 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/11/08/golang18/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">golang实现生产者消费者模型</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-11-08T15:57:04+08:00">
+                2019-11-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="生产者消费者模型分析"><a href="#生产者消费者模型分析" class="headerlink" title="生产者消费者模型分析"></a>生产者消费者模型分析</h2><p>操作系统中的经典模型，由若干个消费者和生产者，消费者消耗系统资源，生产者创造系统资源，资源的数量要保持在一个合理范围(小于数量上限，大约0)。而消费者和生产者是通过并发或并行方式访问系统资源的，需要保持资源的原子操作。<br>其实就是生产者线程增加资源数，如果资源数大于最大值则生产者线程挂起等待，当收到消费者线程的通知后继续生产。<br>消费者线程减少资源数，如果资源数为0，则消费者线程挂起，等待生产者通知后继续生产。<br>将该模型提炼成伪代码如下:</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">func consume()&#123;</span><br><span class="line">    Lock()</span><br><span class="line">    <span class="keyword">if</span> count &lt;= <span class="number">0</span></span><br><span class="line">        挂起等待(解锁，并等待资源数大于<span class="number">0</span>)</span><br><span class="line">        收到系统通知资源数大约<span class="number">0</span>，抢占加锁</span><br><span class="line">    count--</span><br><span class="line">    如果当前资源数由最大值变少则通知生产者生产</span><br><span class="line">    ULock()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func produce()&#123;</span><br><span class="line">    Lock()</span><br><span class="line">    <span class="keyword">if</span> count &gt;= 最大值</span><br><span class="line">        挂起等待(解锁，并等待资源数小于最大值)</span><br><span class="line">        收到系统通知资源小于最大值，抢占加锁</span><br><span class="line">    count++</span><br><span class="line">    如果当前资源数由最小值<span class="number">0</span>增加则通知消费者可以消耗</span><br><span class="line">    ULock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>consume()消耗资源，produce()生产资源，之前实现过C版本的该模型<br><a href="http://www.limerence2017.com/2017/08/08/pthreadwait/">http://www.limerence2017.com/2017/08/08/pthreadwait/</a><br>C方式实现的是抢占式的，线程切换开销较大。下面给出golang协程方式的实现。</p>
+<h2 id="先实现资源的互斥访问"><a href="#先实现资源的互斥访问" class="headerlink" title="先实现资源的互斥访问"></a>先实现资源的互斥访问</h2><p>对于资源的互斥访问，其他语言提供了线程锁，golang也有线程锁，当然可以通过channel实现，这里我给出加锁访问资源的方式，因为channel内部也是通过加锁实现的，而且我习惯用channel做协程通信，对于共享资源的控制习惯用锁来控制，也比较高效。</p>
+<span id="more"></span>
+<p>先定义几个全局变量</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	PRODUCER_MAX = <span class="number">5</span></span><br><span class="line">	CONSUMER_MAX = <span class="number">2</span></span><br><span class="line">	PRODUCT_MAX  = <span class="number">20</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> productcount = <span class="number">0</span></span><br><span class="line"><span class="keyword">var</span> lock sync.Mutex</span><br><span class="line"><span class="keyword">var</span> wgrp sync.WaitGroup</span><br></pre></td></tr></table></figure>
+<p>productcount为资源的数量，需要互斥处理。<br>wgrp主要是主协程用来等待其他协程退出。<br>PRODUCT_MAX 表示资源的上限，达到该值，生产者停止生产。<br>PRODUCER_MAX 表示生产者协程数量<br>CONSUMER_MAX 表示消费者协程数量<br>我们实现生产者代码</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//生产者</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Produce</span><span class="params">(index <span class="type">int</span>, wgrp *sync.WaitGroup)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(<span class="string">&quot;Producer &quot;</span>, index, <span class="string">&quot; panic&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		wgrp.Done()</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		time.Sleep(time.Second)</span><br><span class="line">		lock.Lock()</span><br><span class="line">		fmt.Println(<span class="string">&quot;Producer &quot;</span>, index, <span class="string">&quot; begin produce&quot;</span>)</span><br><span class="line">		<span class="keyword">if</span> productcount &gt;= PRODUCT_MAX &#123;</span><br><span class="line">			fmt.Println(<span class="string">&quot;Products are full&quot;</span>)</span><br><span class="line">			lock.Unlock()</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		productcount++</span><br><span class="line">		fmt.Println(<span class="string">&quot;Products count is &quot;</span>, productcount)</span><br><span class="line">		lock.Unlock()</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>defer 的匿名函数主要是用来回收资源，不是重点<br>for循环内部生产者循环增加资源，为保证productcount的互斥访问，我们加了锁。<br>当productcount达到上限后解锁并返回，否则就增加数量，然后释放锁。<br>同样的道理我们实现了消费者</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Consume</span><span class="params">(index <span class="type">int</span>, wgrp *sync.WaitGroup)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(<span class="string">&quot;Consumer &quot;</span>, index, <span class="string">&quot; panic&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		wgrp.Done()</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		time.Sleep(time.Second)</span><br><span class="line">		lock.Lock()</span><br><span class="line">		fmt.Println(<span class="string">&quot;Consumer &quot;</span>, index, <span class="string">&quot; begin consume&quot;</span>)</span><br><span class="line">		<span class="keyword">if</span> productcount &lt;= <span class="number">0</span> &#123;</span><br><span class="line">			fmt.Println(<span class="string">&quot;Products are empty&quot;</span>)</span><br><span class="line">			lock.Unlock()</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		productcount--</span><br><span class="line">		fmt.Println(<span class="string">&quot;Products count is &quot;</span>, productcount)</span><br><span class="line">		lock.Unlock()</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>消费者加锁减少productcount数量，当productcount为0，则解锁并返回。<br>然后我们实现主函数</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	wgrp.Add(PRODUCER_MAX + CONSUMER_MAX)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; PRODUCER_MAX; i++ &#123;</span><br><span class="line">		<span class="keyword">go</span> Produce(i, &amp;wgrp)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; CONSUMER_MAX; i++ &#123;</span><br><span class="line">		<span class="keyword">go</span> Consume(i, &amp;wgrp)</span><br><span class="line">	&#125;</span><br><span class="line">	wgrp.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们创建了若干生产者和消费者，主协程通过wgrp等待其他协程退出。<br>我们看下效果<br><img src="1.jpg" alt="1.jpg"><br>可以看出并发的访问实现了，但是并没有实现条件等待和控制，比如当数量上限后其他生产者也可以访问。<br>接下来我们实现的是当数量上限是生产者挂起等待，直到消费者通知其生产。数量为0时消费者挂起，<br>等待生产者激活。也就是条件等待和异步协同。</p>
+<h2 id="实现条件等待和异步协同"><a href="#实现条件等待和异步协同" class="headerlink" title="实现条件等待和异步协同"></a>实现条件等待和异步协同</h2><p>协程之间的同步和等待可以使用channel，我们增加了两个全局非缓冲channel</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> produce_wait <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"><span class="keyword">var</span> consume_wait <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br></pre></td></tr></table></figure>
+<p>produce_wait 用来控制生产者阻塞等待<br>consume_wait 用来控制消费者阻塞等待</p>
+<p>我们修改下生产者</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//生产者</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Produce</span><span class="params">(index <span class="type">int</span>, wgrp *sync.WaitGroup)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(<span class="string">&quot;Producer &quot;</span>, index, <span class="string">&quot; panic&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		wgrp.Done()</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		time.Sleep(time.Second)</span><br><span class="line">		lock.Lock()</span><br><span class="line">		fmt.Println(<span class="string">&quot;Producer &quot;</span>, index, <span class="string">&quot; begin produce&quot;</span>)</span><br><span class="line">		<span class="keyword">if</span> productcount &gt;= PRODUCT_MAX &#123;</span><br><span class="line">			fmt.Println(<span class="string">&quot;Products are full&quot;</span>)</span><br><span class="line">			lock.Unlock()</span><br><span class="line">			<span class="comment">//产品满了，生产者wait</span></span><br><span class="line">			&lt;-produce_wait</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		lastcount := productcount</span><br><span class="line">		productcount++</span><br><span class="line">		fmt.Println(<span class="string">&quot;Products count is &quot;</span>, productcount)</span><br><span class="line">		lock.Unlock()</span><br><span class="line">		<span class="comment">//产品数由0到1，激活消费者</span></span><br><span class="line">		<span class="keyword">if</span> lastcount == <span class="number">0</span> &#123;</span><br><span class="line">			<span class="keyword">var</span> consumActive <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">			consume_wait &lt;- consumActive</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在18行增加了&lt;-produce_wait，这样生产者会挂起，等待消费者向produce_wait写入，从而得到激活。<br>另外26行增加了判断，当资源数由0到1时，激活消费者。<br>同样消费者实现类似</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//消费者</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Consume</span><span class="params">(index <span class="type">int</span>, wgrp *sync.WaitGroup)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(<span class="string">&quot;Consumer &quot;</span>, index, <span class="string">&quot; panic&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		wgrp.Done()</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		time.Sleep(time.Second)</span><br><span class="line">		lock.Lock()</span><br><span class="line">		fmt.Println(<span class="string">&quot;Consumer &quot;</span>, index, <span class="string">&quot; begin consume&quot;</span>)</span><br><span class="line">		<span class="keyword">if</span> productcount &lt;= <span class="number">0</span> &#123;</span><br><span class="line">			fmt.Println(<span class="string">&quot;Products are empty&quot;</span>)</span><br><span class="line">			lock.Unlock()</span><br><span class="line">			<span class="comment">//产品空了，消费者等待</span></span><br><span class="line">			&lt;-consume_wait</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		lastcount := productcount</span><br><span class="line">		productcount--</span><br><span class="line">		fmt.Println(<span class="string">&quot;Products count is &quot;</span>, productcount)</span><br><span class="line">		lock.Unlock()</span><br><span class="line">		<span class="comment">//产品数由PRODUCT_MAX变少，激活生产者</span></span><br><span class="line">		<span class="keyword">if</span> lastcount == PRODUCT_MAX &#123;</span><br><span class="line">			<span class="keyword">var</span> productActive <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">			produce_wait &lt;- productActive</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里我们要有并发的思想，考虑这样一个场景，当前产品数达到上限，Produce运行完16行，刚刚解锁，还没来得及运行18行挂起，<br>Consume抢占到锁正常运行消耗资源，运行到28行，优先对produce_wait写入，此时该消费者挂起，生产者收到信号后，<br>他们都会继续执行。<br>我们完善下main函数</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	wgrp.Add(PRODUCER_MAX + CONSUMER_MAX)</span><br><span class="line">	produce_wait = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">	consume_wait = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; CONSUMER_MAX; i++ &#123;</span><br><span class="line">		<span class="keyword">go</span> Consume(i, &amp;wgrp)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; PRODUCER_MAX; i++ &#123;</span><br><span class="line">		<span class="keyword">go</span> Produce(i, &amp;wgrp)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	wgrp.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>执行golang的锁检测并运行<br>go run -race main.go<br>可以看到是可以正常运行的<br><img src="2.jpg" alt="2.jpg"><br>我们继续用并发思想分析，我们实现了基本功能，但是有个瑕疵，我们的生产者协程较多，比如生产者协程1判断生产上限在18行挂起，其他生产者如果抢占锁后进入生产判断数量上限，也会在18行挂起，由于我们的produce_wait是非缓冲的，那么当消费者来激活时，只有一个生产者被激活，另一个一直挂着，等到消费者激活才能继续生产。这么做在一定程度限制了生产者，我们可以通过引入两个bool变量通知其他协程睡眠，避免此问题。</p>
+<h2 id="增加bool变量实现休眠"><a href="#增加bool变量实现休眠" class="headerlink" title="增加bool变量实现休眠"></a>增加bool变量实现休眠</h2><p>我们可以引入两个bool变量</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> stopProduce = <span class="literal">false</span></span><br><span class="line"><span class="keyword">var</span> stopConsume = <span class="literal">false</span></span><br></pre></td></tr></table></figure>
+<p>当资源达到上限或下限时，挂起单个协程，通过这两个变量休眠同类协程。<br>由于golang没有提供给我们休眠的api，我们就让同类型的协程sleep一会，这样也是可以提高模型并发的。<br>改进的生产者</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//生产者</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Produce</span><span class="params">(index <span class="type">int</span>, wgrp *sync.WaitGroup)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(<span class="string">&quot;Producer &quot;</span>, index, <span class="string">&quot; panic&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		wgrp.Done()</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		time.Sleep(time.Second)</span><br><span class="line">		lock.Lock()</span><br><span class="line">		<span class="keyword">if</span> stopProduce &#123;</span><br><span class="line">			fmt.Println(<span class="string">&quot;Producer &quot;</span>, index, <span class="string">&quot; stop produce, sleep 5 seconds&quot;</span>)</span><br><span class="line">			lock.Unlock()</span><br><span class="line">			time.Sleep(time.Second * <span class="number">5</span>)</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		fmt.Println(<span class="string">&quot;Producer &quot;</span>, index, <span class="string">&quot; begin produce&quot;</span>)</span><br><span class="line">		<span class="keyword">if</span> productcount &gt;= PRODUCT_MAX &#123;</span><br><span class="line">			fmt.Println(<span class="string">&quot;Products are full&quot;</span>)</span><br><span class="line">			stopProduce = <span class="literal">true</span></span><br><span class="line">			lock.Unlock()</span><br><span class="line">			<span class="comment">//产品满了，生产者wait</span></span><br><span class="line">			&lt;-produce_wait</span><br><span class="line">			lock.Lock()</span><br><span class="line">			stopProduce = <span class="literal">false</span></span><br><span class="line">			lock.Unlock()</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		productcount++</span><br><span class="line">		fmt.Println(<span class="string">&quot;Products count is &quot;</span>, productcount)</span><br><span class="line">		<span class="keyword">if</span> stopConsume &#123;</span><br><span class="line">			<span class="keyword">var</span> consumActive <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">			consume_wait &lt;- consumActive</span><br><span class="line">		&#125;</span><br><span class="line">		lock.Unlock()</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们在22行设置了stopProduce为true，然后在25行挂起了该协程，其他生产者协程发现stopProduce为true，则睡眠5秒。<br>此办法保证了资源数临界值后仅有单个协程挂起，不会影响到其他同类协程。<br>同样实现消费者，这里不做赘述。<br>考虑这样一个场景，如果在生产者设置bool解锁后，其他消费者抢占锁后为了激活生产者，优先写入信道produce_wait，<br>此时生产者还没有从produce_wait读取，也不会有问题，毕竟生产者迟早要读取。<br>接下来我们测试下<br><img src="3.jpg" alt="3.jpg"><br>可以看到当生产者1生产数上限后，其他生产者会进入休眠。当消费者激活后，生产者继续生产，其他生产者休眠后同样可以生产。<br>提高了并发效率。</p>
+<h2 id="源码下载"><a href="#源码下载" class="headerlink" title="源码下载"></a>源码下载</h2><p>完整版源码地址<br><a target="_blank" rel="noopener" href="https://github.com/secondtonone1/golang-/tree/master/producerconsumer">https://github.com/secondtonone1/golang-/tree/master/producerconsumer</a></p>
+<h2 id="感谢关注公众号"><a href="#感谢关注公众号" class="headerlink" title="感谢关注公众号"></a>感谢关注公众号</h2><p><img src="wxgzh.jpg" alt="wxgzh.jpg"></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/golang/" rel="tag"># golang</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/11/08/golang19/" rel="next" title="golang channel详解和协程优雅退出">
+                <i class="fa fa-chevron-left"></i> golang channel详解和协程优雅退出
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/11/21/golang20/" rel="prev" title="Go项目实战：打造高并发日志采集系统（一）">
+                Go项目实战：打造高并发日志采集系统（一） <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">219</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%9F%E4%BA%A7%E8%80%85%E6%B6%88%E8%B4%B9%E8%80%85%E6%A8%A1%E5%9E%8B%E5%88%86%E6%9E%90"><span class="nav-number">1.</span> <span class="nav-text">生产者消费者模型分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%88%E5%AE%9E%E7%8E%B0%E8%B5%84%E6%BA%90%E7%9A%84%E4%BA%92%E6%96%A5%E8%AE%BF%E9%97%AE"><span class="nav-number">2.</span> <span class="nav-text">先实现资源的互斥访问</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E6%9D%A1%E4%BB%B6%E7%AD%89%E5%BE%85%E5%92%8C%E5%BC%82%E6%AD%A5%E5%8D%8F%E5%90%8C"><span class="nav-number">3.</span> <span class="nav-text">实现条件等待和异步协同</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A2%9E%E5%8A%A0bool%E5%8F%98%E9%87%8F%E5%AE%9E%E7%8E%B0%E4%BC%91%E7%9C%A0"><span class="nav-number">4.</span> <span class="nav-text">增加bool变量实现休眠</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E4%B8%8B%E8%BD%BD"><span class="nav-number">5.</span> <span class="nav-text">源码下载</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%84%9F%E8%B0%A2%E5%85%B3%E6%B3%A8%E5%85%AC%E4%BC%97%E5%8F%B7"><span class="nav-number">6.</span> <span class="nav-text">感谢关注公众号</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

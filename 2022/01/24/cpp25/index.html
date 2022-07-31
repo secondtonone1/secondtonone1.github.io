@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="拷贝构造函数一个类可以不定义拷贝构造函数，系统会默认提供一个拷贝构造函数，叫做合成拷贝构造函数。与默认构造函数不同的是，即使我们定义了其他构造函数，系统也会为我们生成合成拷贝构造函数。合成的拷贝构造函数会将其参数的成员逐个拷贝到正在创建的对象中。编译器从给定对象中依次将每个非static成员拷贝到正在创建的对象中。对类类型的成员，会使用其拷贝构造函数来拷贝；内置类型的成员则直接拷贝。为了方便举例，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C++ 拷贝构造 赋值 和析构">
+<meta property="og:url" content="http://www.limerence2017.com/2022/01/24/cpp25/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="拷贝构造函数一个类可以不定义拷贝构造函数，系统会默认提供一个拷贝构造函数，叫做合成拷贝构造函数。与默认构造函数不同的是，即使我们定义了其他构造函数，系统也会为我们生成合成拷贝构造函数。合成的拷贝构造函数会将其参数的成员逐个拷贝到正在创建的对象中。编译器从给定对象中依次将每个非static成员拷贝到正在创建的对象中。对类类型的成员，会使用其拷贝构造函数来拷贝；内置类型的成员则直接拷贝。为了方便举例，">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-01-24T06:20:56.000Z">
+<meta property="article:modified_time" content="2022-07-31T07:11:49.826Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2022/01/24/cpp25/"/>
+
+
+
+
+
+  <title>C++ 拷贝构造 赋值 和析构 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2022/01/24/cpp25/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">C++ 拷贝构造 赋值 和析构</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2022-01-24T14:20:56+08:00">
+                2022-01-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="拷贝构造函数"><a href="#拷贝构造函数" class="headerlink" title="拷贝构造函数"></a>拷贝构造函数</h2><p>一个类可以不定义拷贝构造函数，系统会默认提供一个拷贝构造函数，叫做合成拷贝构造函数。与默认构造函数不同的是，即使我们定义了其他构造函数，系统也会为我们生成合成拷贝构造函数。合成的拷贝构造函数会将其参数的成员逐个拷贝到正在创建的对象中。编译器从给定对象中依次将每个非static成员拷贝到正在创建的对象中。对类类型的成员，会使用其拷贝构造函数来拷贝；内置类型的成员则直接拷贝。<br>为了方便举例，我们手动实现一个mystring类</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">mystring_</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="comment">/* data */</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">mystring_</span>(<span class="comment">/* args */</span>);</span><br><span class="line">    <span class="built_in">mystring_</span>(<span class="type">const</span> mystring_ &amp;mstr);</span><br><span class="line">    <span class="built_in">mystring_</span>(<span class="type">char</span> *m_str);</span><br><span class="line">    ~<span class="built_in">mystring_</span>();</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="type">char</span> *m_str;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+<p>我们为mystring_类声明了一个无参构造函数，一个拷贝构造函数，一个有参构造函数以及一个析构函数。<br>我们实现这几个构造函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">mystring_::<span class="built_in">mystring_</span>(<span class="comment">/* args */</span>) : <span class="built_in">m_str</span>(<span class="literal">nullptr</span>)</span><br><span class="line">&#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">mystring_::<span class="built_in">mystring_</span>(<span class="type">const</span> mystring_ &amp;mystr)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (&amp;mystr == <span class="keyword">this</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">size_t</span> len = <span class="built_in">strlen</span>(mystr.m_str);</span><br><span class="line">    m_str = <span class="keyword">new</span> <span class="built_in">char</span>(len + <span class="number">1</span>);</span><br><span class="line">    <span class="built_in">strcpy</span>(m_str, mystr.m_str);</span><br><span class="line">    m_str[len] = <span class="string">&#x27;\0&#x27;</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">mystring_::<span class="built_in">mystring_</span>(<span class="type">char</span> *mstr)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">size_t</span> len = <span class="built_in">strlen</span>(mstr);</span><br><span class="line">    m_str = <span class="keyword">new</span> <span class="built_in">char</span>(len + <span class="number">1</span>);</span><br><span class="line">    <span class="built_in">strcpy</span>(m_str, mstr);</span><br><span class="line">    m_str[len] = <span class="string">&#x27;\0&#x27;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>定义了无参构造函数，无参构造函数里只将m_str赋值为空指针.<br>拷贝构造函数的参数是接受一个const mstring_ 类型的引用，内部判断是否是自己，防止循环拷贝。不是自己则将对方数据拷贝给自己。<br>有参构造函数接受一个char* 参数，利用字符串构造mystring_ 类。<br>我们实现一个函数测试一下构造函数是否生效</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">extern</span> <span class="type">void</span> <span class="title">use_mystr</span><span class="params">()</span></span>;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">mystring_</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="comment">/* data */</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">mystring_</span>(<span class="comment">/* args */</span>);</span><br><span class="line">    <span class="built_in">mystring_</span>(<span class="type">const</span> mystring_ &amp;mstr);</span><br><span class="line">    <span class="built_in">mystring_</span>(<span class="type">char</span> *m_str);</span><br><span class="line">    ~<span class="built_in">mystring_</span>();</span><br><span class="line">    <span class="keyword">friend</span> ostream &amp;<span class="keyword">operator</span>&lt;&lt;(ostream &amp;os, mystring_ &amp;mystr1);</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="type">char</span> *m_str;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>我们完善了mystring_类的声明，新增了友元函数并重载<code>&lt;&lt;</code>运算符，输出mystring_类对象的内容。<br>增加了全局函数use_mystr()用来测试。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">ostream &amp;<span class="keyword">operator</span>&lt;&lt;(ostream &amp;os, mystring_ &amp;mystr1)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (mystr1.m_str == <span class="literal">nullptr</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        os &lt;&lt; <span class="string">&quot;mystring_ data is null&quot;</span> &lt;&lt; endl;</span><br><span class="line">        <span class="keyword">return</span> os;</span><br><span class="line">    &#125;</span><br><span class="line">    os &lt;&lt; <span class="string">&quot;mystring_ data is &quot;</span> &lt;&lt; mystr1.m_str &lt;&lt; endl;</span><br><span class="line">    <span class="keyword">return</span> os;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_mystr</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">auto</span> mystr1 = <span class="built_in">mystring_</span>(<span class="string">&quot;hello zack&quot;</span>);</span><br><span class="line">    <span class="function"><span class="keyword">auto</span> <span class="title">mystr2</span><span class="params">(mystr1)</span></span>;</span><br><span class="line">    <span class="keyword">auto</span> mystr3 = <span class="built_in">mystring_</span>();</span><br><span class="line">    cout &lt;&lt; mystr1 &lt;&lt; mystr2 &lt;&lt; mystr3 &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述代码输出</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mystring_ data is hello zack</span><br><span class="line">mystring_ data is hello zack</span><br><span class="line">mystring_ data is null</span><br></pre></td></tr></table></figure>
+<p>我们先用有参构造函数构造了mystr1，然后用拷贝构造函数构造了mystr2，最后用无参构造函数构造了mystr3。</p>
+<h2 id="拷贝初始化"><a href="#拷贝初始化" class="headerlink" title="拷贝初始化"></a>拷贝初始化</h2><p>当我们显示调用拷贝构造函数时会选择最合适的拷贝构造函数完成初始化，如上例中的mystr2(mystr1),我们称这种方式为直接初始化，调用拷贝构造函数完成直接初始化。<br>还有另一种情况，就是拷贝初始化，隐式调用了拷贝构造函数。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_mystr</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//直接初始化</span></span><br><span class="line">    <span class="function">mystring_ <span class="title">mystr1</span><span class="params">(<span class="string">&quot;hello zack&quot;</span>)</span></span>;</span><br><span class="line">    <span class="comment">//直接初始化</span></span><br><span class="line">    <span class="function"><span class="keyword">auto</span> <span class="title">mystr2</span><span class="params">(mystr1)</span></span>;</span><br><span class="line">    <span class="comment">//拷贝初始化</span></span><br><span class="line">    <span class="keyword">auto</span> mystr3 = mystr2;</span><br><span class="line">    <span class="comment">//拷贝初始化</span></span><br><span class="line">    mystring_ mystr4 = <span class="string">&quot;hello world!&quot;</span>;</span><br><span class="line">    <span class="comment">//拷贝初始化</span></span><br><span class="line">    <span class="keyword">auto</span> mystr5 = <span class="built_in">mystring_</span>(<span class="string">&quot;hello everyone&quot;</span>);</span><br><span class="line">    cout &lt;&lt; mystr1 &lt;&lt; mystr2 &lt;&lt; mystr3 &lt;&lt; mystr4 &lt;&lt; mystr5 &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>程序输出如下</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">mystring_ data is hello zack</span><br><span class="line">mystring_ data is hello zack</span><br><span class="line">mystring_ data is hello zack</span><br><span class="line">mystring_ data is hello world!</span><br><span class="line">mystring_ data is hello everyone</span><br></pre></td></tr></table></figure>
+<p>用构造函数显示指明参数构造生成的对象就是直接初始化，用赋值运算符隐式调用构造函数生成对象这种方式叫做拷贝初始化。</p>
+<p>拷贝初始化不仅在我们用=定义变量时会发生，在下列情况下也会发生<br>· 将一个对象作为实参传递给一个非引用类型的形参<br>· 从一个返回类型为非引用类型的函数返回一个对象<br>· 用花括号列表初始化一个数组中的元素或一个聚合类中的成员<br>. 某些类类型还会对它们所分配的对象使用拷贝初始化。<br>例如，当我们初始化标准库容器或是调用其insert或push成员时，容器会对其元素进行拷贝初始化。与之相对，用emplace成员创建的元素都进行直接初始化。</p>
+<h2 id="重载赋值运算符"><a href="#重载赋值运算符" class="headerlink" title="重载赋值运算符"></a>重载赋值运算符</h2><p>有时我们需要重载赋值运算符达到将一个对象赋值给另一个对象的目的。如果我们不重载赋值运算符，编译器会为我们生成一个合成拷贝赋值运算符，类似默认构造函数，系统默认提供的赋值操作，但是系统默认提供的赋值操作是浅拷贝，要实现数组，指针等数据的深拷贝，需要我们手动重载实现赋值运算符。<br>重载运算符本质上是函数，其名字由operator关键字后接表示要定义的运算符的符号组成。因此，赋值运算符就是一个名为operator=的函数。<br>为了与内置类型的赋值保持一致，赋值运算符通常返回一个指向其左侧运算对象的引用。<br>另外值得注意的是，标准库通常要求保存在容器中的类型要具有赋值运算符，且其返回值是左侧运算对象的引用。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">mystring_</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="comment">/* data */</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">mystring_</span>(<span class="comment">/* args */</span>);</span><br><span class="line">    <span class="built_in">mystring_</span>(<span class="type">const</span> mystring_ &amp;mstr);</span><br><span class="line">    <span class="built_in">mystring_</span>(<span class="type">char</span> *m_str);</span><br><span class="line">    ~<span class="built_in">mystring_</span>();</span><br><span class="line">    <span class="keyword">friend</span> ostream &amp;<span class="keyword">operator</span>&lt;&lt;(ostream &amp;os, mystring_ &amp;mystr1);</span><br><span class="line">    mystring_ &amp;<span class="keyword">operator</span>=(<span class="type">const</span> mystring_ &amp;mystr);</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="type">char</span> *m_str;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>我们再次完善类的声明，增加了operator=重载函数，该函数接受一个同类型的const mystring_ 引用对象，返回一个mystring_引用。</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">mystring_ &amp;mystring_::operator=(const mystring_ &amp;mystr)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (&amp;mystr == this)</span><br><span class="line">    &#123;</span><br><span class="line">        return *this;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    size_t len = strlen(mystr.m_str);</span><br><span class="line">    m_str = new char(len + <span class="number">1</span>);</span><br><span class="line">    strcpy(m_str, mystr.m_str);</span><br><span class="line">    m_str[len] = &#x27;\<span class="number">0</span>&#x27;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>同样需要判断是否为自赋值，防止进入自己赋值自己的死循环影响效率。如果不是自赋值，那就开辟空间，将m_str指向的数据拷贝过来，实现深拷贝。</p>
+<h2 id="析构函数"><a href="#析构函数" class="headerlink" title="析构函数"></a>析构函数</h2><p>析构函数用来指明类对象销毁时需要进行的回收操作。析构函数是隐式调用的，如果我们不实现析构函数，系统也会为我们实现默认的析构函数。<br>如果一个类中有一个指针类型的成员，系统提供的默认的析构函数隐式销毁该类对象时并不会回收指针所指的空间。<br>比如我们上面的mystring_类包含m_str成员，如果我们不实现析构函数则m_str指向的空间不会被回收。<br>我们实现mystring_的析构函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">mystring_::~<span class="built_in">mystring_</span>()</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (m_str == <span class="literal">nullptr</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">delete</span> (m_str);</span><br><span class="line">    m_str = <span class="literal">nullptr</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果我们定义了析构函数，那么理论上也需要实现拷贝构造和拷贝赋值操作。举个例子</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">HasPtr</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">HasPtr</span>(<span class="type">const</span> string &amp;str);</span><br><span class="line">    ~<span class="built_in">HasPtr</span>();</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    string *m_str;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>上面给出了HasPtr的声明，包含一个有参构造函数和一个析构函数，接下来给出实现</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">HasPtr::<span class="built_in">HasPtr</span>(<span class="type">const</span> string &amp;str) : <span class="built_in">m_str</span>(<span class="keyword">new</span> <span class="built_in">string</span>(str)) &#123;&#125;</span><br><span class="line"></span><br><span class="line">HasPtr::~<span class="built_in">HasPtr</span>()</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (m_str != <span class="literal">nullptr</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">delete</span> m_str;</span><br><span class="line">        m_str = <span class="literal">nullptr</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>HasPtr必须要实现拷贝构造和拷贝赋值，否则会存在安全问题，看下面的例子</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">HasPtr <span class="title">f</span><span class="params">(HasPtr hp)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    HasPtr copyptr = hp;</span><br><span class="line">    <span class="keyword">return</span> copyptr;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_mystr</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">HasPtr <span class="title">ptr</span><span class="params">(<span class="string">&quot;hello zack!&quot;</span>)</span></span>;</span><br><span class="line">    <span class="built_in">f</span>(ptr);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在主函数调用use_mystr,会引发崩溃。<br>因为函数f的形参hp在调用结束后会被析构，而f内部将hp赋值给copystr是浅拷贝，当f调用结束copystr也会调用析构函数，这样就会double free导致崩溃。<br>解决得办法就是为HasPtr实现拷贝赋值和拷贝构造，进行成员的深拷贝。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">HasPtr::<span class="built_in">HasPtr</span>(<span class="type">const</span> HasPtr &amp;hp)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (&amp;hp != <span class="keyword">this</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">this</span>-&gt;m_str = <span class="keyword">new</span> <span class="built_in">string</span>(<span class="built_in">string</span>(*hp.m_str));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">HasPtr &amp;HasPtr::<span class="keyword">operator</span>=(<span class="type">const</span> HasPtr &amp;hp)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (&amp;hp != <span class="keyword">this</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">this</span>-&gt;m_str = <span class="keyword">new</span> <span class="built_in">string</span>(<span class="built_in">string</span>(*hp.m_str));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果我们实现了拷贝构造函数，一般来说也要实现赋值运算符。比如上面的例子HasPtr新增一个int成员index，表示唯一标识。我们通过拷贝构造构建新对象时，要单独生成唯一的index。<br>我们先完善HasPtr声明</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">HasPtr</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">HasPtr</span>(<span class="type">const</span> string &amp;str);</span><br><span class="line">    ~<span class="built_in">HasPtr</span>();</span><br><span class="line">    <span class="built_in">HasPtr</span>(<span class="type">const</span> HasPtr &amp;hp);</span><br><span class="line">    HasPtr &amp;<span class="keyword">operator</span>=(<span class="type">const</span> HasPtr &amp;hp);</span><br><span class="line">    <span class="keyword">friend</span> ostream &amp;<span class="keyword">operator</span>&lt;&lt;(ostream &amp;os, <span class="type">const</span> HasPtr &amp;);</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    string *m_str;</span><br><span class="line">    <span class="type">int</span> m_index;</span><br><span class="line">    <span class="type">static</span> <span class="type">int</span> _curnum;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>我们新增了两个变量，一个m_index成员标识唯一索引，一个_curnum静态成员，用来自增生成唯一数字。<br>我们在cpp文件中初始化类的成员变量_curnum</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> HasPtr::_curnum = <span class="number">0</span>;</span><br></pre></td></tr></table></figure>
+<p>然后修改几个构造函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">HasPtr::<span class="built_in">HasPtr</span>(<span class="type">const</span> string &amp;str) : <span class="built_in">m_str</span>(<span class="keyword">new</span> <span class="built_in">string</span>(str)), <span class="built_in">m_index</span>(++_curnum)</span><br><span class="line">&#123;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;this is param constructor&quot;</span> &lt;&lt; endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">HasPtr::<span class="built_in">HasPtr</span>(<span class="type">const</span> HasPtr &amp;hp)</span><br><span class="line">&#123;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;this is copy construtor&quot;</span> &lt;&lt; endl;</span><br><span class="line">    <span class="keyword">if</span> (&amp;hp != <span class="keyword">this</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">this</span>-&gt;m_str = <span class="keyword">new</span> <span class="built_in">string</span>(<span class="built_in">string</span>(*hp.m_str));</span><br><span class="line">        <span class="type">int</span> seconds = <span class="built_in">time</span>((<span class="type">time_t</span> *)<span class="literal">NULL</span>);</span><br><span class="line">        _curnum++;</span><br><span class="line">        <span class="keyword">this</span>-&gt;m_index = _curnum;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>然后我们在重载赋值运算符的函数里增加输出信息,再重载一个输出运算符</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">HasPtr &amp;HasPtr::<span class="keyword">operator</span>=(<span class="type">const</span> HasPtr &amp;hp)</span><br><span class="line">&#123;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;this is operator = &quot;</span> &lt;&lt; endl;</span><br><span class="line">    <span class="keyword">if</span> (&amp;hp != <span class="keyword">this</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">this</span>-&gt;m_str = <span class="keyword">new</span> <span class="built_in">string</span>(<span class="built_in">string</span>(*hp.m_str));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ostream &amp;<span class="keyword">operator</span>&lt;&lt;(ostream &amp;os, <span class="type">const</span> HasPtr &amp;hp)</span><br><span class="line">&#123;</span><br><span class="line">    os &lt;&lt; <span class="string">&quot;index is &quot;</span> &lt;&lt; hp.m_index &lt;&lt; <span class="string">&quot; , data is &quot;</span> &lt;&lt; *(hp.m_str) &lt;&lt; endl;</span><br><span class="line">    <span class="keyword">return</span> os;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在主函数中调用如下函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_mystr</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">HasPtr <span class="title">hasptr1</span><span class="params">(<span class="string">&quot;hello zack&quot;</span>)</span></span>;</span><br><span class="line">    <span class="function">HasPtr <span class="title">hasptr2</span><span class="params">(hasptr1)</span></span>;</span><br><span class="line">    HasPtr hasptr3 = hasptr2;</span><br><span class="line">    <span class="function">HasPtr <span class="title">hasptr4</span><span class="params">(<span class="string">&quot;hello world&quot;</span>)</span></span>;</span><br><span class="line">    hasptr4 = hasptr3;</span><br><span class="line">    cout &lt;&lt; hasptr1 &lt;&lt; hasptr2 &lt;&lt; hasptr3 &lt;&lt; hasptr4 &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出为</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">this is param constructor</span><br><span class="line">index is <span class="number">1</span> , data is hello zack</span><br><span class="line"></span><br><span class="line">this is <span class="built_in">copy</span> construtor</span><br><span class="line">index is <span class="number">2</span> , data is hello zack</span><br><span class="line"></span><br><span class="line">this is <span class="built_in">copy</span> construtor</span><br><span class="line">index is <span class="number">3</span> , data is hello zack</span><br><span class="line"></span><br><span class="line">this is param constructor</span><br><span class="line">this is operator =</span><br><span class="line">index is <span class="number">4</span> , data is hello zack</span><br></pre></td></tr></table></figure>
+<p>hasptr1用的是有参构造函数，输出index为1<br>hasptr2用的是拷贝构造函数, 输出index为2<br>hasptr3用的是拷贝构造函数，输出index为3<br>hasptr4用的是有参构造函数，赋值运算符。输出index为4，但是我们期望hasptr4的index为hasptr3的index值。<br>所以要重新实现赋值运算符，这也是我要强调的，一旦我们实现了拷贝构造，就要实现重载赋值运算，避免逻辑错误。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">HasPtr &amp;HasPtr::<span class="keyword">operator</span>=(<span class="type">const</span> HasPtr &amp;hp)</span><br><span class="line">&#123;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;this is operator = &quot;</span> &lt;&lt; endl;</span><br><span class="line">    <span class="keyword">if</span> (&amp;hp != <span class="keyword">this</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">this</span>-&gt;m_str = <span class="keyword">new</span> <span class="built_in">string</span>(<span class="built_in">string</span>(*hp.m_str));</span><br><span class="line">        <span class="keyword">this</span>-&gt;m_index = hp.m_index;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>再次打印就可以看到hasptr4的index为3了，因为通过赋值运算符我们将hasptr3的index赋值给hasptr4的index了。<br>我们可以通过default指定实现合成版本的构造函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">HasPtr</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">HasPtr</span>() = <span class="keyword">default</span>;</span><br><span class="line">    <span class="built_in">HasPtr</span>(<span class="type">const</span> string &amp;str);</span><br><span class="line">    ~<span class="built_in">HasPtr</span>();</span><br><span class="line">    <span class="built_in">HasPtr</span>(<span class="type">const</span> HasPtr &amp;hp);</span><br><span class="line">    HasPtr &amp;<span class="keyword">operator</span>=(<span class="type">const</span> HasPtr &amp;hp);</span><br><span class="line">    <span class="keyword">friend</span> ostream &amp;<span class="keyword">operator</span>&lt;&lt;(ostream &amp;os, <span class="type">const</span> HasPtr &amp;);</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    string *m_str;</span><br><span class="line">    <span class="type">int</span> m_index;</span><br><span class="line">    <span class="type">static</span> <span class="type">int</span> _curnum;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<h2 id="delete关键字"><a href="#delete关键字" class="headerlink" title="delete关键字"></a>delete关键字</h2><p>有时我们需要阻止拷贝，比如我们实现单例模式，阻止拷贝最好的方式就是使用delete关键字将拷贝构造函数和赋值运算符定义为删除函数。<br>我们先实现单例模式，类的声明写在singleton_.h中，如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Singleton_</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">Singleton_</span>(<span class="type">const</span> Singleton_ &amp;) = <span class="keyword">delete</span>;</span><br><span class="line">    Singleton_ &amp;<span class="keyword">operator</span>=(<span class="type">const</span> Singleton_ &amp;) = <span class="keyword">delete</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="type">static</span> shared_ptr&lt;Singleton_&gt; &amp;<span class="title">getinstance</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="comment">//如果非空直接返回不加锁节省效率</span></span><br><span class="line">        <span class="keyword">if</span> (_inst != <span class="literal">nullptr</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> _inst;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//最好做一个二次判断</span></span><br><span class="line">        _mutex.<span class="built_in">lock</span>();</span><br><span class="line">        <span class="keyword">if</span> (_inst != <span class="literal">nullptr</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            _mutex.<span class="built_in">unlock</span>();</span><br><span class="line">            <span class="keyword">return</span> _inst;</span><br><span class="line">        &#125;</span><br><span class="line">        _inst = <span class="built_in">shared_ptr</span>&lt;Singleton_&gt;(<span class="keyword">new</span> <span class="built_in">Singleton_</span>());</span><br><span class="line">        _mutex.<span class="built_in">unlock</span>();</span><br><span class="line">        <span class="keyword">return</span> _inst;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="built_in">Singleton_</span>() &#123;&#125;</span><br><span class="line">    <span class="type">static</span> shared_ptr&lt;Singleton_&gt; _inst;</span><br><span class="line">    <span class="type">static</span> mutex _mutex;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>我们将Singleton_的拷贝构造函数和赋值操作声明为delete，这样就防止了拷贝和赋值操作。<br>我们将Singleton_的构造函数声明为私有，这样就可以避免外部显示调用构造函数。<br>要想创建Singleton_的对象必须调用getinstance函数，该函数内部先判断_inst是否为空指针，如果不是空指针则直接返回_inst即可。<br>这么做减少了加锁的开销。如果_inst为空，则加锁并进入构建_inst的逻辑，在构建之前又判断了一下_inst是否为空，不为空则直接返回。这么做主要是稳妥一点，防止在lock之前有其他线程已经创建了_inst，因为在第一次判断_inst是否为空和_mutex.lock()之间还是有一定时间空隙的。<br>我们构建_inst的方式是显示调用new Singleton_()来初始化智能指针，而不是</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_inst = <span class="built_in">make_shared</span>&lt;Singleton_&gt;();</span><br></pre></td></tr></table></figure>
+<p>因为make_shared会间接调用Singleton_的构造函数，而Singleton_构造函数是私有的，所以会报错。<br>所以显示调用new Singleton_()初始化智能指针，因为是在类的成员函数getinstance里调用，所以可以访问私有构造函数。<br>在类的声明里_inst和_mutex是类的静态变量，类的静态变量初始化是放在cpp文件中的，不然会出现重复定义的错误。<br>我们在singleton_.cpp文件中初始化这两个变量</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">shared_ptr&lt;Singleton_&gt; Singleton_::_inst = <span class="literal">nullptr</span>;</span><br><span class="line">mutex Singleton_::_mutex;</span><br></pre></td></tr></table></figure>
+<p>我们先测试单线程情况下单例是否正常</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_single</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    shared_ptr&lt;Singleton_&gt; inst1 = Singleton_::<span class="built_in">getinstance</span>();</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;inst1 get ptr is &quot;</span> &lt;&lt; inst1.<span class="built_in">get</span>() &lt;&lt; endl;</span><br><span class="line"></span><br><span class="line">    shared_ptr&lt;Singleton_&gt; inst2 = Singleton_::<span class="built_in">getinstance</span>();</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;inst2 get ptr is &quot;</span> &lt;&lt; inst2.<span class="built_in">get</span>() &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>程序输出</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">inst1 get ptr is <span class="number">0</span>xfa4150</span><br><span class="line">inst2 get ptr is <span class="number">0</span>xfa4150</span><br></pre></td></tr></table></figure>
+<p>再测试下多线程的情况下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">thread_func</span><span class="params">(<span class="type">int</span> i)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;this is thread &quot;</span> &lt;&lt; i &lt;&lt; endl;</span><br><span class="line">    shared_ptr&lt;Singleton_&gt; inst = Singleton_::<span class="built_in">getinstance</span>();</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;inst ptr is &quot;</span> &lt;&lt; inst.<span class="built_in">get</span>() &lt;&lt; endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_thread_single</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">3</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function">thread <span class="title">tid</span><span class="params">(thread_func, i + <span class="number">1</span>)</span></span>;</span><br><span class="line">        tid.<span class="built_in">join</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;main thread exit &quot;</span> &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>程序输出</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">this is thread <span class="number">1</span></span><br><span class="line">inst ptr is <span class="number">0</span>x10c4dc0</span><br><span class="line">this is thread <span class="number">2</span></span><br><span class="line">inst ptr is <span class="number">0</span>x10c4dc0</span><br><span class="line">this is thread <span class="number">3</span></span><br><span class="line">inst ptr is <span class="number">0</span>x10c4dc0</span><br><span class="line">main thread <span class="keyword">exit</span></span><br></pre></td></tr></table></figure>
+<p>tid.join是让线程阻塞执行结束后再进行下一轮逻辑，所以会陆续输出线程id和指针地址。我们能看到无论多线程还是单线程，打印的inst的地址都是相同的，可见单例实现正确。<br>以后我们可以用模板实现一个更广范围的单例模式，这个例子只是为了说明将一些构造函数声明为delete的作用。<br>但是请记住，析构函数不能声明为delete，如果析构函数被删除，就无法销毁此类型的对象了。<br>对于类中包含const成员，引用成员的类，系统不会为其生成默认的拷贝构造和默认的拷贝赋值。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了拷贝构造函数，构造函数以及析构函数等用法，介绍了使用default和delete来管理构造函数等方式，最后利用C11智能指针实现了单例类<br>源码链接<br><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/cpplearn">https://gitee.com/secondtonone1/cpplearn</a><br>想系统学习更多C++知识,可点击下方链接。<br><a target="_blank" rel="noopener" href="https://llfc.club/category?catid=225RaiVNI8pFDD5L4m807g7ZwmF#!aid/23uSgIjfVfmwfhNGMprDFxL0uKL">C++基础</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/01/21/cpp24/" rel="next" title="文本查询程序">
+                <i class="fa fa-chevron-left"></i> 文本查询程序
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/01/27/cpp26/" rel="prev" title="拷贝控制和资源管理">
+                拷贝控制和资源管理 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">219</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8B%B7%E8%B4%9D%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0"><span class="nav-number">1.</span> <span class="nav-text">拷贝构造函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8B%B7%E8%B4%9D%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-number">2.</span> <span class="nav-text">拷贝初始化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%87%8D%E8%BD%BD%E8%B5%8B%E5%80%BC%E8%BF%90%E7%AE%97%E7%AC%A6"><span class="nav-number">3.</span> <span class="nav-text">重载赋值运算符</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9E%90%E6%9E%84%E5%87%BD%E6%95%B0"><span class="nav-number">4.</span> <span class="nav-text">析构函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#delete%E5%85%B3%E9%94%AE%E5%AD%97"><span class="nav-number">5.</span> <span class="nav-text">delete关键字</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">6.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="做游戏或金融后台开发，经常会遇到设计开发排行榜的需求。比如玩家的充值排行，战力排行等等。而这种排行基本都是即时更新的，快速排序对于单一类型排序可以满足需求，但是对于多种类的排序就很吃力，比如实现一个排行榜，有战力排序，有充值排序，如下图">
+<meta property="og:type" content="article">
+<meta property="og:title" content="boost::multi_index 提供一种千人在线即时排行榜的设计思路">
+<meta property="og:url" content="http://www.limerence2017.com/2019/06/23/cpp01/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="做游戏或金融后台开发，经常会遇到设计开发排行榜的需求。比如玩家的充值排行，战力排行等等。而这种排行基本都是即时更新的，快速排序对于单一类型排序可以满足需求，但是对于多种类的排序就很吃力，比如实现一个排行榜，有战力排序，有充值排序，如下图">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.limerence2017.com/2019/06/23/cpp01/1.jpg">
+<meta property="og:image" content="http://www.limerence2017.com/2019/06/23/cpp01/wxgzh.jpg">
+<meta property="article:published_time" content="2019-06-23T07:57:09.000Z">
+<meta property="article:modified_time" content="2022-07-31T07:11:49.814Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.limerence2017.com/2019/06/23/cpp01/1.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2019/06/23/cpp01/"/>
+
+
+
+
+
+  <title>boost::multi_index 提供一种千人在线即时排行榜的设计思路 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/06/23/cpp01/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">boost::multi_index 提供一种千人在线即时排行榜的设计思路</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-06-23T15:57:09+08:00">
+                2019-06-23
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>做游戏或金融后台开发，经常会遇到设计开发排行榜的需求。比如玩家的充值排行，战力排行等等。而这种排行基本都是即时更新的，快速排序对于单一类型排序可以满足需求，但是对于多种类的排序就很吃力，比如实现一个排行榜，有战力排序，有充值排序，如下图</p>
+<span id="more"></span>
+<p><img src="1.jpg" alt="1.jpg"></p>
+<h2 id="快速排序的缺陷"><a href="#快速排序的缺陷" class="headerlink" title="快速排序的缺陷"></a>快速排序的缺陷</h2><p>如果用快速排序实现，需要定义四种比较规则，而且qsort排序需要一段连续空间，如数组或者vector，为节约内存，每个元素存储玩家基本信息的指针。之后为每种排行类型定义单独的比较规则。代码如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;algorithm&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">PowerCmp</span>;</span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">ChargeCmp</span>;</span><br><span class="line"><span class="comment">//玩家基本信息</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">PlayrInfo</span>&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="function"><span class="type">int</span> <span class="title">getPower</span><span class="params">()</span><span class="type">const</span></span>&#123;</span><br><span class="line">		<span class="keyword">return</span> u_power;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">int</span> <span class="title">getCharge</span><span class="params">()</span><span class="type">const</span></span>&#123;</span><br><span class="line">		<span class="keyword">return</span> u_charge;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	<span class="type">int</span> u_ind; <span class="comment">//玩家唯一id</span></span><br><span class="line">	<span class="type">int</span> u_power; <span class="comment">//玩家战力</span></span><br><span class="line">	<span class="type">int</span> u_charge; <span class="comment">//玩家充值数量</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">bool</span> <span class="title">chargeCmp</span><span class="params">(PlayrInfo *a, PlayrInfo *b)</span> </span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> a-&gt;<span class="built_in">getCharge</span>() &gt; b-&gt;<span class="built_in">getCharge</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">bool</span> <span class="title">powerCmp</span><span class="params">(PlayrInfo *a, PlayrInfo *b)</span> </span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> a-&gt;<span class="built_in">getPower</span>() &gt; b-&gt;<span class="built_in">getPower</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span>* argv[])</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">//分别实现排序</span></span><br><span class="line">	vector&lt;PlayrInfo*&gt; vecPlayer;</span><br><span class="line">	</span><br><span class="line">	<span class="built_in">sort</span>(vecPlayer.<span class="built_in">begin</span>(),vecPlayer.<span class="built_in">end</span>(),powerCmp);</span><br><span class="line">	<span class="built_in">sort</span>(vecPlayer.<span class="built_in">begin</span>(),vecPlayer.<span class="built_in">end</span>(),chargeCmp);</span><br><span class="line">	<span class="built_in">getchar</span>();</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这么做有几个坏处<br>1 每个排行都要开辟一段连续的序列，即使存储指针也会造成空间的浪费。<br>2 qsort适合中小数量排序，当人数上千或万以上会造成瓶颈。但是可以通过插入排序优化。<br>下面提出一种新的结构来处理排序，boost::multi_index 实现了多索引结构，支持按照多个键值排序，可以极大减轻压力。</p>
+<h2 id="multi-index-多索引处理排行榜"><a href="#multi-index-多索引处理排行榜" class="headerlink" title="multi_index 多索引处理排行榜"></a>multi_index 多索引处理排行榜</h2><p>multi_index 是boost库提出的多索引结构表，可以设定多个主键进行排序，如战力，充值等等，但是必须要有一个唯一主键，我们将player的id设为唯一主键。<br>为了方便输出我们先完善下PlayerInfo类，重载输出运算符</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//玩家基本信息</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">PlayrInfo</span>&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">PlayrInfo</span>(<span class="type">int</span> id, <span class="type">int</span> power, <span class="type">int</span> charge):<span class="built_in">u_ind</span>(id),<span class="built_in">u_charge</span>(charge),<span class="built_in">u_power</span>(power)&#123;&#125;</span><br><span class="line">	<span class="function"><span class="type">int</span> <span class="title">getPower</span><span class="params">()</span><span class="type">const</span></span>&#123;</span><br><span class="line">		<span class="keyword">return</span> u_power;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">int</span> <span class="title">getCharge</span><span class="params">()</span><span class="type">const</span></span>&#123;</span><br><span class="line">		<span class="keyword">return</span> u_charge;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	<span class="type">int</span> u_ind; <span class="comment">//玩家唯一id</span></span><br><span class="line">	<span class="type">int</span> u_power; <span class="comment">//玩家战力</span></span><br><span class="line">	<span class="type">int</span> u_charge; <span class="comment">//玩家充值数量</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">//重载输出</span></span><br><span class="line">	<span class="keyword">friend</span> std::ostream&amp; <span class="keyword">operator</span>&lt;&lt;(std::ostream&amp; os,<span class="type">const</span> boost::shared_ptr&lt;PlayrInfo&gt; &amp; e)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="comment">//获取引用计数</span></span><br><span class="line">		<span class="comment">//cout &lt;&lt; e.use_count();</span></span><br><span class="line">		<span class="comment">//获取原始指针</span></span><br><span class="line">		<span class="comment">//e.get()</span></span><br><span class="line">		os&lt;&lt;e-&gt;u_ind&lt;&lt;<span class="string">&quot; &quot;</span>&lt;&lt;e-&gt;u_power&lt;&lt;<span class="string">&quot; &quot;</span>&lt;&lt;e-&gt;u_charge&lt;&lt;std::endl;</span><br><span class="line">		<span class="keyword">return</span> os;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>由于multi_index 各主键排序需要设置比较规则，默认是从小到大，int类型可以用greater<int>， less<int>等。<br>greater<int>从大到小, less<int>从小到大,也可以自己实现仿函数。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">powerOperator</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="function"><span class="type">bool</span> <span class="title">operator</span><span class="params">()</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span> <span class="type">const</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		<span class="keyword">return</span> a &gt; b;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>定义operator()一定要加上const，因为没有修改参数数据。</p>
+<h3 id="multi-index-表定义"><a href="#multi-index-表定义" class="headerlink" title="multi_index 表定义"></a>multi_index 表定义</h3><p>基于playerinfo实现multi_index表如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">by_id</span>;</span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">by_power</span>;</span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">by_charge</span>;</span><br><span class="line"><span class="keyword">typedef</span> multi_index_container&lt;</span><br><span class="line">	boost::shared_ptr&lt;PlayrInfo&gt;, <span class="comment">//插入的主体，当然可以是PlayrInfo本身</span></span><br><span class="line">	indexed_by&lt;</span><br><span class="line">	<span class="comment">//唯一主键，不可重复, std::greater&lt;int&gt; 为id规则从大到小，默认从小到大</span></span><br><span class="line">	<span class="comment">//tag&lt;by_id&gt;为标签名，可写可不写</span></span><br><span class="line">	ordered_unique&lt;tag&lt;by_id&gt; , const_mem_fun&lt;PlayrInfo,<span class="type">int</span>,&amp;PlayrInfo::getId&gt;&gt;,</span><br><span class="line"></span><br><span class="line">	<span class="comment">//可重复的主键</span></span><br><span class="line">	ordered_non_unique&lt;tag&lt;by_power&gt;, const_mem_fun&lt;PlayrInfo, <span class="type">int</span>, &amp;PlayrInfo::getPower&gt;, powerOperator &gt;,</span><br><span class="line">	ordered_non_unique&lt;tag&lt;by_charge&gt;, const_mem_fun&lt;PlayrInfo, <span class="type">int</span>, &amp;PlayrInfo::getCharge&gt;, greater&lt;<span class="type">int</span>&gt;  &gt;</span><br><span class="line">	&gt;</span><br><span class="line">&gt; PlayerContainer;</span><br></pre></td></tr></table></figure>
+<p>by_id， by_power等都是标签，只需要声明一个结构体，然后tag&lt;标签名&gt;放到索引里。当然可以不带tag，带tag是为了之后获取方便。<br>powerOperator是定义的战力比较规则，greater<int>定义的充值金额比较规则，是从大到小排序。</p>
+<h3 id="multi-index-根据标签获取排序序列"><a href="#multi-index-根据标签获取排序序列" class="headerlink" title="multi_index 根据标签获取排序序列"></a>multi_index 根据标签获取排序序列</h3><p>multi_index表在数据插入的时候就根据各个主键排序规则进行排序，所以只需要按照主键取出，获得序列就是排好序的数据。</p>
+<p>我们先按照id获取，然后打印输出结果</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span>&amp; ids = con.<span class="built_in">get</span>&lt;by_id&gt;();</span><br><span class="line"><span class="built_in">copy</span>(ids.<span class="built_in">begin</span>(), ids.<span class="built_in">end</span>(), ostream_iterator&lt;boost::shared_ptr&lt;PlayrInfo&gt; &gt;(cout));</span><br></pre></td></tr></table></figure>
+<p>结果如下，可以看出是按照id从小到大排序输出的。</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span> <span class="number">1231</span> <span class="number">10000</span></span><br><span class="line"><span class="number">2</span> <span class="number">22222</span> <span class="number">2000</span></span><br><span class="line"><span class="number">3</span> <span class="number">19999</span> <span class="number">222222</span></span><br></pre></td></tr></table></figure>
+<p>那我们按照战力获取</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span>&amp; powers = con.<span class="built_in">get</span>&lt;by_power&gt;();</span><br><span class="line"><span class="built_in">copy</span>(powers.<span class="built_in">begin</span>(), powers.<span class="built_in">end</span>(), ostream_iterator&lt;boost::shared_ptr&lt;PlayrInfo&gt; &gt;(cout));</span><br></pre></td></tr></table></figure>
+<p>结果能看出是按照战力从大到小输出</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">2</span> <span class="number">22222</span> <span class="number">2000</span></span><br><span class="line"><span class="number">3</span> <span class="number">19999</span> <span class="number">222222</span></span><br><span class="line"><span class="number">1</span> <span class="number">1231</span> <span class="number">10000</span> </span><br></pre></td></tr></table></figure>
+<h3 id="multi-index-删除数据"><a href="#multi-index-删除数据" class="headerlink" title="multi_index 删除数据"></a>multi_index 删除数据</h3><p>删除元素如果是根据唯一主键删除，可以直接删除，如果是非唯一主键，需要查出所有记录并删除。<br>删除唯一主键为2的玩家</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span> &amp;itfind = ids.<span class="built_in">find</span>(<span class="number">2</span>);</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">if</span> (itfind != ids.<span class="built_in">end</span>())&#123;</span><br><span class="line">		ids.<span class="built_in">erase</span>(itfind);</span><br><span class="line">		cout &lt;&lt; <span class="string">&quot;after erase: &quot;</span>&lt;&lt;endl;</span><br><span class="line">		<span class="built_in">copy</span>(con.<span class="built_in">begin</span>(), con.<span class="built_in">end</span>(), ostream_iterator&lt;boost::shared_ptr&lt;PlayrInfo&gt; &gt;(cout));</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<p>结果</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">after <span class="built_in">erase</span>:</span><br><span class="line"><span class="number">1</span> <span class="number">1231</span> <span class="number">10000</span></span><br><span class="line"><span class="number">3</span> <span class="number">19999</span> <span class="number">222222</span></span><br></pre></td></tr></table></figure>
+<p>插入一条战力重复的数据，并且遍历删除所有战力为1231的玩家</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">con.<span class="built_in">insert</span>(boost::<span class="built_in">make_shared</span>&lt;PlayrInfo&gt;(<span class="number">4</span>, <span class="number">1231</span>, <span class="number">10000</span>));</span><br><span class="line"><span class="keyword">auto</span> &amp;beginit = powers.<span class="built_in">lower_bound</span>(<span class="number">1231</span>);</span><br><span class="line"><span class="keyword">auto</span> &amp; endit = powers.<span class="built_in">upper_bound</span>(<span class="number">1231</span>);</span><br><span class="line"><span class="keyword">for</span>( ; beginit != powers.<span class="built_in">end</span>()&amp;&amp; beginit != endit; )&#123;</span><br><span class="line">		cout &lt;&lt; <span class="string">&quot;....................&quot;</span> &lt;&lt;endl;</span><br><span class="line">		cout &lt;&lt; *beginit;</span><br><span class="line">		beginit = powers.<span class="built_in">erase</span>(beginit);</span><br><span class="line">&#125;</span><br><span class="line">	</span><br><span class="line"><span class="built_in">copy</span>(powers.<span class="built_in">begin</span>(), powers.<span class="built_in">end</span>(), ostream_iterator&lt;boost::shared_ptr&lt;PlayrInfo&gt; &gt;(cout));</span><br></pre></td></tr></table></figure>
+<p>结果</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">....................</span><br><span class="line"><span class="number">1</span> <span class="number">1231</span> <span class="number">10000</span></span><br><span class="line">....................</span><br><span class="line"><span class="number">4</span> <span class="number">1231</span> <span class="number">10000</span></span><br><span class="line"><span class="number">3</span> <span class="number">19999</span> <span class="number">222222</span></span><br></pre></td></tr></table></figure>
+<p>lower_bound 获取的是战力为1231的玩家迭代器的起始值，upper_bound获取的是战力为1231的玩家的最大值的下一个元素。</p>
+<h3 id="multi-index-修改数据"><a href="#multi-index-修改数据" class="headerlink" title="multi_index 修改数据"></a>multi_index 修改数据</h3><p>修改数据可以用replace，也可以用modify<br>replace 失败不会删除条目，但是二次copy造成效率低下<br>modify失败会删除对应条目，容易暴力误删除，但是效率高<br>replace 找到战力为19999的玩家，并且替换为新的数据。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span> piter = powers.<span class="built_in">find</span>(<span class="number">19999</span>);</span><br><span class="line"><span class="keyword">if</span>(piter != powers.<span class="built_in">end</span>() )&#123;</span><br><span class="line">	<span class="keyword">auto</span> newvalue = boost::<span class="built_in">make_shared</span>&lt;PlayrInfo&gt;(<span class="number">100</span>,<span class="number">200</span>,<span class="number">300</span>);</span><br><span class="line">	powers.<span class="built_in">replace</span>(piter, newvalue);</span><br><span class="line">	<span class="built_in">copy</span>(powers.<span class="built_in">begin</span>(), powers.<span class="built_in">end</span>(), ostream_iterator&lt;boost::shared_ptr&lt;PlayrInfo&gt; &gt;(cout));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>下面用modify修改数据</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">piter = powers.<span class="built_in">find</span>(<span class="number">200</span>);</span><br><span class="line">	<span class="keyword">if</span>(piter != powers.<span class="built_in">end</span>())&#123;</span><br><span class="line">		<span class="keyword">auto</span> newp = <span class="number">1024</span>;</span><br><span class="line">		powers.<span class="built_in">modify</span>(piter, [&amp;](boost::shared_ptr&lt;PlayrInfo&gt; &amp; playptr)-&gt;<span class="type">void</span>&#123;</span><br><span class="line">			playptr-&gt;<span class="built_in">setPower</span>(newp) ;</span><br><span class="line">		&#125;);</span><br><span class="line">		<span class="built_in">copy</span>(powers.<span class="built_in">begin</span>(), powers.<span class="built_in">end</span>(), ostream_iterator&lt;boost::shared_ptr&lt;PlayrInfo&gt; &gt;(cout));</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<p>modify 第一个参数和replace一样，都是要修改的迭代器，第二个参数是一个函数对象，参数类型为表中元素类型。<br>到目前为止，multi_index介绍完毕，用该多索引结构可以高效实现多级排序，非常适用于即时排行榜。<br>源码下载<br><a target="_blank" rel="noopener" href="https://github.com/secondtonone1/boost-multi_index-">https://github.com/secondtonone1/boost-multi_index-</a><br>我的公众号，谢谢关注<br><img src="wxgzh.jpg" alt="wxgzh.jpg"></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/06/11/golang06/" rel="next" title="Go(05)map介绍">
+                <i class="fa fa-chevron-left"></i> Go(05)map介绍
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/06/29/golang07/" rel="prev" title="golang实现四种排序(快速，冒泡，插入，选择)">
+                golang实现四种排序(快速，冒泡，插入，选择) <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">219</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BF%AB%E9%80%9F%E6%8E%92%E5%BA%8F%E7%9A%84%E7%BC%BA%E9%99%B7"><span class="nav-number">1.</span> <span class="nav-text">快速排序的缺陷</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#multi-index-%E5%A4%9A%E7%B4%A2%E5%BC%95%E5%A4%84%E7%90%86%E6%8E%92%E8%A1%8C%E6%A6%9C"><span class="nav-number">2.</span> <span class="nav-text">multi_index 多索引处理排行榜</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#multi-index-%E8%A1%A8%E5%AE%9A%E4%B9%89"><span class="nav-number">2.1.</span> <span class="nav-text">multi_index 表定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#multi-index-%E6%A0%B9%E6%8D%AE%E6%A0%87%E7%AD%BE%E8%8E%B7%E5%8F%96%E6%8E%92%E5%BA%8F%E5%BA%8F%E5%88%97"><span class="nav-number">2.2.</span> <span class="nav-text">multi_index 根据标签获取排序序列</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#multi-index-%E5%88%A0%E9%99%A4%E6%95%B0%E6%8D%AE"><span class="nav-number">2.3.</span> <span class="nav-text">multi_index 删除数据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#multi-index-%E4%BF%AE%E6%94%B9%E6%95%B0%E6%8D%AE"><span class="nav-number">2.4.</span> <span class="nav-text">multi_index 修改数据</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

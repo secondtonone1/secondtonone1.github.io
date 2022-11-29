@@ -286,6 +286,154 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2022/02/09/cpp29/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2022/02/09/cpp29/" itemprop="url">C++ 动态内存管理示例</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2022-02-09T10:45:54+08:00">
+                2022-02-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="动态内存管理"><a href="#动态内存管理" class="headerlink" title="动态内存管理"></a>动态内存管理</h2><p>之前我们讲述过动态内存的开辟，可以通过new, malloc，以及alloc等方式，本文通过介绍alloc方式，构造一个StrVec类，这个类的功能类似于一个vector，实现字符串的管理，其中包含push一个字符串，动态扩容，析构，回收内存等操作。</p>
+<h2 id="StrVec类实现细节"><a href="#StrVec类实现细节" class="headerlink" title="StrVec类实现细节"></a>StrVec类实现细节</h2><p>StrVec类实现如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">StrVec</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="comment">//无参构造函数</span></span><br><span class="line">    <span class="built_in">StrVec</span>() : <span class="built_in">elements</span>(<span class="literal">nullptr</span>), <span class="built_in">first_free</span>(<span class="literal">nullptr</span>),</span><br><span class="line">               <span class="built_in">cap</span>(<span class="literal">nullptr</span>) &#123;&#125;</span><br><span class="line">    <span class="comment">//拷贝构造函数</span></span><br><span class="line">    <span class="built_in">StrVec</span>(<span class="type">const</span> StrVec &amp;);</span><br><span class="line">    <span class="comment">//拷贝赋值运算符</span></span><br><span class="line">    StrVec &amp;<span class="keyword">operator</span>=(<span class="type">const</span> StrVec &amp;);</span><br><span class="line">    <span class="comment">//析构函数</span></span><br><span class="line">    ~<span class="built_in">StrVec</span>();</span><br><span class="line">    <span class="comment">//拷贝元素</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">push_back</span><span class="params">(<span class="type">const</span> std::string &amp;)</span></span>;</span><br><span class="line">    <span class="comment">//返回元素个数</span></span><br><span class="line">    <span class="function"><span class="type">size_t</span> <span class="title">size</span><span class="params">()</span> <span class="type">const</span> </span>&#123; <span class="keyword">return</span> first_free - elements; &#125;</span><br><span class="line">    <span class="comment">//返回总容量</span></span><br><span class="line">    <span class="function"><span class="type">size_t</span> <span class="title">capacity</span><span class="params">()</span> <span class="type">const</span> </span>&#123; <span class="keyword">return</span> cap - elements; &#125;</span><br><span class="line">    <span class="comment">//返回首元素地址</span></span><br><span class="line">    <span class="function">std::string *<span class="title">begin</span><span class="params">()</span> <span class="type">const</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> elements;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//返回第一个空闲元素地址</span></span><br><span class="line">    <span class="comment">//也是最后一个有效元素的下一个位置</span></span><br><span class="line">    <span class="function">std::string *<span class="title">end</span><span class="params">()</span> <span class="type">const</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> first_free;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="comment">//判断容量不足开辟新空间</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">chk_n_alloc</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">size</span>() == <span class="built_in">capacity</span>())</span><br><span class="line">            <span class="built_in">reallocate</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//重新开辟空间</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">reallocate</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="comment">// copy指定范围的元素到新的内存中</span></span><br><span class="line">    <span class="function">std::pair&lt;std::string *, std::string *&gt; <span class="title">alloc_n_copy</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">        <span class="type">const</span> std::string *, <span class="type">const</span> std::string *)</span></span>;</span><br><span class="line">    <span class="comment">//释放空间</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">free</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="comment">//数组首元素的指针</span></span><br><span class="line">    std::string *elements;</span><br><span class="line">    <span class="comment">//指向数组第一个空闲元素的指针</span></span><br><span class="line">    std::string *first_free;</span><br><span class="line">    <span class="comment">//指向数组尾后位置的指针</span></span><br><span class="line">    std::string *cap;</span><br><span class="line">    <span class="comment">//构造string类型allocator静态成员</span></span><br><span class="line">    <span class="type">static</span> std::allocator&lt;std::string&gt; alloc;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2022/02/09/cpp29/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2022/02/07/cpp28/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1600,154 +1748,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2022/01/11/cpp20/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2022/01/11/cpp20/" itemprop="url">关联容器</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2022-01-11T16:20:06+08:00">
-                2022-01-11
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/cpp/" itemprop="url" rel="index">
-                    <span itemprop="name">C++</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>之前我们介绍过顺序容器，list, vector, queue等，这一篇介绍关联容器, C++关联容器主要有两大类，map和set。</p>
-<h2 id="map"><a href="#map" class="headerlink" title="map"></a>map</h2><p>map主要是用来管理key,value类型的结构的。</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_map</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    map&lt;string, <span class="type">size_t</span>&gt; word_count;</span><br><span class="line">    string word;</span><br><span class="line">    <span class="keyword">while</span> (cin &gt;&gt; word)</span><br><span class="line">    &#123;</span><br><span class="line">        word_count[word]++;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span> &amp;val : word_count)</span><br><span class="line">    &#123;</span><br><span class="line">        cout &lt;&lt; <span class="string">&quot;word is &quot;</span> &lt;&lt; val.first &lt;&lt; <span class="string">&quot; counts are &quot;</span> &lt;&lt; val.second &lt;&lt; endl;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2022/01/11/cpp20/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1798,7 +1798,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">233</span>
+                  <span class="site-state-item-count">234</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>

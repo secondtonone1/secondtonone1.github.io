@@ -286,6 +286,155 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/04/newproblem/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/08/04/newproblem/" itemprop="url">网络编程一些常见问题总结</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-04T17:19:14+08:00">
+                2017-08-04
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/netprogram/" itemprop="url" rel="index">
+                    <span itemprop="name">网络编程</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="1-设置网络socket非阻塞："><a href="#1-设置网络socket非阻塞：" class="headerlink" title="1 设置网络socket非阻塞："></a>1 设置网络socket非阻塞：</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">u_long has = <span class="number">1</span>;</span><br><span class="line"><span class="built_in">ioctl</span>(m_sock, FIONBIO , &amp;has);</span><br></pre></td></tr></table></figure>
+<p>这个函数很有可能返回success，却并没有设置成功。<br>windows对此有优化，对于linux版本应采用fcntl设置。</p>
+<p>总结如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span></span></span><br><span class="line"><span class="function"><span class="title">make_socket_nonblocking</span><span class="params">(sockfd fd)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> WIN32</span></span><br><span class="line">    &#123;</span><br><span class="line">        u_long nonblocking = <span class="number">1</span>;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">ioctlsocket</span>(fd, FIONBIO, &amp;nonblocking) == SOCKET_ERROR) &#123;</span><br><span class="line">            cout &lt;&lt; <span class="string">&quot;fcntl failed, fd is : &quot;</span> &lt;&lt; fd; </span><br><span class="line">            </span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="type">int</span> flags;</span><br><span class="line">        <span class="keyword">if</span> ((flags = <span class="built_in">fcntl</span>(fd, F_GETFL, <span class="literal">NULL</span>)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            cout &lt;&lt; <span class="string">&quot;fcntl failed, fd is : &quot;</span> &lt;&lt; fd;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">fcntl</span>(fd, F_SETFL, flags | O_NONBLOCK) == <span class="number">-1</span>) &#123;</span><br><span class="line">            cout &lt;&lt; <span class="string">&quot;fcntl failed, fd is : &quot;</span> &lt;&lt; fd;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/08/04/newproblem/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/04/econreset/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1612,155 +1761,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/04/bigheap/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/08/04/bigheap/" itemprop="url">大根堆的原理与实现。</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-04T12:23:28+08:00">
-                2017-08-04
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/stl/" itemprop="url" rel="index">
-                    <span itemprop="name">数据结构和算法</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="大根堆的定义："><a href="#大根堆的定义：" class="headerlink" title="大根堆的定义："></a>大根堆的定义：</h2><p>1 <code>大根堆是一个大根树</code><br>2 <code>大根堆是一个完全二叉树 </code><br>所以大根堆用数组表示是连续的，不会出现空白字段。</p>
-<h2 id="对于大根堆的插入"><a href="#对于大根堆的插入" class="headerlink" title="对于大根堆的插入"></a>对于大根堆的插入</h2><p><img src="1.jpg" alt="1"><br>对于大根堆的插入，可以在排序前确定大根堆的形状，可以确定元素5从位置6插入，那么比较元素5和位置3的元素2，</p>
-<p>元素5比元素2大，将2下移。接着比较元素5和元素20，一次类推，直到找到元素5的合理位置。</p>
-<p>接着看一下如果插入的元素是21，怎么进行排序。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2017/08/04/bigheap/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1811,7 +1811,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">241</span>
+                  <span class="site-state-item-count">242</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>

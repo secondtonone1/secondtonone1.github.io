@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Qt," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="简介基于前面介绍的QT知识，做一个电子相册，总结前文介绍的各类知识，将用到QListWidget，QTreeWidget，双缓冲绘图，信号槽，动画效果，绘图事件，鼠标事件,qss等知识，算是对之前知识的一个总结。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="QT 实现电子相册(目录树和向导)">
+<meta property="og:url" content="http://www.limerence2017.com/2023/01/18/qt22/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="简介基于前面介绍的QT知识，做一个电子相册，总结前文介绍的各类知识，将用到QListWidget，QTreeWidget，双缓冲绘图，信号槽，动画效果，绘图事件，鼠标事件,qss等知识，算是对之前知识的一个总结。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.llfc.club/lv_0_20230118144805.gif">
+<meta property="og:image" content="https://cdn.llfc.club/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20230118162036.png">
+<meta property="og:image" content="https://cdn.llfc.club/1674091337745.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1674871455133.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1674874650492.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1674892256936.jpg">
+<meta property="article:published_time" content="2023-01-18T07:17:19.000Z">
+<meta property="article:modified_time" content="2023-01-28T08:04:08.727Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="Qt">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.llfc.club/lv_0_20230118144805.gif">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2023/01/18/qt22/"/>
+
+
+
+
+
+  <title>QT 实现电子相册(目录树和向导) | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/01/18/qt22/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">QT 实现电子相册(目录树和向导)</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-01-18T15:17:19+08:00">
+                2023-01-18
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Qt/" itemprop="url" rel="index">
+                    <span itemprop="name">Qt</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>基于前面介绍的QT知识，做一个电子相册，总结前文介绍的各类知识，将用到QListWidget，QTreeWidget，双缓冲绘图，信号槽，动画效果，绘图事件，鼠标事件,qss等知识，算是对之前知识的一个总结。</p>
+<span id="more"></span>
+<p>效果如下<img src="https://cdn.llfc.club/lv_0_20230118144805.gif" alt="https://cdn.llfc.club/lv_0_20230118144805.gif"></p>
+<h2 id="MainWindow设计"><a href="#MainWindow设计" class="headerlink" title="MainWindow设计"></a>MainWindow设计</h2><ol>
+<li>MainWindow.ui的centralWidget中添加水平布局horizontalLayout，在该布局中添加两个垂直布局proLayout和picLayout。<br>horizontalLayout设置layoutStretch比例为1比4, 同时为MainWindow.ui添加manubar，效果是这个样子的<br><img src="https://cdn.llfc.club/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20230118162036.png" alt="https://cdn.llfc.club/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20230118162036.png"></li>
+<li>在MainWindow的构造函数中添加菜单项，并为菜单项设置信号连接，截取部分代码<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//创建菜单栏</span></span><br><span class="line">QMenu * menu_file = <span class="built_in">menuBar</span>()-&gt;<span class="built_in">addMenu</span>(<span class="built_in">tr</span>(<span class="string">&quot;文件(&amp;F)&quot;</span>));</span><br><span class="line"><span class="comment">//创建项目动作</span></span><br><span class="line">QAction * act_create_pro = <span class="keyword">new</span> <span class="built_in">QAction</span>(<span class="built_in">QIcon</span>(<span class="string">&quot;:/icon/createpro.png&quot;</span>), <span class="built_in">tr</span>(<span class="string">&quot;创建项目&quot;</span>),<span class="keyword">this</span>);</span><br><span class="line">act_create_pro-&gt;<span class="built_in">setShortcut</span>(<span class="built_in">QKeySequence</span>(Qt::CTRL + Qt::Key_N));</span><br><span class="line">menu_file-&gt;<span class="built_in">addAction</span>(act_create_pro);</span><br><span class="line"></span><br><span class="line"><span class="comment">//打开项目动作</span></span><br><span class="line">QAction * act_open_pro = <span class="keyword">new</span> <span class="built_in">QAction</span>(<span class="built_in">QIcon</span>(<span class="string">&quot;:/icon/openpro.png&quot;</span>), <span class="built_in">tr</span>(<span class="string">&quot;打开项目&quot;</span>),<span class="keyword">this</span>);</span><br><span class="line">act_open_pro-&gt;<span class="built_in">setShortcut</span>(<span class="built_in">QKeySequence</span>(Qt::CTRL + Qt::Key_O));</span><br><span class="line">menu_file-&gt;<span class="built_in">addAction</span>(act_open_pro);</span><br><span class="line"></span><br><span class="line"><span class="comment">//创建设置菜单</span></span><br><span class="line">QMenu * menu_set = <span class="built_in">menuBar</span>()-&gt;<span class="built_in">addMenu</span>(<span class="built_in">tr</span>(<span class="string">&quot;设置(&amp;S)&quot;</span>));</span><br><span class="line"><span class="comment">//设置背景音乐</span></span><br><span class="line">QAction * act_music = <span class="keyword">new</span> <span class="built_in">QAction</span>(<span class="built_in">QIcon</span>(<span class="string">&quot;:/icon/music.png&quot;</span>), <span class="built_in">tr</span>(<span class="string">&quot;背景音乐&quot;</span>),<span class="keyword">this</span>);</span><br><span class="line">act_music-&gt;<span class="built_in">setShortcut</span>(<span class="built_in">QKeySequence</span>(Qt::CTRL + Qt::Key_M));</span><br><span class="line">menu_set-&gt;<span class="built_in">addAction</span>(act_music);</span><br><span class="line"></span><br><span class="line"><span class="comment">//连接创建项目槽函数</span></span><br><span class="line"><span class="built_in">connect</span>(act_create_pro, &amp;QAction::triggered, <span class="keyword">this</span>, &amp;MainWindow::SlotCreatePro);</span><br><span class="line"><span class="comment">//连接打开项目的槽函数</span></span><br><span class="line"> <span class="built_in">connect</span>(act_open_pro, &amp;QAction::triggered, <span class="keyword">this</span>, &amp;MainWindow::SlotOpenPro);</span><br></pre></td></tr></table></figure></li>
+<li>main函数设置mainwindow最大显示<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">w.<span class="built_in">setWindowTitle</span>(<span class="string">&quot;Album&quot;</span>);</span><br><span class="line">w.<span class="built_in">showMaximized</span>();</span><br></pre></td></tr></table></figure></li>
+<li>为MainWindow和菜单栏设置qss<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*mainwindow 样式*/</span></span><br><span class="line">MainWindow &#123;</span><br><span class="line">    <span class="comment">/* 背景色 */</span></span><br><span class="line">    <span class="attribute">background-color</span>:<span class="built_in">rgb</span>(<span class="number">46</span>,<span class="number">47</span>,<span class="number">48</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*菜单栏基本样式*/</span></span><br><span class="line">QMenuBar&#123;</span><br><span class="line">    <span class="attribute">color</span>:<span class="built_in">rgb</span>(<span class="number">231</span>,<span class="number">231</span>,<span class="number">231</span>);</span><br><span class="line">    <span class="attribute">background-color</span>:<span class="built_in">rgb</span>(<span class="number">46</span>,<span class="number">47</span>,<span class="number">48</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*菜单基本样式*/</span></span><br><span class="line">QMenu&#123;</span><br><span class="line">    <span class="attribute">color</span>:<span class="built_in">rgb</span>(<span class="number">231</span>,<span class="number">231</span>,<span class="number">231</span>);</span><br><span class="line">    <span class="attribute">background-color</span>:<span class="built_in">rgb</span>(<span class="number">55</span>,<span class="number">55</span>,<span class="number">55</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 菜单栏选中条目时 */</span></span><br><span class="line"></span><br><span class="line">QMenuBar::item:selected &#123;</span><br><span class="line">        <span class="attribute">background-color</span>:<span class="built_in">rgb</span>(<span class="number">80</span>,<span class="number">80</span>,<span class="number">80</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*菜单选中条目*/</span></span><br><span class="line">QMenu::item:selected &#123;</span><br><span class="line">    <span class="attribute">background-color</span>:<span class="built_in">rgb</span>(<span class="number">39</span>,<span class="number">96</span>,<span class="number">154</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h2 id="向导类Wizard"><a href="#向导类Wizard" class="headerlink" title="向导类Wizard"></a>向导类Wizard</h2><ol>
+<li><p>添加设计师界面类Wizard<br>Wizard类用来响应创建项目菜单被点击后弹出向导框，其继承于QWizard。</p>
+</li>
+<li><p>添加两个向导页面类ConfirmPage和ProSetPage类，基类选择QWizardPage类，并在Wizard.ui里添加两个wizardpage，将这两个wizardpage升级为ProSetPage和ConfirmPage。ProSetPage类用来设置创建项目的属性，我们先点击其ui文件为其添加网格布局gridLayout,然后将ProSetPage设置为网格布局，设置gridLayout的margin为5，在gridLayout中添加控件，形成如下布局<br><img src="https://cdn.llfc.club/1674091337745.jpg" alt="https://cdn.llfc.club/1674091337745.jpg"></p>
+</li>
+<li><p>将两个lineEdit注册为wizard的field，保证两个lineEdit是空的时候无法点击下一步，将QLineEdit的textEdited信号和ProSetPage的completeChanged信号连接起来，这样在lineEdit编辑的时候就会发送textEdited信号，进而触发ProSetPage发送completeChanged信号。<br>setClearButtonEnabled设置为true可以在lineEdit输入数据后显示清除按钮，直接清除已录入的字符。<br>completeChanged信号是从proSetPage的基类QWizardPage类继承而来的。completeChanged信号发出后会触发QWizardPage类的isComplete函数。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">ProSetPage::<span class="built_in">ProSetPage</span>(QWidget *parent) :</span><br><span class="line">    <span class="built_in">QWizardPage</span>(parent),</span><br><span class="line">    <span class="built_in">ui</span>(<span class="keyword">new</span> Ui::ProSetPage)</span><br><span class="line">&#123;</span><br><span class="line">    ui-&gt;<span class="built_in">setupUi</span>(<span class="keyword">this</span>);</span><br><span class="line">    <span class="built_in">registerField</span>(<span class="string">&quot;proPath&quot;</span>, ui-&gt;lineEdit_2);</span><br><span class="line">    <span class="built_in">registerField</span>(<span class="string">&quot;proName*&quot;</span>, ui-&gt;lineEdit);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">connect</span>(ui-&gt;lineEdit, &amp;QLineEdit::textEdited, <span class="keyword">this</span>, &amp;ProSetPage::completeChanged);</span><br><span class="line">    <span class="built_in">connect</span>(ui-&gt;lineEdit_2, &amp;QLineEdit::textEdited, <span class="keyword">this</span>, &amp;ProSetPage::completeChanged);</span><br><span class="line">    QString curPath = QDir::<span class="built_in">currentPath</span>();</span><br><span class="line">    ui-&gt;lineEdit_2-&gt;<span class="built_in">setText</span>(curPath);</span><br><span class="line">    ui-&gt;lineEdit_2-&gt;<span class="built_in">setCursorPosition</span>( ui-&gt;lineEdit_2-&gt;<span class="built_in">text</span>().<span class="built_in">size</span>());</span><br><span class="line">    ui-&gt;lineEdit-&gt;<span class="built_in">setClearButtonEnabled</span>(<span class="literal">true</span>);</span><br><span class="line">    ui-&gt;lineEdit_2-&gt;<span class="built_in">setClearButtonEnabled</span>(<span class="literal">true</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>为了实现特定的判断，我们重写isComplete函数。这样我们就能判断文件夹是否合理以及是否已经有项目路径了。<br>可以根据不满足的条件设置tips提示用户。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">bool</span> <span class="title">ProSetPage::isComplete</span><span class="params">()</span> <span class="type">const</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(ui-&gt;lineEdit-&gt;<span class="built_in">text</span>() == <span class="string">&quot;&quot;</span> || ui-&gt;lineEdit_2-&gt;<span class="built_in">text</span>() == <span class="string">&quot;&quot;</span>)&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//判断是否文件夹是否合理</span></span><br><span class="line">    <span class="function">QDir <span class="title">dir</span><span class="params">(ui-&gt;lineEdit_2-&gt;text())</span></span>;</span><br><span class="line">    <span class="keyword">if</span>(!dir.<span class="built_in">exists</span>())</span><br><span class="line">    &#123;</span><br><span class="line">       <span class="comment">//qDebug()&lt;&lt;&quot;file path is not exists&quot; &lt;&lt; endl;</span></span><br><span class="line">       ui-&gt;tips-&gt;<span class="built_in">setText</span>(<span class="string">&quot;project path is not exists&quot;</span>);</span><br><span class="line">       <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//判断路径是否存在</span></span><br><span class="line">    QString absFilePath = dir.<span class="built_in">absoluteFilePath</span>(ui-&gt;lineEdit-&gt;<span class="built_in">text</span>());</span><br><span class="line"><span class="comment">//    qDebug() &lt;&lt; &quot;absFilePath is &quot; &lt;&lt; absFilePath;</span></span><br><span class="line"></span><br><span class="line">    <span class="function">QDir <span class="title">dist_dir</span><span class="params">(absFilePath)</span></span>;</span><br><span class="line">    <span class="keyword">if</span>(dist_dir.<span class="built_in">exists</span>())&#123;</span><br><span class="line">        ui-&gt;tips-&gt;<span class="built_in">setText</span>(<span class="string">&quot;project has exists, change path or name!&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ui-&gt;tips-&gt;<span class="built_in">setText</span>(<span class="string">&quot;&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> QWizardPage::<span class="built_in">isComplete</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li><p>为浏览按钮添加点击后选择文件夹操作，在prosetpage.ui文件里右键点击browse按钮，选择转到槽，QT会为我们生成槽函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//添加浏览按钮点击后选择文件夹的操作</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">ProSetPage::on_pushButton_clicked</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    QFileDialog file_dialog;</span><br><span class="line">    file_dialog.<span class="built_in">setFileMode</span>(QFileDialog::Directory);</span><br><span class="line">    file_dialog.<span class="built_in">setWindowTitle</span>(<span class="string">&quot;选择导入的文件夹&quot;</span>);</span><br><span class="line">    <span class="keyword">auto</span> path = QDir::<span class="built_in">currentPath</span>();</span><br><span class="line">    file_dialog.<span class="built_in">setDirectory</span>(path);</span><br><span class="line">    file_dialog.<span class="built_in">setViewMode</span>(QFileDialog::Detail);</span><br><span class="line"></span><br><span class="line">    QStringList fileNames;</span><br><span class="line">    <span class="keyword">if</span> (file_dialog.<span class="built_in">exec</span>())&#123;</span><br><span class="line">        fileNames = file_dialog.<span class="built_in">selectedFiles</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(fileNames.<span class="built_in">length</span>() &lt;= <span class="number">0</span>)&#123;</span><br><span class="line">         <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    QString import_path = fileNames.<span class="built_in">at</span>(<span class="number">0</span>);</span><br><span class="line">    <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;import_path is &quot;</span> &lt;&lt; import_path &lt;&lt; endl;</span><br><span class="line">    ui-&gt;lineEdit_2-&gt;<span class="built_in">setText</span>(import_path);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li><p>在ProSetPage页面点击下一步会跳转到下一页。ConfirmPage没什么代码，在ui文件里添加提示即可。在完成时我们可以重写QWidzard的done函数。<br>将页面设置的项目名称和路径传递给ProTree类，ProTree类用来在MainWindow左侧显示树形目录，这个之后介绍。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">Wizard::done</span><span class="params">(<span class="type">int</span> result)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(result == QDialog::Rejected)&#123;</span><br><span class="line">        <span class="keyword">return</span> QWizard::<span class="built_in">done</span>(result);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    QString name, path;</span><br><span class="line">    ui-&gt;wizardPage1-&gt;<span class="built_in">GetProSettings</span>(name, path);</span><br><span class="line">    <span class="function">emit <span class="title">SigProSettings</span><span class="params">(name, path)</span></span>;</span><br><span class="line">    QWizard::<span class="built_in">done</span>(result);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="项目目录树ProTree类"><a href="#项目目录树ProTree类" class="headerlink" title="项目目录树ProTree类"></a>项目目录树ProTree类</h2></li>
+<li><p>创建Qt设计师界面类，名字为ProTree，基类选择QDialog，ProTree中添加一个垂直布局，布局内添加一个QLabel和一个QTreeWidget，最后将ProTree设置为垂直布局。<br><img src="https://cdn.llfc.club/1674871455133.jpg" alt="https://cdn.llfc.club/1674871455133.jpg"></p>
+</li>
+<li><p>考虑到QTreeWidget功能有限，我们需要继承QTreeWidget重新实现一个新的类ProTreeWidget，所以在项目中新增C++类ProTreeWidget继承自QTreeWidget。<br>在构造函数中隐藏头部，并且注册要传递信息的类型</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">qRegisterMetaType&lt;QVector&lt;<span class="type">int</span>&gt; &gt;(<span class="string">&quot;QVector&lt;int&gt;&quot;</span>);</span><br><span class="line"><span class="comment">//隐藏表头</span></span><br><span class="line"><span class="keyword">this</span>-&gt;<span class="built_in">header</span>()-&gt;<span class="built_in">hide</span>();</span><br></pre></td></tr></table></figure>
+<p>同时将ProTree布局中的QTreeWidget提升为ProTreeWidget</p>
+</li>
+<li><p>同样的道理为了便于操作定义ProTreeItem继承QTreeWidgetItem，相关的成员变量和函数省略，这里简单介绍下构造函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ProTreeItem::<span class="built_in">ProTreeItem</span>(QTreeWidget *view, <span class="type">const</span> QString &amp;name,</span><br><span class="line">                         <span class="type">const</span> QString &amp;path, <span class="type">int</span> type):<span class="built_in">QTreeWidgetItem</span> (view, type),</span><br><span class="line">    _path(path),_name(name),_root(<span class="keyword">this</span>),_pre_item(<span class="literal">nullptr</span>),_next_item(<span class="literal">nullptr</span>)</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>view和type传递给基类，其他参数_path表示项目路径，_name表示项目名称，_root表示根节点，_pre_item表示前一个节点，_next_item表示后一个节点。<br>还有第二个重载版本的构造函数，可以通过根节点构造新的item节点</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">ProTreeItem::<span class="built_in">ProTreeItem</span>(QTreeWidgetItem *parent, <span class="type">const</span> QString &amp;name,</span><br><span class="line">                         <span class="type">const</span> QString &amp;path, QTreeWidgetItem* root,<span class="type">int</span> type):<span class="built_in">QTreeWidgetItem</span>(parent,type),</span><br><span class="line">    _path(path),_name(name),_root(root),_pre_item(<span class="literal">nullptr</span>),_next_item(<span class="literal">nullptr</span>)</span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li><p>ProTreeWidget添加槽函数AddProToTree<br>AddProToTree函数里判断路径和名字是否准确，然后创建一个item插入到treewidget里。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">ProTreeWidget::AddProToTree</span><span class="params">(<span class="type">const</span> QString &amp;name, <span class="type">const</span> QString &amp;path)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;ProTreeWidget::AddProToTree name is &quot;</span> &lt;&lt; name &lt;&lt; <span class="string">&quot; path is &quot;</span> &lt;&lt; path &lt;&lt; endl;</span><br><span class="line">    <span class="function">QDir <span class="title">dir</span><span class="params">(path)</span></span>;</span><br><span class="line">    QString file_path = dir.<span class="built_in">absoluteFilePath</span>(name);</span><br><span class="line">    <span class="comment">//检测重名，判断路径和名字都一样则拒绝加入</span></span><br><span class="line">    <span class="keyword">if</span>(_set_path.<span class="built_in">find</span>(file_path) != _set_path.<span class="built_in">end</span>())&#123;</span><br><span class="line">        <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;file has loaded&quot;</span> &lt;&lt; endl;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//构造项目用的文件夹</span></span><br><span class="line">    <span class="function">QDir <span class="title">pro_dir</span><span class="params">(file_path)</span></span>;</span><br><span class="line">    <span class="comment">//如果文件夹不存在则创建</span></span><br><span class="line">    <span class="keyword">if</span>(!pro_dir.<span class="built_in">exists</span>())&#123;</span><br><span class="line">        <span class="type">bool</span> enable = pro_dir.<span class="built_in">mkpath</span>(file_path);</span><br><span class="line">        <span class="keyword">if</span>(!enable)&#123;</span><br><span class="line">            <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;pro_dir make path failed&quot;</span> &lt;&lt; endl;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    _set_path.<span class="built_in">insert</span>(file_path);</span><br><span class="line">    <span class="keyword">auto</span> * item = <span class="keyword">new</span> <span class="built_in">ProTreeItem</span>(<span class="keyword">this</span>, name, file_path,  TreeItemPro);</span><br><span class="line">    item-&gt;<span class="built_in">setData</span>(<span class="number">0</span>,Qt::DisplayRole, name);</span><br><span class="line">    item-&gt;<span class="built_in">setData</span>(<span class="number">0</span>,Qt::DecorationRole, <span class="built_in">QIcon</span>(<span class="string">&quot;:/icon/dir.png&quot;</span>));</span><br><span class="line">    item-&gt;<span class="built_in">setData</span>(<span class="number">0</span>,Qt::ToolTipRole, file_path);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li><p>在MainWindow中串联创建项目逻辑<br>因为在MainWindow的构造函数中已经添加了SlotCreatePro和信号的连接</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//连接创建项目槽函数</span></span><br><span class="line">   <span class="built_in">connect</span>(act_create_pro, &amp;QAction::triggered, <span class="keyword">this</span>, &amp;MainWindow::SlotCreatePro);</span><br></pre></td></tr></table></figure>
+<p>所以这里实现点击创建项目后设置向导的逻辑</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">MainWindow::SlotCreatePro</span><span class="params">(<span class="type">bool</span>)</span></span>&#123;</span><br><span class="line">    <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;slot create pro triggered&quot;</span> &lt;&lt; endl;</span><br><span class="line">    <span class="function">Wizard <span class="title">wizard</span><span class="params">(<span class="keyword">this</span>)</span></span>;</span><br><span class="line">    wizard.<span class="built_in">setWindowTitle</span>(<span class="built_in">tr</span>(<span class="string">&quot;创建项目&quot;</span>));</span><br><span class="line">    <span class="keyword">auto</span> *page = wizard.<span class="built_in">page</span>(<span class="number">0</span>);</span><br><span class="line">    page-&gt;<span class="built_in">setTitle</span>(<span class="built_in">tr</span>(<span class="string">&quot;设置项目配置&quot;</span>));</span><br><span class="line">    <span class="comment">//连接信号和槽</span></span><br><span class="line">    <span class="built_in">connect</span>(&amp;wizard, &amp;Wizard::SigProSettings, <span class="built_in">dynamic_cast</span>&lt;ProTree*&gt;(_protree),&amp;ProTree::AddProToTree);</span><br><span class="line"></span><br><span class="line">    wizard.<span class="built_in">show</span>();</span><br><span class="line">    wizard.<span class="built_in">exec</span>();</span><br><span class="line">    <span class="built_in">disconnect</span>(&amp;wizard);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们在qss中设置ProTree样式</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">ProTree &#123;</span><br><span class="line">    <span class="attribute">border-color</span>: <span class="number">#9F9F9F</span>;</span><br><span class="line">    <span class="attribute">border-style</span>: solid;</span><br><span class="line">    <span class="attribute">border-width</span>: <span class="number">1px</span> <span class="number">1px</span> <span class="number">1px</span> <span class="number">1px</span>;</span><br><span class="line">    <span class="attribute">padding-right</span>: <span class="number">10px</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">QLabel<span class="selector-id">#label_pro</span> &#123;</span><br><span class="line">    <span class="attribute">color</span>: <span class="built_in">rgb</span>(<span class="number">231</span>,<span class="number">231</span>,<span class="number">231</span>);</span><br><span class="line">    <span class="attribute">border-color</span>: <span class="number">#9F9F9F</span>;</span><br><span class="line">    <span class="attribute">border-style</span>: dotted;</span><br><span class="line">    <span class="attribute">border-width</span>: <span class="number">0</span> <span class="number">0</span> <span class="number">1px</span> <span class="number">0</span>;</span><br><span class="line">    <span class="attribute">padding-bottom</span>: <span class="number">10px</span>;</span><br><span class="line">    <span class="attribute">margin-bottom</span>: <span class="number">5px</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这样在wizard点击完成时触发done函数，进而发送信号触发ProTree的AddProToTree函数了，从而生成一个项目目录的item。<br>效果如下<br><img src="https://cdn.llfc.club/1674874650492.jpg" alt="https://cdn.llfc.club/1674874650492.jpg"></p>
+</li>
+</ol>
+<h2 id="文件夹导入功能"><a href="#文件夹导入功能" class="headerlink" title="文件夹导入功能"></a>文件夹导入功能</h2><p>我们要在生成的ProTreeWidget的项目root item中点击右键，弹出菜单，然后选择导入文件夹，将文件夹中的目录和文件递归的导入我们创建的项目目录，并且在root下生成item节点。</p>
+<ol>
+<li>ProTreeWidget构造函数添加信号和槽函数连接,并且创建导入文件的动作，并为该动作连接槽函数。<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">connect</span>(<span class="keyword">this</span>, &amp;ProTreeWidget::itemPressed, <span class="keyword">this</span>, &amp;ProTreeWidget::SlotItemPressed);</span><br><span class="line">_action_import = <span class="keyword">new</span> <span class="built_in">QAction</span>(<span class="built_in">QIcon</span>(<span class="string">&quot;:/icon/import.png&quot;</span>),<span class="built_in">tr</span>(<span class="string">&quot;导入文件&quot;</span>), <span class="keyword">this</span>);</span><br><span class="line"><span class="built_in">connect</span>(_action_import, &amp;QAction::triggered, <span class="keyword">this</span>, &amp;ProTreeWidget::SlotImport);</span><br></pre></td></tr></table></figure>
+itemPressed信号是从QTreeWidget基类继承而来的，在QTreeWidget中的item被点击时发出。<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">ProTreeWidget::SlotItemPressed</span><span class="params">(QTreeWidgetItem *pressedItem, <span class="type">int</span> column)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;ProTreeWidget::SlotItemPressed&quot;</span> &lt;&lt; endl;</span><br><span class="line">    <span class="keyword">if</span>(QGuiApplication::<span class="built_in">mouseButtons</span>() == Qt::RightButton)   <span class="comment">//判断是否为右键</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="function">QMenu <span class="title">menu</span><span class="params">(<span class="keyword">this</span>)</span></span>;</span><br><span class="line">            <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;menu addr is &quot;</span> &lt;&lt; &amp;menu &lt;&lt; endl;</span><br><span class="line">            <span class="type">int</span> itemtype = (<span class="type">int</span>)(pressedItem-&gt;<span class="built_in">type</span>());</span><br><span class="line">            <span class="keyword">if</span> (itemtype == TreeItemPro)</span><br><span class="line">            &#123;</span><br><span class="line">                _right_btn_item = pressedItem;</span><br><span class="line">                menu.<span class="built_in">addAction</span>(_action_import);</span><br><span class="line">                menu.<span class="built_in">exec</span>(QCursor::<span class="built_in">pos</span>());   <span class="comment">//菜单弹出位置为鼠标点击位置</span></span><br><span class="line">            &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+TreeItemPro是我们在const.h中定义的类型，在SlotItemPressed函数中判断是否为右键点击，如果是再根据item的类型判断是root节点，则在菜单中添加动作。<br>接下来点击导入文件动作之后执行SlotImport函数。<br>因为导入操作是一个耗时的操作，所以要放到单独的线程中执行，主线程启动一个进度对话框显示导入进度，同时可以控制导入的中止操作等。<br>在导入时弹出一个文件选择对话框，设置默认路径<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">ProTreeWidget::SlotImport</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    QFileDialog file_dialog;</span><br><span class="line">    file_dialog.<span class="built_in">setFileMode</span>(QFileDialog::Directory);</span><br><span class="line">    file_dialog.<span class="built_in">setWindowTitle</span>(<span class="string">&quot;选择导入的文件夹&quot;</span>);</span><br><span class="line">    QString path = <span class="string">&quot;&quot;</span>;</span><br><span class="line">    <span class="keyword">if</span>(!_right_btn_item)&#123;</span><br><span class="line">        <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;_right_btn_item is empty&quot;</span> &lt;&lt; endl;</span><br><span class="line">        path = QDir::<span class="built_in">currentPath</span>();</span><br><span class="line">        <span class="keyword">return</span> ;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    path = <span class="built_in">dynamic_cast</span>&lt;ProTreeItem*&gt;(_right_btn_item)-&gt;<span class="built_in">GetPath</span>();</span><br><span class="line"></span><br><span class="line">    file_dialog.<span class="built_in">setDirectory</span>(path);</span><br><span class="line">    file_dialog.<span class="built_in">setViewMode</span>(QFileDialog::Detail);</span><br><span class="line"></span><br><span class="line">    QStringList fileNames;</span><br><span class="line">      <span class="keyword">if</span> (file_dialog.<span class="built_in">exec</span>())&#123;</span><br><span class="line">            fileNames = file_dialog.<span class="built_in">selectedFiles</span>();</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span>(fileNames.<span class="built_in">length</span>() &lt;= <span class="number">0</span>)&#123;</span><br><span class="line">          <span class="keyword">return</span>;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      QString import_path = fileNames.<span class="built_in">at</span>(<span class="number">0</span>);</span><br><span class="line">     <span class="comment">// qDebug() &lt;&lt; &quot;import_path is &quot; &lt;&lt; import_path &lt;&lt; endl;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+文件选择对话框选择要导入的文件夹，返回路径，我们根据这个路径做copy操作，将文件夹内的文件和文件夹都copy到之前设置的项目路径里。<br>这是个耗时的操作，那我们重新实现一个线程继承自QThread类，简单看一下构造函数</li>
+<li>自定义线程完成文件复制和树目录创建<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">ProTreeThread::<span class="built_in">ProTreeThread</span>(<span class="type">const</span> QString &amp;src_path, <span class="type">const</span> QString &amp;dist_path,</span><br><span class="line">                             QTreeWidgetItem *parent_item, <span class="type">int</span> &amp;file_count,</span><br><span class="line">                             QTreeWidget *self, QTreeWidgetItem *root, QObject *parent)</span><br><span class="line">    :<span class="built_in">QThread</span> (parent),_src_path(src_path),_dist_path(dist_path),</span><br><span class="line">      _file_count(file_count),_parent_item(parent_item),_self(self),_root(root),_bstop(<span class="literal">false</span>)</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+parent传递给父类构造函数，_src_path表示打开的文件夹路径，_dist_path表示我们创建的项目路径，_file_count表示文件数，用来和进度框交互，_parent_item新创建节点的父节点，_self表示QProTreeWidget对象，_root表示新创建节点隶属于哪个根节点，便于后期做交互。_bstop表示是否停止，如果为true则线程终止。</li>
+<li>实现copy文件功能和目录树创建</li>
+</ol>
+<p>1 根据文件类型(文件夹还是文件)执行不同的逻辑，如果是文件则创建item添加到父节点下。如果是文件夹类型，则递归进入创建逻辑，直到所有的文件和文件夹被遍历完成。<br>2 如果_bstop被设置为true，则退出创建逻辑。<br>3 统计文件数，发信号SigUpdateProgress通知进度框更新进度</p>
+<p>浅谈一下_bstop的设计逻辑。因为QTread类提供了terminate和quit函数，这些只能从机制上保证线程退出，并不能保证逻辑的准确性，所以我并没有采用这个机制，而是通过_bstop的方式从逻辑上控制退出。<br>至于为什么有多处判断，因为创建逻辑是递归方式，为了保证退出的效率所以在多处判断，不加锁也是为了提高程序运行的效率。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">ProTreeThread::CreateProTree</span><span class="params">(<span class="type">const</span> QString &amp;src_path, <span class="type">const</span> QString &amp;dist_path,</span></span></span><br><span class="line"><span class="params"><span class="function">                                  QTreeWidgetItem *parent_item, <span class="type">int</span> &amp;file_count,</span></span></span><br><span class="line"><span class="params"><span class="function">                                  QTreeWidget *self, QTreeWidgetItem *root, QTreeWidgetItem* preItem)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(_bstop)&#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">bool</span> needcopy = <span class="literal">true</span>;</span><br><span class="line">    <span class="keyword">if</span>(src_path == dist_path)&#123;</span><br><span class="line">        needcopy = <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function">QDir <span class="title">import_dir</span><span class="params">(src_path)</span></span>;</span><br><span class="line">    <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;src_path is &quot;</span> &lt;&lt; src_path &lt;&lt; <span class="string">&quot;dis_path is &quot;</span> &lt;&lt; dist_path &lt;&lt; endl;</span><br><span class="line">    <span class="comment">//设置文件过滤器</span></span><br><span class="line">    QStringList nameFilters;</span><br><span class="line">    import_dir.<span class="built_in">setFilter</span>(QDir::Dirs|QDir::Files|QDir::NoDotAndDotDot);<span class="comment">//除了目录或文件，其他的过滤掉</span></span><br><span class="line">    import_dir.<span class="built_in">setSorting</span>(QDir::Name);<span class="comment">//优先显示名字</span></span><br><span class="line">    QFileInfoList list = import_dir.<span class="built_in">entryInfoList</span>();</span><br><span class="line">    <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;list.size &quot;</span> &lt;&lt; list.<span class="built_in">size</span>() &lt;&lt; endl;</span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">0</span>; i &lt; list.<span class="built_in">size</span>(); i++)&#123;</span><br><span class="line">        <span class="keyword">if</span>(_bstop)&#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        QFileInfo fileInfo = list.<span class="built_in">at</span>(i);</span><br><span class="line">        <span class="type">bool</span> bIsDir = fileInfo.<span class="built_in">isDir</span>();</span><br><span class="line">        <span class="keyword">if</span> (bIsDir)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span>(_bstop)&#123;</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            file_count++;</span><br><span class="line">            <span class="function">emit <span class="title">SigUpdateProgress</span><span class="params">(file_count)</span></span>;</span><br><span class="line">            <span class="function">QDir <span class="title">dist_dir</span><span class="params">(dist_path)</span></span>;</span><br><span class="line">            <span class="comment">//构造子目的路径</span></span><br><span class="line">            QString sub_dist_path = dist_dir.<span class="built_in">absoluteFilePath</span>(fileInfo.<span class="built_in">fileName</span>());</span><br><span class="line">            <span class="built_in">qDebug</span>()&lt;&lt; <span class="string">&quot;sub_dist_path &quot;</span> &lt;&lt; sub_dist_path;</span><br><span class="line">            <span class="comment">//子目的目录</span></span><br><span class="line">            <span class="function">QDir <span class="title">sub_dist_dir</span><span class="params">(sub_dist_path)</span></span>;</span><br><span class="line">            <span class="comment">//不能存在则创建</span></span><br><span class="line">            <span class="keyword">if</span>(!sub_dist_dir.<span class="built_in">exists</span>())&#123;</span><br><span class="line">                <span class="comment">//可以创建多级目录</span></span><br><span class="line">                <span class="type">bool</span> ok = sub_dist_dir.<span class="built_in">mkpath</span>(sub_dist_path);</span><br><span class="line">                <span class="keyword">if</span>(!ok)&#123;</span><br><span class="line">                    <span class="built_in">qDebug</span>()&lt;&lt; <span class="string">&quot;sub_dist_dir mkpath failed&quot;</span>&lt;&lt; endl;</span><br><span class="line">                    <span class="keyword">continue</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">auto</span> * item = <span class="keyword">new</span> <span class="built_in">ProTreeItem</span>(parent_item, fileInfo.<span class="built_in">fileName</span>(),</span><br><span class="line">                                          sub_dist_path, root,TreeItemDir);</span><br><span class="line">            item-&gt;<span class="built_in">setData</span>(<span class="number">0</span>,Qt::DisplayRole, fileInfo.<span class="built_in">fileName</span>());</span><br><span class="line">            item-&gt;<span class="built_in">setData</span>(<span class="number">0</span>,Qt::DecorationRole, <span class="built_in">QIcon</span>(<span class="string">&quot;:/icon/dir.png&quot;</span>));</span><br><span class="line">            item-&gt;<span class="built_in">setData</span>(<span class="number">0</span>,Qt::ToolTipRole, sub_dist_path);</span><br><span class="line">             ;</span><br><span class="line">            <span class="built_in">CreateProTree</span>(fileInfo.<span class="built_in">absoluteFilePath</span>(), sub_dist_path, item, file_count, self,root,preItem);</span><br><span class="line"></span><br><span class="line">         &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">            <span class="keyword">if</span>(_bstop)&#123;</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="type">const</span> QString &amp; suffix = fileInfo.<span class="built_in">completeSuffix</span>();</span><br><span class="line">            <span class="keyword">if</span>(suffix != <span class="string">&quot;png&quot;</span> &amp;&amp; suffix != <span class="string">&quot;jpeg&quot;</span> &amp;&amp; suffix != <span class="string">&quot;jpg&quot;</span>)&#123;</span><br><span class="line">                <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;suffix is not pic &quot;</span> &lt;&lt; suffix &lt;&lt; endl;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            file_count++;</span><br><span class="line">            <span class="function">emit <span class="title">SigUpdateProgress</span><span class="params">(file_count)</span></span>;</span><br><span class="line">            <span class="keyword">if</span>(!needcopy)&#123;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="function">QDir <span class="title">dist_dir</span><span class="params">(dist_path)</span></span>;</span><br><span class="line">            QString dist_file_path = dist_dir.<span class="built_in">absoluteFilePath</span>(fileInfo.<span class="built_in">fileName</span>());</span><br><span class="line">            <span class="keyword">if</span>(!QFile::<span class="built_in">copy</span>(fileInfo.<span class="built_in">absoluteFilePath</span>(), dist_file_path))&#123;</span><br><span class="line">                <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;file src to dist  copy failed&quot;</span> &lt;&lt; endl;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">auto</span> * item = <span class="keyword">new</span> <span class="built_in">ProTreeItem</span>(parent_item, fileInfo.<span class="built_in">fileName</span>(),</span><br><span class="line">                                          dist_file_path, root,TreeItemPic);</span><br><span class="line">            item-&gt;<span class="built_in">setData</span>(<span class="number">0</span>,Qt::DisplayRole, fileInfo.<span class="built_in">fileName</span>());</span><br><span class="line">            item-&gt;<span class="built_in">setData</span>(<span class="number">0</span>,Qt::DecorationRole, <span class="built_in">QIcon</span>(<span class="string">&quot;:/icon/pic.png&quot;</span>));</span><br><span class="line">            item-&gt;<span class="built_in">setData</span>(<span class="number">0</span>,Qt::ToolTipRole, dist_file_path);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span>(preItem)&#123;</span><br><span class="line">                <span class="keyword">auto</span>* pre_proitem = <span class="built_in">dynamic_cast</span>&lt;ProTreeItem*&gt;(preItem);</span><br><span class="line">                pre_proitem-&gt;<span class="built_in">SetNextItem</span>(item);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            item-&gt;<span class="built_in">SetPreItem</span>(preItem);</span><br><span class="line">            preItem = item;</span><br><span class="line">         &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    parent_item-&gt;<span class="built_in">setExpanded</span>(<span class="literal">true</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol start="4">
+<li>重写线程run函数<br>run函数就是线程启动后执行的函数，如果CreateProTree运行结束，判断_bstop是否为true，如果为true说明取消了创建操作，那么就要把根节点移除，并删除文件夹内的文件。<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">ProTreeThread::run</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">CreateProTree</span>(_src_path,_dist_path,_parent_item,_file_count,_self,_root);</span><br><span class="line">    <span class="keyword">if</span>(_bstop)&#123;</span><br><span class="line">        <span class="keyword">auto</span> path = <span class="built_in">dynamic_cast</span>&lt;ProTreeItem*&gt;(_root)-&gt;<span class="built_in">GetPath</span>();</span><br><span class="line">        <span class="keyword">auto</span> index = _self-&gt;<span class="built_in">indexOfTopLevelItem</span>(_root);</span><br><span class="line">        <span class="keyword">delete</span> _self-&gt;<span class="built_in">takeTopLevelItem</span>(index);</span><br><span class="line">        <span class="function">QDir <span class="title">dir</span><span class="params">(path)</span></span>;</span><br><span class="line">        dir.<span class="built_in">removeRecursively</span>();</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function">emit <span class="title">SigFinishProgress</span><span class="params">(_file_count)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li>完善ProTreeWidget的SlotImport函数</li>
+</ol>
+<p>创建进队对话框，然后连接线程和对话框的信号和槽<br>1 当对话框被取消时发出QProgressDialog::canceled信号，被ProTreeWidget::SlotCancelProgress捕获。（对话框取消，ProTreeWidget做回收操作并发送SigCancelProgress）<br>2 ProTreeWidget发出SigCancelProgress信号，被ProTreeThread::SlotCancelProgress捕获。（对话框取消，线程终止）<br>3 连接ProTreeThread::SigFinishProgress和ProTreeWidget::SlotFinishProgress，进度框响应线程完成操作。<br>4 连接ProTreeThread::SigUpdateProgress和ProTreeWidget::SlotUpdateProgress，更新进度框进度。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">  <span class="type">int</span> file_count = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"> <span class="comment">//创建模态对话框</span></span><br><span class="line"> _dialog_progress = <span class="keyword">new</span> <span class="built_in">QProgressDialog</span>(<span class="keyword">this</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">//耗时操作放在线程中操作</span></span><br><span class="line"></span><br><span class="line"> _thread_create_pro = std::<span class="built_in">make_shared</span>&lt;ProTreeThread&gt;(std::<span class="built_in">ref</span>(import_path), std::<span class="built_in">ref</span>(path),</span><br><span class="line">                                                     _right_btn_item,</span><br><span class="line">                                                     std::<span class="built_in">ref</span>(file_count), <span class="keyword">this</span>,_right_btn_item,<span class="literal">nullptr</span>);</span><br><span class="line"> <span class="comment">//连接更新进度框操作</span></span><br><span class="line"> <span class="built_in">connect</span>(_thread_create_pro.<span class="built_in">get</span>(), &amp;ProTreeThread::SigUpdateProgress,</span><br><span class="line">         <span class="keyword">this</span>, &amp;ProTreeWidget::SlotUpdateProgress);</span><br><span class="line"></span><br><span class="line"> <span class="built_in">connect</span>(_thread_create_pro.<span class="built_in">get</span>(), &amp;ProTreeThread::SigFinishProgress, <span class="keyword">this</span>,</span><br><span class="line">         &amp;ProTreeWidget::SlotFinishProgress);</span><br><span class="line"></span><br><span class="line"> <span class="built_in">connect</span>(_dialog_progress, &amp;QProgressDialog::canceled, <span class="keyword">this</span>, &amp;ProTreeWidget::SlotCancelProgress);</span><br><span class="line"> <span class="built_in">connect</span>(<span class="keyword">this</span>, &amp;ProTreeWidget::SigCancelProgress, _thread_create_pro.<span class="built_in">get</span>(),</span><br><span class="line">         &amp;ProTreeThread::SlotCancelProgress);</span><br><span class="line"> _thread_create_pro-&gt;<span class="built_in">start</span>();</span><br><span class="line"></span><br><span class="line"><span class="comment">//连接信号和槽</span></span><br><span class="line">_dialog_progress-&gt;<span class="built_in">setWindowTitle</span>(<span class="string">&quot;Please wait...&quot;</span>);</span><br><span class="line">_dialog_progress-&gt;<span class="built_in">setFixedWidth</span>(PROGRESS_WIDTH);</span><br><span class="line">_dialog_progress-&gt;<span class="built_in">setRange</span>(<span class="number">0</span>, PROGRESS_MAX);</span><br><span class="line">_dialog_progress-&gt;<span class="built_in">exec</span>();</span><br></pre></td></tr></table></figure>
+<p>相关槽函数如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">ProTreeWidget::SlotUpdateProgress</span><span class="params">(<span class="type">int</span> count)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;count is &quot;</span> &lt;&lt; count;</span><br><span class="line">    <span class="keyword">if</span>(!_dialog_progress)&#123;</span><br><span class="line">        <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;dialog_progress is empty!!!&quot;</span> &lt;&lt; endl;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(count &gt;= PROGRESS_MAX)&#123;</span><br><span class="line">         _dialog_progress-&gt;<span class="built_in">setValue</span>(count%PROGRESS_MAX);</span><br><span class="line">    &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">         _dialog_progress-&gt;<span class="built_in">setValue</span>(count%PROGRESS_MAX);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">ProTreeWidget::SlotCancelProgress</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">//  _thread_create_pro-&gt;terminate();</span></span><br><span class="line">    <span class="function">emit <span class="title">SigCancelProgress</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="keyword">delete</span> _dialog_progress;</span><br><span class="line">    _dialog_progress =<span class="literal">nullptr</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">ProTreeWidget::SlotFinishProgress</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    _dialog_progress-&gt;<span class="built_in">setValue</span>(PROGRESS_MAX);</span><br><span class="line">    _dialog_progress-&gt;<span class="built_in">deleteLater</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>运行导入文件效果如下<br><img src="https://cdn.llfc.club/1674892256936.jpg" alt="https://cdn.llfc.club/1674892256936.jpg"><br><font color="red"> 为了完善共功能，在之前的ProTreeWidget构造函数里添加其他的几个动作，包括设置活动项目，关闭项目，开启轮播等，这里不再赘述。 </font></p>
+<h2 id="源码链接"><a href="#源码链接" class="headerlink" title="源码链接"></a>源码链接</h2><p>源码链接<br><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/qt-learning-notes">https://gitee.com/secondtonone1/qt-learning-notes</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Qt/" rel="tag"># Qt</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/12/23/qt21/" rel="next" title="自定义模型的拖动实现">
+                <i class="fa fa-chevron-left"></i> 自定义模型的拖动实现
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">243</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MainWindow%E8%AE%BE%E8%AE%A1"><span class="nav-number">2.</span> <span class="nav-text">MainWindow设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%91%E5%AF%BC%E7%B1%BBWizard"><span class="nav-number">3.</span> <span class="nav-text">向导类Wizard</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A1%B9%E7%9B%AE%E7%9B%AE%E5%BD%95%E6%A0%91ProTree%E7%B1%BB"><span class="nav-number">4.</span> <span class="nav-text">项目目录树ProTree类</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E5%A4%B9%E5%AF%BC%E5%85%A5%E5%8A%9F%E8%83%BD"><span class="nav-number">5.</span> <span class="nav-text">文件夹导入功能</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E9%93%BE%E6%8E%A5"><span class="nav-number">6.</span> <span class="nav-text">源码链接</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Qt," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="简介前问提到了PicAnimationWid，PicButton，PreListWid等类，这里介绍如何实现这些类，并串联起来达到幻灯片放映的效果。 SlideShowDlg在左侧目录树右击时弹出菜单，新增幻灯片播放的选项，点击后会弹出SlideShowDlg。SlideShowDlg的构造函数如下">
+<meta property="og:type" content="article">
+<meta property="og:title" content="QT 实现电子相册(四)--实现播放动画">
+<meta property="og:url" content="http://www.limerence2017.com/2023/01/30/qt25/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="简介前问提到了PicAnimationWid，PicButton，PreListWid等类，这里介绍如何实现这些类，并串联起来达到幻灯片放映的效果。 SlideShowDlg在左侧目录树右击时弹出菜单，新增幻灯片播放的选项，点击后会弹出SlideShowDlg。SlideShowDlg的构造函数如下">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.llfc.club/1675062597828.jpg">
+<meta property="article:published_time" content="2023-01-30T02:09:53.000Z">
+<meta property="article:modified_time" content="2023-01-30T10:12:14.960Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="Qt">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.llfc.club/1675062597828.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2023/01/30/qt25/"/>
+
+
+
+
+
+  <title>QT 实现电子相册(四)--实现播放动画 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/01/30/qt25/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">QT 实现电子相册(四)--实现播放动画</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-01-30T10:09:53+08:00">
+                2023-01-30
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Qt/" itemprop="url" rel="index">
+                    <span itemprop="name">Qt</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前问提到了PicAnimationWid，PicButton，PreListWid等类，这里介绍如何实现这些类，并串联起来达到幻灯片放映的效果。</p>
+<h2 id="SlideShowDlg"><a href="#SlideShowDlg" class="headerlink" title="SlideShowDlg"></a>SlideShowDlg</h2><p>在左侧目录树右击时弹出菜单，新增幻灯片播放的选项，点击后会弹出SlideShowDlg。SlideShowDlg的构造函数如下</p>
+<span id="more"></span>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">SlideShowDlg::<span class="built_in">SlideShowDlg</span>(QWidget *parent, QTreeWidgetItem *first_item,</span><br><span class="line">                           QTreeWidgetItem *last_item): <span class="built_in">QDialog</span>(parent),</span><br><span class="line">    <span class="built_in">ui</span>(<span class="keyword">new</span> Ui::SlideShowDlg),_first_item(first_item),_last_item(last_item)</span><br><span class="line">&#123;</span><br><span class="line">    ui-&gt;<span class="built_in">setupUi</span>(<span class="keyword">this</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>_first_item表示播放的第一个item<br>_last_item表示播放的最后一个item<br>先将slideshow展示出来看看效果，所以在ProTreeWidget的构造函数里添加动作</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">_action_slideshow = <span class="keyword">new</span> <span class="built_in">QAction</span>(<span class="built_in">QIcon</span>(<span class="string">&quot;:/icon/slideshow.png&quot;</span>), <span class="built_in">tr</span>(<span class="string">&quot;轮播图播放&quot;</span>),<span class="keyword">this</span>);</span><br><span class="line"><span class="built_in">connect</span>(_action_slideshow, &amp;QAction::triggered, <span class="keyword">this</span>, &amp;ProTreeWidget::SlotSlideShow);</span><br></pre></td></tr></table></figure>
+<p>在点击槽函数里完善右键点击逻辑</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">ProTreeWidget::SlotItemPressed</span><span class="params">(QTreeWidgetItem *pressedItem, <span class="type">int</span> column)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;ProTreeWidget::SlotItemPressed&quot;</span> &lt;&lt; endl;</span><br><span class="line">    <span class="keyword">if</span>(QGuiApplication::<span class="built_in">mouseButtons</span>() == Qt::RightButton)   <span class="comment">//判断是否为右键</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="function">QMenu <span class="title">menu</span><span class="params">(<span class="keyword">this</span>)</span></span>;</span><br><span class="line">            <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;menu addr is &quot;</span> &lt;&lt; &amp;menu &lt;&lt; endl;</span><br><span class="line">            <span class="type">int</span> itemtype = (<span class="type">int</span>)(pressedItem-&gt;<span class="built_in">type</span>());</span><br><span class="line">            <span class="keyword">if</span> (itemtype == TreeItemPro)</span><br><span class="line">            &#123;</span><br><span class="line">                _right_btn_item = pressedItem;</span><br><span class="line">                menu.<span class="built_in">addAction</span>(_action_import);</span><br><span class="line">                menu.<span class="built_in">addAction</span>(_action_setstart);</span><br><span class="line">                menu.<span class="built_in">addAction</span>(_action_closepro);</span><br><span class="line">                menu.<span class="built_in">addAction</span>(_action_slideshow);</span><br><span class="line">                menu.<span class="built_in">exec</span>(QCursor::<span class="built_in">pos</span>());   <span class="comment">//菜单弹出位置为鼠标点击位置</span></span><br><span class="line">            &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>实现槽函数SlotSlideShow,n内部创建一个SlideShowDlg智能指针对象，然后设置为模态对话框，并且最大化显示。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">ProTreeWidget::SlotSlideShow</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(!_right_btn_item)&#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">auto</span> *right_pro_item = <span class="built_in">dynamic_cast</span>&lt;ProTreeItem*&gt;(_right_btn_item);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> * last_child_item = right_pro_item-&gt;<span class="built_in">GetLastPicChild</span>();</span><br><span class="line">    <span class="keyword">if</span>(!last_child_item)&#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">qDebug</span>()&lt;&lt; <span class="string">&quot;last child item name is &quot;</span> &lt;&lt; last_child_item-&gt;<span class="built_in">GetPath</span>()&lt;&lt; endl;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> * first_child_item = right_pro_item-&gt;<span class="built_in">GetFirstPicChild</span>();</span><br><span class="line">    <span class="keyword">if</span>(!first_child_item)&#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">qDebug</span>()&lt;&lt; <span class="string">&quot;first child item name is &quot;</span> &lt;&lt; first_child_item-&gt;<span class="built_in">GetPath</span>()&lt;&lt; endl;</span><br><span class="line"></span><br><span class="line">    _slide_show_dlg = std::<span class="built_in">make_shared</span>&lt;SlideShowDlg&gt;(<span class="keyword">this</span>, first_child_item, last_child_item);</span><br><span class="line">    _slide_show_dlg-&gt;<span class="built_in">setModal</span>(<span class="literal">true</span>);</span><br><span class="line">    _slide_show_dlg-&gt;<span class="built_in">showMaximized</span>();</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>SlotSlideShow里根据right_pro_item获取当前项目下第一个子item和最后一个子item，这个算法并不复杂，right_pro_item为项目的root item，所以可以递归的获取root下第一个非文件夹item节点和最后一个非文件夹item节点。<br>遍历根目录所有一级子节点，如果第一个一级子节点为文件夹则递归查找，直到找到，如果第一个一级子节点下不存在图片类型的item，那么</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">ProTreeItem *<span class="title">ProTreeItem::GetFirstPicChild</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(<span class="keyword">this</span>-&gt;<span class="built_in">type</span>() == TreeItemPic)&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nullptr</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> child_count = <span class="keyword">this</span>-&gt;<span class="built_in">childCount</span>();</span><br><span class="line">    <span class="keyword">if</span>(child_count == <span class="number">0</span>)&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nullptr</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">0</span>; i &lt; child_count<span class="number">-1</span>; i++)&#123;</span><br><span class="line">        <span class="keyword">auto</span> * first_child = <span class="keyword">this</span>-&gt;<span class="built_in">child</span>(i);</span><br><span class="line">        <span class="keyword">auto</span> * first_tree_child = <span class="built_in">dynamic_cast</span>&lt;ProTreeItem*&gt;(first_child);</span><br><span class="line">        <span class="keyword">auto</span> item_type = first_tree_child-&gt;<span class="built_in">type</span>();</span><br><span class="line">        <span class="keyword">if</span>(item_type == TreeItemPic)&#123;</span><br><span class="line">            <span class="keyword">return</span> first_tree_child;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        first_child = first_tree_child-&gt;<span class="built_in">GetFirstPicChild</span>();</span><br><span class="line">        <span class="keyword">if</span>(!first_child)&#123;</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        first_tree_child = <span class="built_in">dynamic_cast</span>&lt;ProTreeItem*&gt;(first_child);</span><br><span class="line">        <span class="keyword">return</span> first_tree_child;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nullptr</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>获取最后一个子节点逻辑类似</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">ProTreeItem *<span class="title">ProTreeItem::GetLastPicChild</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(<span class="keyword">this</span>-&gt;<span class="built_in">type</span>() == TreeItemPic)&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nullptr</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> child_count = <span class="keyword">this</span>-&gt;<span class="built_in">childCount</span>();</span><br><span class="line">    <span class="keyword">if</span>(child_count == <span class="number">0</span>)&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nullptr</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i = child_count<span class="number">-1</span>; i &gt;= <span class="number">0</span>; i--)&#123;</span><br><span class="line">        <span class="keyword">auto</span>* last_child = <span class="keyword">this</span>-&gt;<span class="built_in">child</span>(i);</span><br><span class="line">        <span class="keyword">auto</span> * last_tree_item = <span class="built_in">dynamic_cast</span>&lt;ProTreeItem*&gt;(last_child);</span><br><span class="line">        <span class="type">int</span> item_type = last_tree_item-&gt;<span class="built_in">type</span>();</span><br><span class="line">        <span class="keyword">if</span>(item_type == TreeItemPic)&#123;</span><br><span class="line">            <span class="keyword">return</span> last_tree_item;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        last_child = last_tree_item-&gt;<span class="built_in">GetLastPicChild</span>();</span><br><span class="line">        <span class="keyword">if</span>(!last_child)&#123;</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        last_tree_item = <span class="built_in">dynamic_cast</span>&lt;ProTreeItem*&gt;(last_child);</span><br><span class="line">        <span class="keyword">return</span> last_tree_item;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nullptr</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>此时点击幻灯片播放菜单就会弹出这个对话框了，为了样式美观我们添加qss样式</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SlideShowDlg &#123;</span><br><span class="line">    <span class="attribute">color</span>:<span class="built_in">rgb</span>(<span class="number">231</span>,<span class="number">231</span>,<span class="number">231</span>);</span><br><span class="line">    <span class="attribute">background-color</span>:<span class="built_in">rgb</span>(<span class="number">46</span>,<span class="number">47</span>,<span class="number">48</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="PicAnimationWid"><a href="#PicAnimationWid" class="headerlink" title="PicAnimationWid"></a>PicAnimationWid</h2><p>接下来我们需要在SlideShowDlg的动画区域添加动画逻辑，类PicAnimationWid为图片动画展示窗口，继承于QWidget，构造函数比较简单</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">PicAnimationWid::<span class="built_in">PicAnimationWid</span>(QWidget *parent) : <span class="built_in">QWidget</span>(parent),_factor(<span class="number">0.0</span>),</span><br><span class="line">    _cur_item(<span class="literal">nullptr</span>),_b_start(<span class="literal">false</span>)</span><br><span class="line">&#123;</span><br><span class="line">    _timer = <span class="keyword">new</span> <span class="built_in">QTimer</span>(<span class="keyword">this</span>);</span><br><span class="line">    <span class="built_in">connect</span>(_timer, &amp;QTimer::timeout, <span class="keyword">this</span>, &amp;PicAnimationWid::TimeOut);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>_factor为动画因子，控制图片渐隐效果</li>
+<li>_b_start控制动画是否播放</li>
+<li>_cur_item 表示当前要绘制显示的ProTreeItem对象。</li>
+<li>启动了一个定时器，然后定时回调TimeOut函数<br>同样的道理析构函数需要实现定时器的停止<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">PicAnimationWid::~<span class="built_in">PicAnimationWid</span>()&#123;</span><br><span class="line">    _timer-&gt;<span class="built_in">stop</span>();</span><br><span class="line">  <span class="comment">//  delete _timer;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+定时器回调函数<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">PicAnimationWid::TimeOut</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(!_cur_item)&#123;</span><br><span class="line">        <span class="built_in">Stop</span>();</span><br><span class="line">        <span class="built_in">update</span>();</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//qDebug()&lt;&lt;&quot;_factor is &quot; &lt;&lt; _factor &lt;&lt; endl;</span></span><br><span class="line"></span><br><span class="line">    _factor = _factor+<span class="number">0.01</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(_factor &gt;= <span class="number">1</span>)&#123;</span><br><span class="line">        _factor = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">auto</span> * cur_pro_item = <span class="built_in">dynamic_cast</span>&lt;ProTreeItem*&gt;(_cur_item);</span><br><span class="line">        <span class="keyword">auto</span> * next_pro_item = cur_pro_item-&gt;<span class="built_in">GetNextItem</span>();</span><br><span class="line">        <span class="keyword">if</span>(!next_pro_item)&#123;</span><br><span class="line">            <span class="built_in">Stop</span>();</span><br><span class="line">            <span class="built_in">update</span>();</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">SetPixmap</span>(next_pro_item);</span><br><span class="line">        <span class="built_in">update</span>();</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">update</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+该函数每次对factor增加0.01,进而控制动画，如果factor变为1说明已经完成一张图片的消失和另一张的展示，需要更新下一组两张图片用来做渐隐渐现的效果。<br>update函数是基类的刷新函数，会触发paintEvent函数，这个函数功能之后介绍。先介绍SetPixmap函数，该函数用来加载两张图片做渐变效果。<br>实现SetPixmap设置要绘制的图片<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">PicAnimationWid::SetPixmap</span><span class="params">(QTreeWidgetItem *item)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(!item)&#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> * tree_item = <span class="built_in">dynamic_cast</span>&lt;ProTreeItem*&gt;(item);</span><br><span class="line">    <span class="keyword">auto</span> path = tree_item-&gt;<span class="built_in">GetPath</span>();</span><br><span class="line">    _pixmap1.<span class="built_in">load</span>(path);</span><br><span class="line">    _cur_item = tree_item;</span><br><span class="line">    <span class="keyword">if</span>(_map_items.<span class="built_in">find</span>(path) == _map_items.<span class="built_in">end</span>())&#123;</span><br><span class="line">        _map_items[path]=tree_item;</span><br><span class="line">        <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;SetPixmap path is &quot;</span> &lt;&lt; path &lt;&lt; endl;</span><br><span class="line">         <span class="function">emit <span class="title">SigUpPreList</span><span class="params">(item)</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function">emit <span class="title">SigSelectItem</span><span class="params">(item)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> * next_item = tree_item-&gt;<span class="built_in">GetNextItem</span>();</span><br><span class="line">    <span class="keyword">if</span>(!next_item)&#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> next_path = next_item-&gt;<span class="built_in">GetPath</span>();</span><br><span class="line">    _pixmap2.<span class="built_in">load</span>(next_path);</span><br><span class="line">    <span class="keyword">if</span>(_map_items.<span class="built_in">find</span>(next_path) == _map_items.<span class="built_in">end</span>())&#123;</span><br><span class="line">         _map_items[next_path] = next_item;</span><br><span class="line">         <span class="function">emit <span class="title">SigUpPreList</span><span class="params">(next_item)</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+因为要双缓冲绘图，所以要缓存两张图片，用_pixmap1和_pixmap2缓存。<br>实现_pixmap1渐隐，_pixmap2渐现。<br>SigUpPreList信号是用来通知下方预览框更新预览图，因为我们要做的是上方播放动画后，下方会更新预览图。<br>当前正在播放的图在下方预览图有选中提示，所以SigSelectItem信号是用来通知下方预览图选中效果。<br>接下来要实现开始函数，让动画动起来<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">PicAnimationWid::Start</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">     <span class="function">emit <span class="title">SigStart</span><span class="params">()</span></span>;</span><br><span class="line">     <span class="function">emit <span class="title">SigStartMusic</span><span class="params">()</span></span>;</span><br><span class="line">    _factor = <span class="number">0</span>;</span><br><span class="line">    _timer-&gt;<span class="built_in">start</span>(<span class="number">25</span>);</span><br><span class="line">    _b_start = <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li>SigStart信号用来通知右上方按钮的显示播放还是暂停状态，之后在处理信号连接问题。</li>
+<li>_factor为动画因子</li>
+<li>_b_start被设置为true</li>
+<li>定时器每隔25ms更新一次</li>
+<li>SigStartMusic信号用来更新音乐，之后再处理信号连接问题。</li>
+</ol>
+<p>同样实现一个停止动画的逻辑</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">PicAnimationWid::Stop</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">emit <span class="title">SigStop</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="function">emit <span class="title">SigStopMusic</span><span class="params">()</span></span>;</span><br><span class="line">    _timer-&gt;<span class="built_in">stop</span>();</span><br><span class="line">    _factor = <span class="number">0</span>;</span><br><span class="line">    _b_start = <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们接下来要实现双缓冲绘图的逻辑</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">PicAnimationWid::paintEvent</span><span class="params">(QPaintEvent *event)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(_pixmap1.<span class="built_in">isNull</span>())&#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function">QPainter <span class="title">painter</span><span class="params">(<span class="keyword">this</span>)</span></span>;</span><br><span class="line">    painter.<span class="built_in">setRenderHint</span>(QPainter::Antialiasing, <span class="literal">true</span>);</span><br><span class="line"></span><br><span class="line">    QRect rect = <span class="built_in">geometry</span>();</span><br><span class="line"></span><br><span class="line">    <span class="type">int</span> w = rect.<span class="built_in">width</span>();</span><br><span class="line">    <span class="type">int</span> h = rect.<span class="built_in">height</span>();</span><br><span class="line">    _pixmap1=_pixmap1.<span class="built_in">scaled</span>(w,h,Qt::KeepAspectRatio);</span><br><span class="line">    <span class="type">int</span> alpha = <span class="number">255</span> * (<span class="number">1.0f</span> - _factor);</span><br><span class="line">    <span class="comment">//qDebug()&lt;&lt;&quot;_pixmap1.size()&quot; &lt;&lt; _pixmap1.size() &lt;&lt; endl;</span></span><br><span class="line">    <span class="function">QPixmap <span class="title">alphaPixmap</span><span class="params">(_pixmap1.size())</span></span>;</span><br><span class="line">    alphaPixmap.<span class="built_in">fill</span>(Qt::transparent);</span><br><span class="line"></span><br><span class="line">   <span class="function">QPainter <span class="title">p1</span><span class="params">(&amp;alphaPixmap)</span></span>;</span><br><span class="line">   p1.<span class="built_in">drawPixmap</span>(<span class="number">0</span>, <span class="number">0</span>, _pixmap1);</span><br><span class="line">   p1.<span class="built_in">setCompositionMode</span>(QPainter::CompositionMode_DestinationIn);</span><br><span class="line">   p1.<span class="built_in">fillRect</span>(alphaPixmap.<span class="built_in">rect</span>(), <span class="built_in">QColor</span>(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, alpha));</span><br><span class="line">   p1.<span class="built_in">end</span>();</span><br><span class="line"></span><br><span class="line">   <span class="type">int</span> x = (w - _pixmap1.<span class="built_in">width</span>()) / <span class="number">2</span>;</span><br><span class="line">   <span class="type">int</span> y = (h - _pixmap1.<span class="built_in">height</span>()) / <span class="number">2</span>;</span><br><span class="line">   painter.<span class="built_in">drawPixmap</span>(x, y, alphaPixmap);</span><br><span class="line"></span><br><span class="line">   <span class="keyword">if</span>(_pixmap2.<span class="built_in">isNull</span>())&#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   _pixmap2=_pixmap2.<span class="built_in">scaled</span>(w,h,Qt::KeepAspectRatio);</span><br><span class="line">   alpha = <span class="number">255</span> * (_factor);</span><br><span class="line">   <span class="function">QPixmap <span class="title">alphaPixmap2</span><span class="params">(_pixmap2.size())</span></span>;</span><br><span class="line">   alphaPixmap2.<span class="built_in">fill</span>(Qt::transparent);</span><br><span class="line">   <span class="function">QPainter <span class="title">p2</span><span class="params">(&amp;alphaPixmap2)</span></span>;</span><br><span class="line">   p2.<span class="built_in">drawPixmap</span>(<span class="number">0</span>, <span class="number">0</span>, _pixmap2);</span><br><span class="line">   p2.<span class="built_in">setCompositionMode</span>(QPainter::CompositionMode_DestinationIn);</span><br><span class="line">   p2.<span class="built_in">fillRect</span>(alphaPixmap2.<span class="built_in">rect</span>(), <span class="built_in">QColor</span>(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, alpha));</span><br><span class="line">   p2.<span class="built_in">end</span>();</span><br><span class="line">    x = (w - _pixmap2.<span class="built_in">width</span>()) / <span class="number">2</span>;</span><br><span class="line">    y = (h - _pixmap2.<span class="built_in">height</span>()) / <span class="number">2</span>;</span><br><span class="line">    painter.<span class="built_in">drawPixmap</span>(x, y, alphaPixmap2);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>所谓双缓冲绘图逻辑如下：</p>
+<ol>
+<li>提前加载好图片的两个pixmap分别为_pixmap1和_pixmap2。然后基于现在的widget大小做等比拉伸。</li>
+<li>创建两个pixmap用作遮盖，分别为alphaPixmap和alphaPixmap2，将他们填充为透明的颜色。</li>
+<li>分别创建两个画刷，然后绑定alphaPixmap和alphaPixmap2，用画刷分别绘制_pixmap1和_pixmap2。</li>
+<li>CompositionMode_DestinationIn表示只显示alpha通道重叠部分，这个可以不断地调整，具体参考qt文档。</li>
+<li>最后根据alpha值分别p2和p1的两个矩形区域设置透明度。</li>
+<li>最后统一用一个painter分别绘制两个alphaPixmap和alphaPixmap2。</li>
+</ol>
+<p>我们回到SlideShowDlg的ui文件，将动画显示区的widget升级为PicAnimationWid类即可。<br>然后在其构造函数里添加对动画区域的调用</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ui-&gt;picAnimation-&gt;<span class="built_in">SetPixmap</span>(_first_item);</span><br><span class="line">ui-&gt;picAnimation-&gt;<span class="built_in">Start</span>();</span><br></pre></td></tr></table></figure>
+<p>然后我们运行程序右键目录树的root项目选择幻灯片播放就可以看到动画效果了。</p>
+<h2 id="预览图类PreListWid"><a href="#预览图类PreListWid" class="headerlink" title="预览图类PreListWid"></a>预览图类PreListWid</h2><p>PreListWid类是从QListWidget派生而来。我们将SlideShowDlg中的preListWidget升级为PreListWid类型。<br>然后在ui文件中设置其高度为固定的110，因为之前我们设置其父窗口widget高度为固定的120，之后再设置其最大宽度为1677215，一个很大的数，列表不换行。<br>属性配置如下<br><img src="https://cdn.llfc.club/1675062597828.jpg" alt="https://cdn.llfc.club/1675062597828.jpg"></p>
+<h3 id="构造函数"><a href="#构造函数" class="headerlink" title="构造函数"></a>构造函数</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">PreListWid::<span class="built_in">PreListWid</span>(QWidget *parent):<span class="built_in">QListWidget</span>(parent),_global(<span class="number">0</span>),_last_index(<span class="number">17</span>)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">this</span>-&gt;<span class="built_in">setViewMode</span>(QListWidget::IconMode);<span class="comment">//设置内容为图片</span></span><br><span class="line">    <span class="keyword">this</span>-&gt;<span class="built_in">setIconSize</span>(<span class="built_in">QSize</span>(PREICON_SIZE, PREICON_SIZE));<span class="comment">//设置图片的大小</span></span><br><span class="line">    <span class="keyword">this</span>-&gt;<span class="built_in">setSpacing</span>(<span class="number">5</span>);<span class="comment">//设置每个item之间的间隔大小</span></span><br><span class="line">    <span class="built_in">connect</span>(<span class="keyword">this</span>,&amp;PreListWid::itemPressed, <span class="keyword">this</span>, &amp;PreListWid::SlotItemPressed);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>构造函数里设置视图模式为图片模式</li>
+<li>_global为计数器，统计累计加入列表的item数量，为每个item生成计数id。</li>
+<li>_last_index为上一次选择的item的id，因为全屏模式下列表框最多显示17个item，那么初始为17。该变量主要用于控制PreListWid是否横向移动，以及移动多少像素，因为上方展示的图片在下方的预览图可能在屏幕外，所以要移动PreListWid做显示效果。</li>
+<li>连接了PreListWid的itemPressed信号，所以当item被点击后会触发SlotItemPressed函数。</li>
+</ol>
+<h3 id="PreListItem"><a href="#PreListItem" class="headerlink" title="PreListItem"></a>PreListItem</h3><p>为了实现我们自己的功能，所以PreListWid的item要自己实现，PreListItem继承于QListWidgetItem类。<br>其基本功能包括</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">PreListItem::<span class="built_in">PreListItem</span>(<span class="type">const</span> QIcon &amp;icon, <span class="type">const</span> QString &amp;text,<span class="type">const</span> <span class="type">int</span> &amp;index,</span><br><span class="line">                         QListWidget *view , <span class="type">int</span> type ):</span><br><span class="line">    <span class="built_in">QListWidgetItem</span> (icon,<span class="string">&quot;&quot;</span>,view,type),_path(text),_index(index)</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">PreListItem::GetIndex</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> _index;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function">QString <span class="title">PreListItem::GetPath</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> _path;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>_path表示item代表的文件路径<br>_index表示item的索引，也就是之前提到的id</p>
+<h3 id="动画区域和预览区域联动"><a href="#动画区域和预览区域联动" class="headerlink" title="动画区域和预览区域联动"></a>动画区域和预览区域联动</h3><p>为使动画区域和预览区域联动，在SlideShowDlg的构造函数里添加信号和槽函数连接逻辑</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span> * prelistWid = <span class="built_in">dynamic_cast</span>&lt;PreListWid*&gt;(ui-&gt;preListWidget);</span><br><span class="line"><span class="built_in">connect</span>(ui-&gt;picAnimation, &amp;PicAnimationWid::SigUpPreList, prelistWid,&amp;PreListWid::SlotUpPreList);</span><br><span class="line"><span class="built_in">connect</span>(ui-&gt;picAnimation, &amp;PicAnimationWid::SigSelectItem, prelistWid, &amp;PreListWid::SlotUpSelect);</span><br><span class="line"> <span class="comment">//连接下方预览条点击与上方动画区图片显示</span></span><br><span class="line"> <span class="built_in">connect</span>(prelistWid, &amp;PreListWid::SigUpSelectShow,</span><br><span class="line">         ui-&gt;picAnimation, &amp;PicAnimationWid::SlotUpSelectShow);</span><br></pre></td></tr></table></figure>
+<ol>
+<li>连接了PicAnimationWid的SigUpPreList信号，可以实现上面动画播放时将图像的预览图添加到列表中的效果。</li>
+<li>连接了PicAnimationWid的SigSelectItem信号，可以实现上面动画播放时根据图像显示预览图选中效果。</li>
+<li>连接了PreListWid的SigUpSelectShow信号，可以实现点击下方预览图，上方显示对应的动画效果。</li>
+</ol>
+<p>先实现添加逻辑</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">PreListWid::SlotUpPreList</span><span class="params">(QTreeWidgetItem *tree_item)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(!tree_item)&#123;</span><br><span class="line">        <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;tree_item is empty&quot;</span> &lt;&lt; endl;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> * pro_item = <span class="built_in">dynamic_cast</span>&lt;ProTreeItem*&gt;(tree_item);</span><br><span class="line">    <span class="keyword">auto</span> path = pro_item-&gt;<span class="built_in">GetPath</span>();</span><br><span class="line">    <span class="keyword">auto</span> iter = _set_items.<span class="built_in">find</span>(path);</span><br><span class="line">    <span class="keyword">if</span>(iter != _set_items.<span class="built_in">end</span>())&#123;</span><br><span class="line">        <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;path &quot;</span> &lt;&lt;path&lt;&lt; <span class="string">&quot; exists&quot;</span> &lt;&lt; endl;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">AddListItem</span>(path);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>根据传入的tree_item判断路径是否存在，如果存在则返回，不存在则调用AddListItem将item加入listwidget里。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">PreListWid::AddListItem</span><span class="params">(<span class="type">const</span> QString &amp;path)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">QPixmap <span class="title">src_pixmap</span><span class="params">(path)</span></span>;</span><br><span class="line">    src_pixmap = src_pixmap.<span class="built_in">scaled</span>(PREICON_SIZE,PREICON_SIZE,Qt::KeepAspectRatio);</span><br><span class="line">    <span class="function">QPixmap <span class="title">dst_pixmap</span><span class="params">(QSize(PREICON_SIZE, PREICON_SIZE))</span></span>;</span><br><span class="line">    <span class="keyword">auto</span> src_width = src_pixmap.<span class="built_in">width</span>();</span><br><span class="line">    <span class="keyword">auto</span> src_height = src_pixmap.<span class="built_in">height</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> dist_width = dst_pixmap.<span class="built_in">width</span>();</span><br><span class="line">    <span class="keyword">auto</span> dist_height = dst_pixmap.<span class="built_in">height</span>();</span><br><span class="line"></span><br><span class="line">    dst_pixmap.<span class="built_in">fill</span>(<span class="built_in">QColor</span>(<span class="number">220</span>,<span class="number">220</span>,<span class="number">220</span>, <span class="number">50</span>));</span><br><span class="line">    <span class="function">QPainter <span class="title">painter</span><span class="params">(&amp;dst_pixmap)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> x = (dist_width-src_width)/<span class="number">2</span>;</span><br><span class="line">    <span class="keyword">auto</span> y = (dist_height-src_height)/<span class="number">2</span>;</span><br><span class="line">    painter.<span class="built_in">drawPixmap</span>(x,y,src_pixmap);</span><br><span class="line"></span><br><span class="line">    _global++;</span><br><span class="line">    PreListItem *pItem = <span class="keyword">new</span> <span class="built_in">PreListItem</span>(<span class="built_in">QIcon</span>(dst_pixmap),path,_global,<span class="keyword">this</span>);</span><br><span class="line">    pItem-&gt;<span class="built_in">setSizeHint</span>(<span class="built_in">QSize</span>(PREITEM_SIZE,PREITEM_SIZE));</span><br><span class="line">    <span class="keyword">this</span>-&gt;<span class="built_in">addItem</span>(pItem);</span><br><span class="line">    _set_items[path] = pItem;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(_global==<span class="number">1</span>)&#123;</span><br><span class="line">        _pos_origin = <span class="keyword">this</span>-&gt;<span class="built_in">pos</span>();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>因为图片的大小宽高不同，做拉伸时产生的空白区域不一样，那么我们统一用宽高为PREICON_SIZE的正方形绘制然后填充默认的背景色作为dist_pixmap。</li>
+<li>然后用一个painter绑定这个dist_pixmap，计算和原图形src_pixmap的差值，让原图形src_pixmap居中绘制在dist_pixmap上。</li>
+<li>然后构造PreListItem对象，将路径放入集合中。</li>
+<li>如果_global为1说明时第一张预览图，需要记录一下预览图在其父窗口的位置，这样我们可以根据屏幕最右侧的预览图和该图的位置差值移动PreList<br>Wid。</li>
+</ol>
+<p>更新预览图选中效果</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">PreListWid::SlotUpSelect</span><span class="params">(QTreeWidgetItem *tree_item)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(!tree_item)&#123;</span><br><span class="line">        <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;tree_item is empty&quot;</span> &lt;&lt; endl;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> * pro_item = <span class="built_in">dynamic_cast</span>&lt;ProTreeItem*&gt;(tree_item);</span><br><span class="line">    <span class="keyword">auto</span> path = pro_item-&gt;<span class="built_in">GetPath</span>();</span><br><span class="line">    <span class="keyword">auto</span> iter = _set_items.<span class="built_in">find</span>(path);</span><br><span class="line">    <span class="keyword">if</span>(iter == _set_items.<span class="built_in">end</span>())&#123;</span><br><span class="line">        <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;path &quot;</span> &lt;&lt;path&lt;&lt; <span class="string">&quot; not exists&quot;</span> &lt;&lt; endl;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> * list_item = <span class="built_in">dynamic_cast</span>&lt;PreListItem*&gt;(iter.<span class="built_in">value</span>());</span><br><span class="line">    <span class="keyword">auto</span> index = list_item-&gt;<span class="built_in">GetIndex</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(index &gt; <span class="number">17</span>)&#123;</span><br><span class="line">        <span class="keyword">auto</span> pos_cur = <span class="keyword">this</span>-&gt;<span class="built_in">pos</span>();</span><br><span class="line">        <span class="keyword">this</span>-&gt;<span class="built_in">move</span>(pos_cur.<span class="built_in">x</span>()-(index-_last_index)*<span class="number">100</span>, pos_cur.<span class="built_in">y</span>());</span><br><span class="line">        _last_index = index;</span><br><span class="line"></span><br><span class="line">    &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">       <span class="keyword">this</span>-&gt;<span class="built_in">move</span>(_pos_origin);</span><br><span class="line">        _last_index = <span class="number">17</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">this</span>-&gt;<span class="built_in">setCurrentItem</span>(iter.<span class="built_in">value</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>判断当前播放的图像对应预览图的item的索引是否大于17，如果大于17说明该item在屏幕外，因为一个屏幕最多容纳17个item，所以要移动PreListWid。<br>移动的方法就是当前索引减去上一次的索引差值乘以100，因为一个item的宽度为100，纵坐标不变。同时设置当前item为选中状态。</p>
+<h3 id="点击预览图显示对应图片"><a href="#点击预览图显示对应图片" class="headerlink" title="点击预览图显示对应图片"></a>点击预览图显示对应图片</h3><p>PreListWid响应点击的槽函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">PreListWid::SlotItemPressed</span><span class="params">(QListWidgetItem *item)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(QGuiApplication::<span class="built_in">mouseButtons</span>() != Qt::LeftButton)&#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> * list_item = <span class="built_in">dynamic_cast</span>&lt;PreListItem*&gt;(item);</span><br><span class="line">    <span class="keyword">auto</span> cur_index = list_item-&gt;<span class="built_in">GetIndex</span>();</span><br><span class="line">    <span class="keyword">auto</span> path = list_item-&gt;<span class="built_in">GetPath</span>();</span><br><span class="line"></span><br><span class="line">     <span class="keyword">this</span>-&gt;<span class="built_in">setCurrentItem</span>(item);</span><br><span class="line">    <span class="function">emit <span class="title">SigUpSelectShow</span><span class="params">(path)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>点击item时发送SigUpSelectShow信号通知动画去显示选择的图片。<br>触发PicAnimationWid的槽函数SlotUpSelectShow</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">PicAnimationWid::SlotUpSelectShow</span><span class="params">(QString path)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">qDebug</span>()&lt;&lt;<span class="string">&quot;SlotUpSelectShow path is &quot;</span> &lt;&lt; path &lt;&lt; endl;</span><br><span class="line">    <span class="keyword">auto</span> iter = _map_items.<span class="built_in">find</span>(path);</span><br><span class="line">    <span class="keyword">if</span>(iter == _map_items.<span class="built_in">end</span>())&#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">UpSelectPixmap</span>(iter.<span class="built_in">value</span>());</span><br><span class="line">    <span class="built_in">update</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>内部调用UpSelectPixmap更新图片为选中的图片，并且调用update刷新界面。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">PicAnimationWid::UpSelectPixmap</span><span class="params">(QTreeWidgetItem *item)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(!item)&#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> * tree_item = <span class="built_in">dynamic_cast</span>&lt;ProTreeItem*&gt;(item);</span><br><span class="line">    <span class="keyword">auto</span> path = tree_item-&gt;<span class="built_in">GetPath</span>();</span><br><span class="line">    _pixmap1.<span class="built_in">load</span>(path);</span><br><span class="line">    _cur_item = tree_item;</span><br><span class="line">    <span class="keyword">if</span>(_map_items.<span class="built_in">find</span>(path) == _map_items.<span class="built_in">end</span>())&#123;</span><br><span class="line">        _map_items[path]=tree_item;</span><br><span class="line">        <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;SetPixmap path is &quot;</span> &lt;&lt; path &lt;&lt; endl;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> * next_item = tree_item-&gt;<span class="built_in">GetNextItem</span>();</span><br><span class="line">    <span class="keyword">if</span>(!next_item)&#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> next_path = next_item-&gt;<span class="built_in">GetPath</span>();</span><br><span class="line">    _pixmap2.<span class="built_in">load</span>(next_path);</span><br><span class="line">    <span class="keyword">if</span>(_map_items.<span class="built_in">find</span>(next_path) == _map_items.<span class="built_in">end</span>())&#123;</span><br><span class="line">         _map_items[next_path] = next_item;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>到此就实现了幻灯片放映和下方预览图的交互效果。播放和暂停，以及切换操作等留给下一篇。</p>
+<h2 id="源码链接"><a href="#源码链接" class="headerlink" title="源码链接"></a>源码链接</h2><p>源码链接<br><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/qt-learning-notes">https://gitee.com/secondtonone1/qt-learning-notes</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Qt/" rel="tag"># Qt</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/01/29/qt24/" rel="next" title="QT 实现电子相册(三)--导入功能和幻灯片ui设计">
+                <i class="fa fa-chevron-left"></i> QT 实现电子相册(三)--导入功能和幻灯片ui设计
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">246</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SlideShowDlg"><span class="nav-number">2.</span> <span class="nav-text">SlideShowDlg</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#PicAnimationWid"><span class="nav-number">3.</span> <span class="nav-text">PicAnimationWid</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A2%84%E8%A7%88%E5%9B%BE%E7%B1%BBPreListWid"><span class="nav-number">4.</span> <span class="nav-text">预览图类PreListWid</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0"><span class="nav-number">4.1.</span> <span class="nav-text">构造函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#PreListItem"><span class="nav-number">4.2.</span> <span class="nav-text">PreListItem</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%A8%E7%94%BB%E5%8C%BA%E5%9F%9F%E5%92%8C%E9%A2%84%E8%A7%88%E5%8C%BA%E5%9F%9F%E8%81%94%E5%8A%A8"><span class="nav-number">4.3.</span> <span class="nav-text">动画区域和预览区域联动</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%82%B9%E5%87%BB%E9%A2%84%E8%A7%88%E5%9B%BE%E6%98%BE%E7%A4%BA%E5%AF%B9%E5%BA%94%E5%9B%BE%E7%89%87"><span class="nav-number">4.4.</span> <span class="nav-text">点击预览图显示对应图片</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E9%93%BE%E6%8E%A5"><span class="nav-number">5.</span> <span class="nav-text">源码链接</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

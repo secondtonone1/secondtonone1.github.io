@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="简介本文介绍boost asio的异步读写操作及注意事项，为保证知识便于读者吸收，仅介绍api使用的代码片段，下一节再编写完整的客户端和服务器程序。所以我们定义一个session类，这个session类表示服务器处理客户端连接的管理类">
+<meta property="og:type" content="article">
+<meta property="og:title" content="asio异步读写操作及注意事项">
+<meta property="og:url" content="http://www.limerence2017.com/2023/04/05/asio06/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="简介本文介绍boost asio的异步读写操作及注意事项，为保证知识便于读者吸收，仅介绍api使用的代码片段，下一节再编写完整的客户端和服务器程序。所以我们定义一个session类，这个session类表示服务器处理客户端连接的管理类">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.llfc.club/1680692232796.jpg">
+<meta property="article:published_time" content="2023-04-05T08:56:30.000Z">
+<meta property="article:modified_time" content="2023-04-09T07:03:10.500Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.llfc.club/1680692232796.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2023/04/05/asio06/"/>
+
+
+
+
+
+  <title>asio异步读写操作及注意事项 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/04/05/asio06/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">asio异步读写操作及注意事项</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-04-05T16:56:30+08:00">
+                2023-04-05
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文介绍boost asio的异步读写操作及注意事项，为保证知识便于读者吸收，仅介绍api使用的代码片段，下一节再编写完整的客户端和服务器程序。<br>所以我们定义一个session类，这个session类表示服务器处理客户端连接的管理类</p>
+<span id="more"></span>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Session</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">Session</span>(std::shared_ptr&lt;asio::ip::tcp::socket&gt; socket);</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">Connect</span><span class="params">(<span class="type">const</span> asio::ip::tcp::endpoint&amp; ep)</span></span>;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    std::shared_ptr&lt;asio::ip::tcp::socket&gt; _socket;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>session类定义了一个socket成员变量，负责处理对端的连接读写，封装了Connect函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">Session::Connect</span><span class="params">(<span class="type">const</span> asio::ip::tcp::endpoint  &amp;ep)</span> </span>&#123;</span><br><span class="line">	_socket-&gt;<span class="built_in">connect</span>(ep);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里只是简单意思一下，下面核心介绍异步读写api的使用</p>
+<h2 id="异步写操作"><a href="#异步写操作" class="headerlink" title="异步写操作"></a>异步写操作</h2><p>在写操作前，我们先封装一个Node结构，用来管理要发送和接收的数据，该结构包含数据域首地址，数据的总长度，以及已经处理的长度(已读的长度或者已写的长度)</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//最大报文接收大小</span></span><br><span class="line"><span class="type">const</span> <span class="type">int</span> RECVSIZE = <span class="number">1024</span>;</span><br><span class="line"><span class="keyword">class</span>  <span class="title class_">MsgNode</span> &#123;</span><br><span class="line"><span class="keyword">public</span> :</span><br><span class="line">	<span class="built_in">MsgNode</span>(<span class="type">const</span> <span class="type">char</span>* msg,  <span class="type">int</span> total_len): _total_len(total_len), _cur_len(<span class="number">0</span>)&#123;</span><br><span class="line">		_msg = <span class="keyword">new</span> <span class="type">char</span>[total_len];</span><br><span class="line">		<span class="built_in">memcpy</span>(_msg, msg, total_len);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="built_in">MsgNode</span>(<span class="type">int</span> total_len) :_total_len(total_len), _cur_len(<span class="number">0</span>) &#123;</span><br><span class="line">		_msg = <span class="keyword">new</span> <span class="type">char</span>[total_len];</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	~<span class="built_in">MsgNode</span>()&#123;</span><br><span class="line">		<span class="keyword">delete</span>[]_msg;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//消息首地址</span></span><br><span class="line">	<span class="type">char</span>* _msg;</span><br><span class="line">	<span class="comment">//总长度</span></span><br><span class="line">	<span class="type">int</span> _total_len;</span><br><span class="line">	<span class="comment">//当前长度</span></span><br><span class="line">	<span class="type">int</span> _cur_len;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>写了两个构造函数，两个参数的负责构造写节点，一个参数的负责构造读节点。<br>接下来为Session添加异步写操作和负责发送写数据的节点</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Session</span>&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">WriteCallBackErr</span><span class="params">(<span class="type">const</span> boost::system::error_code &amp; ec, std::<span class="type">size_t</span> bytes_transferred,</span></span></span><br><span class="line"><span class="params"><span class="function">    std::shared_ptr&lt;MsgNode&gt;)</span></span>;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">WriteToSocketErr</span><span class="params">(<span class="type">const</span> std::string&amp; buf)</span></span>;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    std::shared_ptr&lt;MsgNode&gt; _send_node;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>WriteToSocketErr函数为我们封装的写操作，WriteCallBackErr为异步写操作回调的函数，为什么会有三个参数呢，<br>我们可以看一下asio源码</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">BOOST_ASIO_COMPLETION_TOKEN_FOR</span>(<span class="built_in">void</span> (boost::system::error_code,</span><br><span class="line">        std::<span class="type">size_t</span>)) <span class="function">WriteToken</span></span><br><span class="line"><span class="function">          <span class="title">BOOST_ASIO_DEFAULT_COMPLETION_TOKEN_TYPE</span><span class="params">(executor_type)</span>&gt;</span></span><br><span class="line"><span class="function">  <span class="title">BOOST_ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX</span><span class="params">(WriteToken,</span></span></span><br><span class="line"><span class="params"><span class="function">      <span class="type">void</span> (boost::system::error_code, std::<span class="type">size_t</span>))</span></span></span><br><span class="line"><span class="function">  <span class="title">async_write_some</span><span class="params">(<span class="type">const</span> ConstBufferSequence&amp; buffers,</span></span></span><br><span class="line"><span class="params"><span class="function">      BOOST_ASIO_MOVE_ARG(WriteToken)token</span></span></span><br><span class="line"><span class="params"><span class="function">        BOOST_ASIO_DEFAULT_COMPLETION_TOKEN(executor_type))</span></span></span><br></pre></td></tr></table></figure>
+<p>async_write_some是异步写的函数，这个异步写函数有两个参数，第一个参数为ConstBufferSequence常引用类型的buffers，<br>第二个参数为WriteToken类型，而WriteToken在上面定义了，是一个函数对象类型，返回值为void，参数为error_code和size_t，<br>所以我们为了调用async_write_some函数也要传入一个符合WriteToken定义的函数，就是我们声明的WriteCallBackErr函数，<br>前两个参数为WriteToken规定的参数，第三个参数为MsgNode的智能指针，这样通过智能指针保证我们发送的Node生命周期延长。<br>我们看一下WriteToSocketErr函数的具体实现</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">Session::WriteToSocketErr</span><span class="params">(<span class="type">const</span> std::string&amp; buf)</span> </span>&#123;</span><br><span class="line">	_send_node = <span class="built_in">make_shared</span>&lt;MsgNode&gt;(buf.<span class="built_in">c_str</span>(), buf.<span class="built_in">length</span>());</span><br><span class="line">	<span class="comment">//异步发送数据，因为异步所以不会一下发送完</span></span><br><span class="line">	<span class="keyword">this</span>-&gt;_socket-&gt;<span class="built_in">async_write_some</span>(asio::<span class="built_in">buffer</span>(_send_node-&gt;_msg, </span><br><span class="line">		_send_node-&gt;_total_len),</span><br><span class="line">		std::<span class="built_in">bind</span>(&amp;Session::WriteCallBackErr,</span><br><span class="line">			<span class="keyword">this</span>, std::placeholders::_1, std::placeholders::_2, _send_node));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>因为WriteCallBackErr函数为三个参数且为成员函数，而async_write_some需要的回调函数为两个参数，所以我们通过bind将三个参数转换为两个参数的普通函数。<br>我们看看回调函数的实现</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">Session::WriteCallBackErr</span><span class="params">(<span class="type">const</span> boost::system::error_code&amp; ec, </span></span></span><br><span class="line"><span class="params"><span class="function">	std::<span class="type">size_t</span> bytes_transferred, std::shared_ptr&lt;MsgNode&gt; msg_node)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (bytes_transferred + msg_node-&gt;_cur_len </span><br><span class="line">		&lt; msg_node-&gt;_total_len) &#123;</span><br><span class="line">		_send_node-&gt;_cur_len += bytes_transferred;</span><br><span class="line">		<span class="keyword">this</span>-&gt;_socket-&gt;<span class="built_in">async_write_some</span>(asio::<span class="built_in">buffer</span>(_send_node-&gt;_msg+_send_node-&gt;_cur_len,</span><br><span class="line">			_send_node-&gt;_total_len-_send_node-&gt;_cur_len),</span><br><span class="line">			std::<span class="built_in">bind</span>(&amp;Session::WriteCallBackErr,</span><br><span class="line">				<span class="keyword">this</span>, std::placeholders::_1, std::placeholders::_2, _send_node));</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在WriteCallBackErr函数里判断如果已经发送的字节数没有达到要发送的总字节数，那么久更新节点已经发送的长度，然后计算剩余要发送的长度，如果有数据未发送完，再次调用async_write_some函数异步发送。<br>但是这个函数并不能投入实际应用，因为async_write_some回调函数返回已发送的字节数可能并不是全部长度。比如TCP发送缓存区总大小为8字节，但是有3字节未发送(上一次未发送完)，这样剩余空间为5字节<br><img src="https://cdn.llfc.club/1680692232796.jpg" alt="https://cdn.llfc.club/1680692232796.jpg"><br>此时我们调用async_write_some发送hello world!实际发送的长度就是为5，也就是只发送了hello，剩余world!通过我们的回调继续发送。<br>而实际开发的场景用户是不清楚底层tcp的多路复用调用情况的，用户想发送数据的时候就调用WriteToSocketErr,或者循环调用WriteToSocketErr，很可能在一次没发送完数据还未调用回调函数时再次调用WriteToSocketErr，因为boost::asio封装的时epoll和iocp等多路复用模型，当写事件就绪后就发数据，发送的数据按照async_write_some调用的顺序发送，所以回调函数内调用的async_write_some可能并没有被及时调用。<br>比如我们如下代码</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//用户发送数据</span></span><br><span class="line"><span class="built_in">WriteToSocketErr</span>(<span class="string">&quot;Hello World!&quot;</span>);</span><br><span class="line"><span class="comment">//用户无感知下层调用情况又一次发送了数据</span></span><br><span class="line"><span class="built_in">WriteToSocketErr</span>(<span class="string">&quot;Hello World!&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>那么很可能第一次只发送了Hello，后面的数据没发完，第二次发送了Hello World!之后又发送了World!<br>所以对端收到的数据很可能是”HelloHello World! World!”<br>那怎么解决这个问题呢，我们可以通过队列保证应用层的发送顺序。我们在Session中定义一个发送队列，然后重新定义正确的异步发送函数和回调处理</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Session</span>&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">WriteCallBack</span><span class="params">(<span class="type">const</span> boost::system::error_code&amp; ec, std::<span class="type">size_t</span> bytes_transferred)</span></span>;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">WriteToSocket</span><span class="params">(<span class="type">const</span> std::string &amp;buf)</span></span>;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	std::queue&lt;std::shared_ptr&lt;MsgNode&gt;&gt; _send_queue;</span><br><span class="line">    std::shared_ptr&lt;asio::ip::tcp::socket&gt; _socket;</span><br><span class="line">    <span class="type">bool</span> _send_pending;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>定义了bool变量_send_pending，该变量为true表示一个节点还未发送完。<br>_send_queue用来缓存要发送的消息节点，是一个队列。<br>我们实现异步发送功能</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">Session::WriteToSocket</span><span class="params">(<span class="type">const</span> std::string&amp; buf)</span></span>&#123;</span><br><span class="line">	<span class="comment">//插入发送队列</span></span><br><span class="line">	_send_queue.<span class="built_in">emplace</span>(<span class="keyword">new</span> <span class="built_in">MsgNode</span>(buf.<span class="built_in">c_str</span>(), buf.<span class="built_in">length</span>()));</span><br><span class="line">	<span class="comment">//pending状态说明上一次有未发送完的数据</span></span><br><span class="line">	<span class="keyword">if</span> (_send_pending) &#123;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//异步发送数据，因为异步所以不会一下发送完</span></span><br><span class="line">	<span class="keyword">this</span>-&gt;_socket-&gt;<span class="built_in">async_write_some</span>(asio::<span class="built_in">buffer</span>(buf), std::<span class="built_in">bind</span>(&amp;Session::WriteCallBack, <span class="keyword">this</span>, std::placeholders::_1, std::placeholders::_2));</span><br><span class="line">	_send_pending = <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">Session::WriteCallBack</span><span class="params">(<span class="type">const</span> boost::system::error_code &amp; ec,  std::<span class="type">size_t</span> bytes_transferred)</span></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (ec.<span class="built_in">value</span>() != <span class="number">0</span>) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;Error , code is &quot;</span> &lt;&lt; ec.<span class="built_in">value</span>() &lt;&lt; <span class="string">&quot; . Message is &quot;</span> &lt;&lt; ec.<span class="built_in">message</span>();</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//取出队首元素即当前未发送完数据</span></span><br><span class="line">	<span class="keyword">auto</span> &amp; send_data = _send_queue.<span class="built_in">front</span>();</span><br><span class="line">	send_data-&gt;_cur_len += bytes_transferred;</span><br><span class="line">	<span class="comment">//数据未发送完， 则继续发送</span></span><br><span class="line">	<span class="keyword">if</span> (send_data-&gt;_cur_len &lt; send_data-&gt;_total_len) &#123;</span><br><span class="line">		<span class="keyword">this</span>-&gt;_socket-&gt;<span class="built_in">async_write_some</span>(asio::<span class="built_in">buffer</span>(send_data-&gt;_msg + send_data-&gt;_cur_len, send_data-&gt;_total_len-send_data-&gt;_cur_len),</span><br><span class="line">			std::<span class="built_in">bind</span>(&amp;Session::WriteCallBack,</span><br><span class="line">			<span class="keyword">this</span>, std::placeholders::_1, std::placeholders::_2));</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//如果发送完，则pop出队首元素</span></span><br><span class="line">	_send_queue.<span class="built_in">pop</span>();</span><br><span class="line"></span><br><span class="line">	<span class="comment">//如果队列为空，则说明所有数据都发送完,将pending设置为false</span></span><br><span class="line">	<span class="keyword">if</span> (_send_queue.<span class="built_in">empty</span>()) &#123;</span><br><span class="line">		_send_pending = <span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//如果队列不是空，则继续将队首元素发送</span></span><br><span class="line">	<span class="keyword">if</span> (!_send_queue.<span class="built_in">empty</span>()) &#123;</span><br><span class="line">		<span class="keyword">auto</span>&amp; send_data = _send_queue.<span class="built_in">front</span>();</span><br><span class="line">		<span class="keyword">this</span>-&gt;_socket-&gt;<span class="built_in">async_write_some</span>(asio::<span class="built_in">buffer</span>(send_data-&gt;_msg + send_data-&gt;_cur_len, send_data-&gt;_total_len - send_data-&gt;_cur_len),</span><br><span class="line">			std::<span class="built_in">bind</span>(&amp;Session::WriteCallBack,</span><br><span class="line">				<span class="keyword">this</span>, std::placeholders::_1, std::placeholders::_2));</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>async_write_some函数不能保证每次回调函数触发时发送的长度为要总长度，这样我们每次都要在回调函数判断发送数据是否完成，asio提供了一个更简单的发送函数async_send，这个函数在发送的长度未达到我们要求的长度时就不会触发回调，所以触发回调函数时要么时发送出错了要么是发送完成了,其内部的实现原理就是帮我们不断的调用async_write_some直到完成发送，所以async_send不能和async_write_some混合使用，我们基于async_send封装另外一个发送函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//不能与async_write_some混合使用</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">Session::WriteAllToSocket</span><span class="params">(<span class="type">const</span> std::string&amp; buf)</span> </span>&#123;</span><br><span class="line">	<span class="comment">//插入发送队列</span></span><br><span class="line">	_send_queue.<span class="built_in">emplace</span>(<span class="keyword">new</span> <span class="built_in">MsgNode</span>(buf.<span class="built_in">c_str</span>(), buf.<span class="built_in">length</span>()));</span><br><span class="line">	<span class="comment">//pending状态说明上一次有未发送完的数据</span></span><br><span class="line">	<span class="keyword">if</span> (_send_pending) &#123;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//异步发送数据，因为异步所以不会一下发送完</span></span><br><span class="line">	<span class="keyword">this</span>-&gt;_socket-&gt;<span class="built_in">async_send</span>(asio::<span class="built_in">buffer</span>(buf), </span><br><span class="line">		std::<span class="built_in">bind</span>(&amp;Session::WriteAllCallBack, <span class="keyword">this</span>,</span><br><span class="line">			std::placeholders::_1, std::placeholders::_2));</span><br><span class="line">	_send_pending = <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">Session::WriteAllCallBack</span><span class="params">(<span class="type">const</span> boost::system::error_code&amp; ec, std::<span class="type">size_t</span> bytes_transferred)</span></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (ec.<span class="built_in">value</span>() != <span class="number">0</span>) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;Error occured! Error code = &quot;</span></span><br><span class="line">			&lt;&lt; ec.<span class="built_in">value</span>()</span><br><span class="line">			&lt;&lt; <span class="string">&quot;. Message: &quot;</span> &lt;&lt; ec.<span class="built_in">message</span>();</span><br><span class="line"></span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">//如果发送完，则pop出队首元素</span></span><br><span class="line">	_send_queue.<span class="built_in">pop</span>();</span><br><span class="line"></span><br><span class="line">	<span class="comment">//如果队列为空，则说明所有数据都发送完,将pending设置为false</span></span><br><span class="line">	<span class="keyword">if</span> (_send_queue.<span class="built_in">empty</span>()) &#123;</span><br><span class="line">		_send_pending = <span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//如果队列不是空，则继续将队首元素发送</span></span><br><span class="line">	<span class="keyword">if</span> (!_send_queue.<span class="built_in">empty</span>()) &#123;</span><br><span class="line">		<span class="keyword">auto</span>&amp; send_data = _send_queue.<span class="built_in">front</span>();</span><br><span class="line">		<span class="keyword">this</span>-&gt;_socket-&gt;<span class="built_in">async_send</span>(asio::<span class="built_in">buffer</span>(send_data-&gt;_msg + send_data-&gt;_cur_len, send_data-&gt;_total_len - send_data-&gt;_cur_len),</span><br><span class="line">			std::<span class="built_in">bind</span>(&amp;Session::WriteAllCallBack,</span><br><span class="line">				<span class="keyword">this</span>, std::placeholders::_1, std::placeholders::_2));</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="异步读操作"><a href="#异步读操作" class="headerlink" title="异步读操作"></a>异步读操作</h2><p>接下来介绍异步读操作，异步读操作和异步的写操作类似同样又async_read_some和async_receive函数，前者触发的回调函数获取的读数据的长度可能会小于要求读取的总长度，后者触发的回调函数读取的数据长度等于读取的总长度。<br>先基于async_read_some封装一个读取的函数ReadFromSocket，同样在Session类的声明中添加一些变量</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Session</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">ReadFromSocket</span><span class="params">()</span></span>;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">ReadCallBack</span><span class="params">(<span class="type">const</span> boost::system::error_code&amp; ec, std::<span class="type">size_t</span> bytes_transferred)</span></span>;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	std::shared_ptr&lt;asio::ip::tcp::socket&gt; _socket;</span><br><span class="line">	std::shared_ptr&lt;MsgNode&gt; _recv_node;</span><br><span class="line">	<span class="type">bool</span> _recv_pending;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>_recv_node用来缓存接收的数据，_recv_pending为true表示节点正在接收数据，还未接受完。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//不考虑粘包情况， 先用固定的字节接收</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">Session::ReadFromSocket</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (_recv_pending) &#123;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//可以调用构造函数直接构造，但不可用已经构造好的智能指针赋值</span></span><br><span class="line">	<span class="comment">/*auto _recv_nodez = std::make_unique&lt;MsgNode&gt;(RECVSIZE);</span></span><br><span class="line"><span class="comment">	_recv_node = _recv_nodez;*/</span></span><br><span class="line">	_recv_node = std::<span class="built_in">make_shared</span>&lt;MsgNode&gt;(RECVSIZE);</span><br><span class="line">	_socket-&gt;<span class="built_in">async_read_some</span>(asio::<span class="built_in">buffer</span>(_recv_node-&gt;_msg, _recv_node-&gt;_total_len), std::<span class="built_in">bind</span>(&amp;Session::ReadCallBack, <span class="keyword">this</span>,</span><br><span class="line">		std::placeholders::_1, std::placeholders::_2));</span><br><span class="line">	_recv_pending = <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">Session::ReadCallBack</span><span class="params">(<span class="type">const</span> boost::system::error_code&amp; ec, std::<span class="type">size_t</span> bytes_transferred)</span></span>&#123;</span><br><span class="line">	_recv_node-&gt;_cur_len += bytes_transferred;</span><br><span class="line">	<span class="comment">//没读完继续读</span></span><br><span class="line">	<span class="keyword">if</span> (_recv_node-&gt;_cur_len &lt; _recv_node-&gt;_total_len) &#123;</span><br><span class="line">		_socket-&gt;<span class="built_in">async_read_some</span>(asio::<span class="built_in">buffer</span>(_recv_node-&gt;_msg+_recv_node-&gt;_cur_len,</span><br><span class="line">			_recv_node-&gt;_total_len - _recv_node-&gt;_cur_len), std::<span class="built_in">bind</span>(&amp;Session::ReadCallBack, <span class="keyword">this</span>,</span><br><span class="line">			std::placeholders::_1, std::placeholders::_2));</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//将数据投递到队列里交给逻辑线程处理，此处略去</span></span><br><span class="line">	<span class="comment">//如果读完了则将标记置为false</span></span><br><span class="line">	_recv_pending = <span class="literal">false</span>;</span><br><span class="line">	<span class="comment">//指针置空</span></span><br><span class="line">	_recv_node = <span class="literal">nullptr</span>;	</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们基于async_receive再封装一个接收数据的函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">Session::ReadAllFromSocket</span><span class="params">(<span class="type">const</span> std::string&amp; buf)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (_recv_pending) &#123;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//可以调用构造函数直接构造，但不可用已经构造好的智能指针赋值</span></span><br><span class="line">	<span class="comment">/*auto _recv_nodez = std::make_unique&lt;MsgNode&gt;(RECVSIZE);</span></span><br><span class="line"><span class="comment">	_recv_node = _recv_nodez;*/</span></span><br><span class="line">	_recv_node = std::<span class="built_in">make_shared</span>&lt;MsgNode&gt;(RECVSIZE);</span><br><span class="line">	_socket-&gt;<span class="built_in">async_receive</span>(asio::<span class="built_in">buffer</span>(_recv_node-&gt;_msg, _recv_node-&gt;_total_len), std::<span class="built_in">bind</span>(&amp;Session::ReadAllCallBack, <span class="keyword">this</span>,</span><br><span class="line">		std::placeholders::_1, std::placeholders::_2));</span><br><span class="line">	_recv_pending = <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">Session::ReadAllCallBack</span><span class="params">(<span class="type">const</span> boost::system::error_code&amp; ec, std::<span class="type">size_t</span> bytes_transferred)</span> </span>&#123;</span><br><span class="line">	_recv_node-&gt;_cur_len += bytes_transferred;</span><br><span class="line">	<span class="comment">//将数据投递到队列里交给逻辑线程处理，此处略去</span></span><br><span class="line">	<span class="comment">//如果读完了则将标记置为false</span></span><br><span class="line">	_recv_pending = <span class="literal">false</span>;</span><br><span class="line">	<span class="comment">//指针置空</span></span><br><span class="line">	_recv_node = <span class="literal">nullptr</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>同样async_read_some和async_receive不能混合使用，否则会出现逻辑问题。</p>
+<h2 id="源码连接"><a href="#源码连接" class="headerlink" title="源码连接"></a>源码连接</h2><p>本文介绍了boost asio异步读写的操作，仅仅是代码片段和api的封装便于大家理解，下一篇利用这些异步api写一个异步的服务器展示收发效果。<br>源码连接<br><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn">https://gitee.com/secondtonone1/boostasio-learn</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/04/02/asio05/" rel="next" title="同步读写的服务器和客户端">
+                <i class="fa fa-chevron-left"></i> 同步读写的服务器和客户端
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/04/09/asio07/" rel="prev" title="简单的异步服务器demo">
+                简单的异步服务器demo <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">254</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%82%E6%AD%A5%E5%86%99%E6%93%8D%E4%BD%9C"><span class="nav-number">2.</span> <span class="nav-text">异步写操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%82%E6%AD%A5%E8%AF%BB%E6%93%8D%E4%BD%9C"><span class="nav-number">3.</span> <span class="nav-text">异步读操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E8%BF%9E%E6%8E%A5"><span class="nav-number">4.</span> <span class="nav-text">源码连接</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

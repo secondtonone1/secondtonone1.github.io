@@ -86,14 +86,14 @@
 <meta property="og:site_name" content="恋恋风辰的个人博客">
 <meta property="og:description" content="Setting up a default event_base The event_base_new() function allocates and returns a new event base with the default settings. It examines the environment variables and returns a pointer to a new eve">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://www.limerence2017.com/2017/08/07/libevent2/1.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/gzh.jpg">
 <meta property="article:published_time" content="2017-08-07T02:40:02.000Z">
-<meta property="article:modified_time" content="2022-07-31T07:11:50.040Z">
+<meta property="article:modified_time" content="2023-02-09T08:46:06.537Z">
 <meta property="article:author" content="恋恋风辰">
 <meta property="article:tag" content="网络编程">
 <meta property="article:tag" content="Linux环境编程">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://www.limerence2017.com/2017/08/07/libevent2/1.jpg">
+<meta name="twitter:image" content="https://cdn.llfc.club/gzh.jpg">
 
 
 
@@ -418,7 +418,7 @@
 
 <p>下面这个是测试方法的</p>
 <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">static</span> <span class="type">void</span></span></span><br><span class="line"><span class="function"><span class="title">test_methods</span><span class="params">(<span class="type">void</span> *ptr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//获取event_base支持的方法</span></span><br><span class="line">    <span class="type">const</span> <span class="type">char</span> **methods = <span class="built_in">event_get_supported_methods</span>();</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">event_config</span> *cfg = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">event_base</span> *base = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="type">const</span> <span class="type">char</span> *backend;</span><br><span class="line">    <span class="type">int</span> n_methods = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">tt_assert</span>(methods);</span><br><span class="line"></span><br><span class="line">    backend = methods[<span class="number">0</span>];</span><br><span class="line">    <span class="keyword">while</span> (*methods != <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="built_in">TT_BLATHER</span>((<span class="string">&quot;Support method: %s&quot;</span>, *methods));</span><br><span class="line">        ++methods;</span><br><span class="line">        ++n_methods;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    cfg = <span class="built_in">event_config_new</span>();</span><br><span class="line">    <span class="built_in">assert</span>(cfg != <span class="literal">NULL</span>);</span><br><span class="line">     <span class="comment">//event_base屏蔽backend的方法</span></span><br><span class="line">    <span class="built_in">tt_int_op</span>(<span class="built_in">event_config_avoid_method</span>(cfg, backend), ==, <span class="number">0</span>);</span><br><span class="line">    <span class="comment">//并且设置了忽略ENV环境变量的选项</span></span><br><span class="line">    <span class="built_in">event_config_set_flag</span>(cfg, EVENT_BASE_FLAG_IGNORE_ENV);</span><br><span class="line">    <span class="comment">//创建event_base</span></span><br><span class="line">    base = <span class="built_in">event_base_new_with_config</span>(cfg);</span><br><span class="line">    <span class="keyword">if</span> (n_methods &gt; <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="built_in">tt_assert</span>(base);</span><br><span class="line">        <span class="built_in">tt_str_op</span>(backend, !=, <span class="built_in">event_base_get_method</span>(base));</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="built_in">tt_assert</span>(base == <span class="literal">NULL</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">end:</span><br><span class="line">    <span class="keyword">if</span> (base)</span><br><span class="line">        <span class="built_in">event_base_free</span>(base);</span><br><span class="line">    <span class="keyword">if</span> (cfg)</span><br><span class="line">        <span class="built_in">event_config_free</span>(cfg);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>谢谢关注我的公众号：<br><img src="1.jpg" alt="1.jpg"></p>
+<p>谢谢关注我的公众号：<br><img src="https://cdn.llfc.club/gzh.jpg" alt="https://cdn.llfc.club/gzh.jpg"></p>
 
       
     </div>
@@ -531,7 +531,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">248</span>
+                  <span class="site-state-item-count">254</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>

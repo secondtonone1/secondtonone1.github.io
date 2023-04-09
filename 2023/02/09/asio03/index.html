@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="网络编程基本流程网络编程的基本流程对于服务端是这样的服务端1）socket—-创建socket对象。 2）bind—-绑定本机ip+port。 3）listen—-监听来电，若在监听到来电，则建立起连接。 4）accept—-再创建一个socket对象给其收发消息。原因是现实中服务端都是面对多个客户端，那么为了区分各个客户端，则每个客户端都需再分配一个socket对象进行收发消息。 5）read、">
+<meta property="og:type" content="article">
+<meta property="og:title" content="boost::asio之socket的创建和连接">
+<meta property="og:url" content="http://www.limerence2017.com/2023/02/09/asio03/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="网络编程基本流程网络编程的基本流程对于服务端是这样的服务端1）socket—-创建socket对象。 2）bind—-绑定本机ip+port。 3）listen—-监听来电，若在监听到来电，则建立起连接。 4）accept—-再创建一个socket对象给其收发消息。原因是现实中服务端都是面对多个客户端，那么为了区分各个客户端，则每个客户端都需再分配一个socket对象进行收发消息。 5）read、">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.llfc.club/1540562-20190417002428451-62583604.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1676257797218.jpg">
+<meta property="article:published_time" content="2023-02-09T06:12:10.000Z">
+<meta property="article:modified_time" content="2023-02-13T08:27:09.071Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.llfc.club/1540562-20190417002428451-62583604.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2023/02/09/asio03/"/>
+
+
+
+
+
+  <title>boost::asio之socket的创建和连接 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/02/09/asio03/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">boost::asio之socket的创建和连接</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-02-09T14:12:10+08:00">
+                2023-02-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="网络编程基本流程"><a href="#网络编程基本流程" class="headerlink" title="网络编程基本流程"></a>网络编程基本流程</h2><p>网络编程的基本流程对于服务端是这样的<br>服务端<br>1）socket—-创建socket对象。</p>
+<p>2）bind—-绑定本机ip+port。</p>
+<p>3）listen—-监听来电，若在监听到来电，则建立起连接。</p>
+<p>4）accept—-再创建一个socket对象给其收发消息。原因是现实中服务端都是面对多个客户端，那么为了区分各个客户端，则每个客户端都需再分配一个socket对象进行收发消息。</p>
+<p>5）read、write—-就是收发消息了。</p>
+<p>对于客户端是这样的<br>客户端<br>1）socket—-创建socket对象。</p>
+<p>2）connect—-根据服务端ip+port，发起连接请求。</p>
+<p>3）write、read—-建立连接后，就可发收消息了。</p>
+<span id="more"></span>
+<p>图示如下<br><img src="https://cdn.llfc.club/1540562-20190417002428451-62583604.jpg" alt="https://cdn.llfc.club/1540562-20190417002428451-62583604.jpg"><br>相关的网络编程技术可以看看我之前写的文章<br><a target="_blank" rel="noopener" href="https://llfc.club/articlepage?id=2LXIKWJtKGblnWtHT7TplLKK6ze">https://llfc.club/articlepage?id=2LXIKWJtKGblnWtHT7TplLKK6ze</a><br>接下来按照上述流程，我们用boost::asio逐步介绍。</p>
+<h2 id="终端节点的创建"><a href="#终端节点的创建" class="headerlink" title="终端节点的创建"></a>终端节点的创建</h2><p>所谓终端节点就是用来通信的端对端的节点，可以通过ip地址和端口构造，其的节点可以连接这个终端节点做通信.<br>如果我们是客户端，我们可以通过对端的ip和端口构造一个endpoint，用这个endpoint和其通信。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span>  <span class="title">client_end_point</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">// Step 1. Assume that the client application has already </span></span><br><span class="line">    <span class="comment">// obtained the IP-address and the protocol port number.</span></span><br><span class="line">	std::string raw_ip_address = <span class="string">&quot;127.0.0.1&quot;</span>;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">short</span> port_num = <span class="number">3333</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Used to store information about error that happens</span></span><br><span class="line">	<span class="comment">// while parsing the raw IP-address.</span></span><br><span class="line">	boost::system::error_code ec;</span><br><span class="line">	<span class="comment">// Step 2. Using IP protocol version independent address</span></span><br><span class="line">	<span class="comment">// representation.</span></span><br><span class="line">	asio::ip::address ip_address =</span><br><span class="line">		asio::ip::address::<span class="built_in">from_string</span>(raw_ip_address, ec);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (ec.<span class="built_in">value</span>() != <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="comment">// Provided IP address is invalid. Breaking execution.</span></span><br><span class="line">		std::cout</span><br><span class="line">			&lt;&lt; <span class="string">&quot;Failed to parse the IP address. Error code = &quot;</span></span><br><span class="line">			&lt;&lt; ec.<span class="built_in">value</span>() &lt;&lt; <span class="string">&quot;. Message: &quot;</span> &lt;&lt; ec.<span class="built_in">message</span>();</span><br><span class="line">		<span class="keyword">return</span> ec.<span class="built_in">value</span>();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 3.</span></span><br><span class="line">	asio::ip::<span class="function">tcp::endpoint <span class="title">ep</span><span class="params">(ip_address, port_num)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 4. The endpoint is ready and can be used to specify a </span></span><br><span class="line">	<span class="comment">// particular server in the network the client wants to </span></span><br><span class="line">	<span class="comment">// communicate with.</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果是服务端，则只需根据本地地址绑定就可以生成endpoint</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span>  <span class="title">server_end_point</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="comment">// Step 1. Here we assume that the server application has</span></span><br><span class="line">    <span class="comment">//already obtained the protocol port number.</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">short</span> port_num = <span class="number">3333</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 2. Create special object of asio::ip::address class</span></span><br><span class="line">	<span class="comment">// that specifies all IP-addresses available on the host. Note</span></span><br><span class="line">	<span class="comment">// that here we assume that server works over IPv6 protocol.</span></span><br><span class="line">	asio::ip::address ip_address = asio::ip::address_v6::<span class="built_in">any</span>();</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 3.</span></span><br><span class="line">	asio::ip::<span class="function">tcp::endpoint <span class="title">ep</span><span class="params">(ip_address, port_num)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 4. The endpoint is created and can be used to </span></span><br><span class="line">	<span class="comment">// specify the IP addresses and a port number on which </span></span><br><span class="line">	<span class="comment">// the server application wants to listen for incoming </span></span><br><span class="line">	<span class="comment">// connections.</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="创建socket"><a href="#创建socket" class="headerlink" title="创建socket"></a>创建socket</h2><p>创建socket分为4步，创建上下文iocontext，选择协议，生成socket，打开socket。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">create_tcp_socket</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">// Step 1. An instance of &#x27;io_service&#x27; class is required by</span></span><br><span class="line">			<span class="comment">// socket constructor. </span></span><br><span class="line">	asio::io_context  ios;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 2. Creating an object of &#x27;tcp&#x27; class representing</span></span><br><span class="line">	<span class="comment">// a TCP protocol with IPv4 as underlying protocol.</span></span><br><span class="line">	asio::ip::tcp protocol = asio::ip::tcp::<span class="built_in">v4</span>();</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 3. Instantiating an active TCP socket object.</span></span><br><span class="line">	asio::ip::<span class="function">tcp::socket <span class="title">sock</span><span class="params">(ios)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Used to store information about error that happens</span></span><br><span class="line">	<span class="comment">// while opening the socket.</span></span><br><span class="line">	boost::system::error_code ec;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 4. Opening the socket.</span></span><br><span class="line">	sock.<span class="built_in">open</span>(protocol, ec);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (ec.<span class="built_in">value</span>() != <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="comment">// Failed to open the socket.</span></span><br><span class="line">		std::cout</span><br><span class="line">			&lt;&lt; <span class="string">&quot;Failed to open the socket! Error code = &quot;</span></span><br><span class="line">			&lt;&lt; ec.<span class="built_in">value</span>() &lt;&lt; <span class="string">&quot;. Message: &quot;</span> &lt;&lt; ec.<span class="built_in">message</span>();</span><br><span class="line">		<span class="keyword">return</span> ec.<span class="built_in">value</span>();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述socket只是通信的socket，如果是服务端，我们还需要生成一个acceptor的socket，用来接收新的连接。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span>  <span class="title">create_acceptor_socket</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">// Step 1. An instance of &#x27;io_service&#x27; class is required by</span></span><br><span class="line">		<span class="comment">// socket constructor. </span></span><br><span class="line">	asio::io_context ios;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 2. Creating an object of &#x27;tcp&#x27; class representing</span></span><br><span class="line">			<span class="comment">// a TCP protocol with IPv6 as underlying protocol.</span></span><br><span class="line">	asio::ip::tcp protocol = asio::ip::tcp::<span class="built_in">v6</span>();</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 3. Instantiating an acceptor socket object.</span></span><br><span class="line">	asio::ip::<span class="function">tcp::acceptor <span class="title">acceptor</span><span class="params">(ios)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Used to store information about error that happens</span></span><br><span class="line">	<span class="comment">// while opening the acceptor socket.</span></span><br><span class="line">	boost::system::error_code ec;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 4. Opening the acceptor socket.</span></span><br><span class="line">	acceptor.<span class="built_in">open</span>(protocol, ec);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (ec.<span class="built_in">value</span>() != <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="comment">// Failed to open the socket.</span></span><br><span class="line">		std::cout</span><br><span class="line">			&lt;&lt; <span class="string">&quot;Failed to open the acceptor socket!&quot;</span></span><br><span class="line">			&lt;&lt; <span class="string">&quot;Error code = &quot;</span></span><br><span class="line">			&lt;&lt; ec.<span class="built_in">value</span>() &lt;&lt; <span class="string">&quot;. Message: &quot;</span> &lt;&lt; ec.<span class="built_in">message</span>();</span><br><span class="line">		<span class="keyword">return</span> ec.<span class="built_in">value</span>();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="绑定acceptor"><a href="#绑定acceptor" class="headerlink" title="绑定acceptor"></a>绑定acceptor</h2><p>对于acceptor类型的socket，服务器要将其绑定到指定的断点,所有连接这个端点的连接都可以被接收到。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span>  <span class="title">bind_acceptor_socket</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 1. Here we assume that the server application has</span></span><br><span class="line">		<span class="comment">// already obtained the protocol port number.</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">short</span> port_num = <span class="number">3333</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 2. Creating an endpoint.</span></span><br><span class="line">	asio::ip::<span class="function">tcp::endpoint <span class="title">ep</span><span class="params">(asio::ip::address_v4::any(),</span></span></span><br><span class="line"><span class="params"><span class="function">		port_num)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Used by &#x27;acceptor&#x27; class constructor.</span></span><br><span class="line">	asio::io_context  ios;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 3. Creating and opening an acceptor socket.</span></span><br><span class="line">	asio::ip::<span class="function">tcp::acceptor <span class="title">acceptor</span><span class="params">(ios, ep.protocol())</span></span>;</span><br><span class="line"></span><br><span class="line">	boost::system::error_code ec;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 4. Binding the acceptor socket.</span></span><br><span class="line">	acceptor.<span class="built_in">bind</span>(ep, ec);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Handling errors if any.</span></span><br><span class="line">	<span class="keyword">if</span> (ec.<span class="built_in">value</span>() != <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="comment">// Failed to bind the acceptor socket. Breaking</span></span><br><span class="line">		<span class="comment">// execution.</span></span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;Failed to bind the acceptor socket.&quot;</span></span><br><span class="line">			&lt;&lt; <span class="string">&quot;Error code = &quot;</span> &lt;&lt; ec.<span class="built_in">value</span>() &lt;&lt; <span class="string">&quot;. Message: &quot;</span></span><br><span class="line">			&lt;&lt; ec.<span class="built_in">message</span>();</span><br><span class="line"></span><br><span class="line">		<span class="keyword">return</span> ec.<span class="built_in">value</span>();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="连接指定的端点"><a href="#连接指定的端点" class="headerlink" title="连接指定的端点"></a>连接指定的端点</h2><p>作为客户端可以连接服务器指定的端点进行连接</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span>  <span class="title">connect_to_end</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">// Step 1. Assume that the client application has already</span></span><br><span class="line">			<span class="comment">// obtained the IP address and protocol port number of the</span></span><br><span class="line">			<span class="comment">// target server.</span></span><br><span class="line">	std::string raw_ip_address = <span class="string">&quot;127.0.0.1&quot;</span>;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">short</span> port_num = <span class="number">3333</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		<span class="comment">// Step 2. Creating an endpoint designating </span></span><br><span class="line">		<span class="comment">// a target server application.</span></span><br><span class="line">		asio::ip::<span class="function">tcp::endpoint</span></span><br><span class="line"><span class="function">			<span class="title">ep</span><span class="params">(asio::ip::address::from_string(raw_ip_address),</span></span></span><br><span class="line"><span class="params"><span class="function">				port_num)</span></span>;</span><br><span class="line"></span><br><span class="line">		asio::io_context ios;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Step 3. Creating and opening a socket.</span></span><br><span class="line">		asio::ip::<span class="function">tcp::socket <span class="title">sock</span><span class="params">(ios, ep.protocol())</span></span>;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Step 4. Connecting a socket.</span></span><br><span class="line">		sock.<span class="built_in">connect</span>(ep);</span><br><span class="line"></span><br><span class="line">		<span class="comment">// At this point socket &#x27;sock&#x27; is connected to </span></span><br><span class="line">		<span class="comment">// the server application and can be used</span></span><br><span class="line">		<span class="comment">// to send data to or receive data from it.</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// Overloads of asio::ip::address::from_string() and </span></span><br><span class="line">	<span class="comment">// asio::ip::tcp::socket::connect() used here throw</span></span><br><span class="line">	<span class="comment">// exceptions in case of error condition.</span></span><br><span class="line">	<span class="built_in">catch</span> (system::system_error&amp; e) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;Error occured! Error code = &quot;</span> &lt;&lt; e.<span class="built_in">code</span>()</span><br><span class="line">			&lt;&lt; <span class="string">&quot;. Message: &quot;</span> &lt;&lt; e.<span class="built_in">what</span>();</span><br><span class="line"></span><br><span class="line">		<span class="keyword">return</span> e.<span class="built_in">code</span>().<span class="built_in">value</span>();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="服务器接收连接"><a href="#服务器接收连接" class="headerlink" title="服务器接收连接"></a>服务器接收连接</h2><p>当有客户端连接时，服务器需要接收连接</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">accept_new_connection</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="comment">// The size of the queue containing the pending connection</span></span><br><span class="line">			<span class="comment">// requests.</span></span><br><span class="line">	<span class="type">const</span> <span class="type">int</span> BACKLOG_SIZE = <span class="number">30</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 1. Here we assume that the server application has</span></span><br><span class="line">	<span class="comment">// already obtained the protocol port number.</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">short</span> port_num = <span class="number">3333</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 2. Creating a server endpoint.</span></span><br><span class="line">	asio::ip::<span class="function">tcp::endpoint <span class="title">ep</span><span class="params">(asio::ip::address_v4::any(),</span></span></span><br><span class="line"><span class="params"><span class="function">		port_num)</span></span>;</span><br><span class="line"></span><br><span class="line">	asio::io_context  ios;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		<span class="comment">// Step 3. Instantiating and opening an acceptor socket.</span></span><br><span class="line">		asio::ip::<span class="function">tcp::acceptor <span class="title">acceptor</span><span class="params">(ios, ep.protocol())</span></span>;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Step 4. Binding the acceptor socket to the </span></span><br><span class="line">		<span class="comment">// server endpint.</span></span><br><span class="line">		acceptor.<span class="built_in">bind</span>(ep);</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Step 5. Starting to listen for incoming connection</span></span><br><span class="line">		<span class="comment">// requests.</span></span><br><span class="line">		acceptor.<span class="built_in">listen</span>(BACKLOG_SIZE);</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Step 6. Creating an active socket.</span></span><br><span class="line">		asio::ip::<span class="function">tcp::socket <span class="title">sock</span><span class="params">(ios)</span></span>;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Step 7. Processing the next connection request and </span></span><br><span class="line">		<span class="comment">// connecting the active socket to the client.</span></span><br><span class="line">		acceptor.<span class="built_in">accept</span>(sock);</span><br><span class="line"></span><br><span class="line">		<span class="comment">// At this point &#x27;sock&#x27; socket is connected to </span></span><br><span class="line">		<span class="comment">//the client application and can be used to send data to</span></span><br><span class="line">		<span class="comment">// or receive data from it.</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">catch</span> (system::system_error&amp; e) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;Error occured! Error code = &quot;</span> &lt;&lt; e.<span class="built_in">code</span>()</span><br><span class="line">			&lt;&lt; <span class="string">&quot;. Message: &quot;</span> &lt;&lt; e.<span class="built_in">what</span>();</span><br><span class="line"></span><br><span class="line">		<span class="keyword">return</span> e.<span class="built_in">code</span>().<span class="built_in">value</span>();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="关于buffer"><a href="#关于buffer" class="headerlink" title="关于buffer"></a>关于buffer</h2><p>任何网络库都有提供buffer的数据结构，所谓buffer就是接收和发送数据时缓存数据的结构。<br>boost::asio提供了asio::mutable_buffer 和 asio::const_buffer这两个结构，他们是一段连续的空间，首字节存储了后续数据的长度。<br>asio::mutable_buffer用于写服务，asio::const_buffer用于读服务。但是这两个结构都没有被asio的api直接使用。<br>对于api的buffer参数，asio提出了MutableBufferSequence和ConstBufferSequence概念，他们是由多个asio::mutable_buffer和asio::const_buffer组成的。也就是说boost::asio为了节省空间，将一部分连续的空间组合起来，作为参数交给api使用。<br>我们可以理解为MutableBufferSequence的数据结构为std::vector<a href="asio::mutable_buffer">asio::mutable_buffer</a><br>结构如下<br><img src="https://cdn.llfc.club/1676257797218.jpg" alt="https://cdn.llfc.club/1676257797218.jpg"><br>每隔vector存储的都是mutable_buffer的地址，每个mutable_buffer的第一个字节表示数据的长度，后面跟着数据内容。<br>这么复杂的结构交给用户使用并不合适，所以asio提出了buffer()函数，该函数接收多种形式的字节流，该函数返回asio::mutable_buffers_1 o或者asio::const_buffers_1结构的对象。<br>如果传递给buffer()的参数是一个只读类型，则函数返回asio::const_buffers_1 类型对象。<br>如果传递给buffer()的参数是一个可写类型，则返回asio::mutable_buffers_1 类型对象。<br>asio::const_buffers_1和asio::mutable_buffers_1是asio::mutable_buffer和asio::const_buffer的适配器，提供了符合MutableBufferSequence和ConstBufferSequence概念的接口，所以他们可以作为boost::asio的api函数的参数使用。<br>简单概括一下，我们可以用buffer()函数生成我们要用的缓存存储数据。<br>比如boost的发送接口send要求的参数为ConstBufferSequence类型</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> ConstBufferSequence&gt;</span></span><br><span class="line"><span class="function">std::<span class="type">size_t</span> <span class="title">send</span><span class="params">(<span class="type">const</span> ConstBufferSequence &amp; buffers)</span></span>;</span><br></pre></td></tr></table></figure>
+<p>我们需要将”Hello Word转化为该类型”</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_const_buffer</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::string buf = <span class="string">&quot;hello world!&quot;</span>;</span><br><span class="line">	<span class="function">asio::const_buffer  <span class="title">asio_buf</span><span class="params">(buf.c_str(), buf.length())</span></span>;</span><br><span class="line">	std::vector&lt;asio::const_buffer&gt; buffers_sequence;</span><br><span class="line">	buffers_sequence.<span class="built_in">push_back</span>(asio_buf);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>最终buffers_sequence就是可以传递给发送接口send的类型。但是这太复杂了，可以直接用buffer函数转化为send需要的参数类型</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_buffer_str</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	asio::const_buffers_1 output_buf = asio::<span class="built_in">buffer</span>(<span class="string">&quot;hello world&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>output_buf可以直接传递给该send接口。我们也可以将数组转化为send接受的类型</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_buffer_array</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="type">const</span> <span class="type">size_t</span>  BUF_SIZE_BYTES = <span class="number">20</span>;</span><br><span class="line">	<span class="function">std::unique_ptr&lt;<span class="type">char</span>[] &gt; <span class="title">buf</span><span class="params">(<span class="keyword">new</span> <span class="type">char</span>[BUF_SIZE_BYTES])</span></span>;</span><br><span class="line">	<span class="keyword">auto</span> input_buf = asio::<span class="built_in">buffer</span>(<span class="built_in">static_cast</span>&lt;<span class="type">void</span>*&gt;(buf.<span class="built_in">get</span>()), BUF_SIZE_BYTES);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于流式操作，我们可以用streambuf，将输入输出流和streambuf绑定，可以实现流式输入和输出。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_stream_buffer</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	asio::streambuf buf;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::ostream <span class="title">output</span><span class="params">(&amp;buf)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Writing the message to the stream-based buffer.</span></span><br><span class="line">	output &lt;&lt; <span class="string">&quot;Message1\nMessage2&quot;</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Now we want to read all data from a streambuf</span></span><br><span class="line">	<span class="comment">// until &#x27;\n&#x27; delimiter.</span></span><br><span class="line">	<span class="comment">// Instantiate an input stream which uses our </span></span><br><span class="line">	<span class="comment">// stream buffer.</span></span><br><span class="line">	<span class="function">std::istream <span class="title">input</span><span class="params">(&amp;buf)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// We&#x27;ll read data into this string.</span></span><br><span class="line">	std::string message1;</span><br><span class="line"></span><br><span class="line">	std::<span class="built_in">getline</span>(input, message1);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Now message1 string contains &#x27;Message1&#x27;.</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/02/09/asio02/" rel="next" title="visual studio配置boost库">
+                <i class="fa fa-chevron-left"></i> visual studio配置boost库
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/02/13/asio04/" rel="prev" title="同步读写">
+                同步读写 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">254</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E5%9F%BA%E6%9C%AC%E6%B5%81%E7%A8%8B"><span class="nav-number">1.</span> <span class="nav-text">网络编程基本流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%88%E7%AB%AF%E8%8A%82%E7%82%B9%E7%9A%84%E5%88%9B%E5%BB%BA"><span class="nav-number">2.</span> <span class="nav-text">终端节点的创建</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9B%E5%BB%BAsocket"><span class="nav-number">3.</span> <span class="nav-text">创建socket</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%91%E5%AE%9Aacceptor"><span class="nav-number">4.</span> <span class="nav-text">绑定acceptor</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9E%E6%8E%A5%E6%8C%87%E5%AE%9A%E7%9A%84%E7%AB%AF%E7%82%B9"><span class="nav-number">5.</span> <span class="nav-text">连接指定的端点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%8E%A5%E6%94%B6%E8%BF%9E%E6%8E%A5"><span class="nav-number">6.</span> <span class="nav-text">服务器接收连接</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E4%BA%8Ebuffer"><span class="nav-number">7.</span> <span class="nav-text">关于buffer</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

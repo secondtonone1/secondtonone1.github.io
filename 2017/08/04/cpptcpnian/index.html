@@ -86,17 +86,17 @@
 <meta property="og:site_name" content="恋恋风辰的个人博客">
 <meta property="og:description" content="TCP（transport control protocol，传输控制协议）是面向连接的，面向流的，提供高可靠性服务。收发两端（客户端和服务器端）都要有一一成对的socket， 因此，发送端为了将多个发往接收端的包，更有效的发到对方，使用了优化方法（Nagle算法），将多次间隔较小且数据量小的数据，合并成一个大的数据块， 然后进行封包。这样，接收端，就难于分辨出来了，必须提供科学的拆包机制。即面向">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://www.limerence2017.com/2017/08/04/cpptcpnian/1.png">
-<meta property="og:image" content="http://www.limerence2017.com/2017/08/04/cpptcpnian/2.png">
-<meta property="og:image" content="http://www.limerence2017.com/2017/08/04/cpptcpnian/3.png">
-<meta property="og:image" content="http://www.limerence2017.com/2017/08/04/cpptcpnian/4.png">
+<meta property="og:image" content="https://cdn.llfc.club/tcpnian1.png">
+<meta property="og:image" content="https://cdn.llfc.club/tcpnian2.png">
+<meta property="og:image" content="https://cdn.llfc.club/tcpnian3.png">
+<meta property="og:image" content="https://cdn.llfc.club/tcpnian4.png">
 <meta property="article:published_time" content="2017-08-04T03:51:30.000Z">
-<meta property="article:modified_time" content="2022-07-31T07:11:49.835Z">
+<meta property="article:modified_time" content="2023-02-09T07:15:17.781Z">
 <meta property="article:author" content="恋恋风辰">
 <meta property="article:tag" content="网络编程">
 <meta property="article:tag" content="C++">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://www.limerence2017.com/2017/08/04/cpptcpnian/1.png">
+<meta name="twitter:image" content="https://cdn.llfc.club/tcpnian1.png">
 
 
 
@@ -389,10 +389,10 @@
 <p>由于UDP支持的是一对多的模式，所以接收端的<code>skbuff(套接字缓冲区）</code>采用了链式结构来记录每一个到达的UDP包，</p>
 <p>在每个UDP包中就有了消息头（消息来源地址，端口等信息），这样，对于接收端来说，就容易进行区分处理了。 即<code>面向消息的通信是有消息保护边界的</code>。</p>
 <span id="more"></span>
-<h2 id="TCP粘包我总结了几种情况"><a href="#TCP粘包我总结了几种情况" class="headerlink" title="TCP粘包我总结了几种情况"></a>TCP粘包我总结了几种情况</h2><p><img src="1.png" alt="1.png"><br>tcp发送端发送三个包过来，tcp接收缓存区收到了这三个包，而用户的读写缓存区比这三个包的总大小还大，</p>
-<p>此时数据是接受完全的，用户缓存区读到三个包需要分开，这是比较好处理的。<br><img src="2.png" alt="2.png"><br>第二种情况是因为用户的接收缓存区比tcp接受缓存区大，或者比tcp目前接收到的总数据大，那么用户缓存区读到</p>
-<p>的数据就是tcp接收缓存区的数据，这是第一种情况的特例，这种情况需要判断那些包接受完全，那些包没接受完全。<br><img src="3.png" alt="3.png"><br>第三种情况是用户的接受缓存区比tcp接受缓存区要小，导致用户缓存区读到的数据是tcp接收缓存区</p>
-<p>的一部分，这其中有完整的包，也有残缺的包。<br><img src="4.png" alt="4.png"><br>第四种情况是第三种情况的一个特例，用户缓存区的数据是不完全的，只是tcp缓存区的一部分。</p>
+<h2 id="TCP粘包我总结了几种情况"><a href="#TCP粘包我总结了几种情况" class="headerlink" title="TCP粘包我总结了几种情况"></a>TCP粘包我总结了几种情况</h2><p><img src="https://cdn.llfc.club/tcpnian1.png" alt="https://cdn.llfc.club/tcpnian1.png"><br>tcp发送端发送三个包过来，tcp接收缓存区收到了这三个包，而用户的读写缓存区比这三个包的总大小还大，</p>
+<p>此时数据是接受完全的，用户缓存区读到三个包需要分开，这是比较好处理的。<br><img src="https://cdn.llfc.club/tcpnian2.png" alt="https://cdn.llfc.club/tcpnian2.png"><br>第二种情况是因为用户的接收缓存区比tcp接受缓存区大，或者比tcp目前接收到的总数据大，那么用户缓存区读到</p>
+<p>的数据就是tcp接收缓存区的数据，这是第一种情况的特例，这种情况需要判断那些包接受完全，那些包没接受完全。<br><img src="https://cdn.llfc.club/tcpnian3.png" alt="https://cdn.llfc.club/tcpnian3.png"><br>第三种情况是用户的接受缓存区比tcp接受缓存区要小，导致用户缓存区读到的数据是tcp接收缓存区</p>
+<p>的一部分，这其中有完整的包，也有残缺的包。<br><img src="https://cdn.llfc.club/tcpnian4.png" alt="https://cdn.llfc.club/tcpnian4.png"><br>第四种情况是第三种情况的一个特例，用户缓存区的数据是不完全的，只是tcp缓存区的一部分。</p>
 <p>对应特别大的那种包。</p>
 <p>我提倡的解决办法就是首先实现一套从tcp缓存区中读取数据的数据结构和算法，因为tcp是面向</p>
 <p>字节流的，将tcp缓存区中的数据读到用户缓存区里，这里我简单叫做outstreambuffer和instreambuffer，</p>
@@ -542,7 +542,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">248</span>
+                  <span class="site-state-item-count">254</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>

@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="Hexo, NexT" />
+  <meta name="keywords" content="C++," />
 
 
 
@@ -79,18 +79,21 @@
 
 
 
-<meta name="description" content="重剑无锋，大巧不工">
+<meta name="description" content="简介前面的设计，我们对asio的使用都是单线程模式，为了提升网络io并发处理的效率，这一次我们设计多线程模式下asio的使用方式。总体来说asio有两个多线程模型，第一个是启动多个线程，每个线程管理一个iocontext。第二种是只启动一个iocontext，被多个线程共享，后面的文章会对比两个模式的区别，这里先介绍第一种模式，多个线程，每个线程管理独立的iocontext服务。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="asio19">
+<meta property="og:title" content="asio多线程模型IOServicePool">
 <meta property="og:url" content="http://www.limerence2017.com/2023/06/04/asio19/index.html">
 <meta property="og:site_name" content="恋恋风辰的个人博客">
-<meta property="og:description" content="重剑无锋，大巧不工">
+<meta property="og:description" content="简介前面的设计，我们对asio的使用都是单线程模式，为了提升网络io并发处理的效率，这一次我们设计多线程模式下asio的使用方式。总体来说asio有两个多线程模型，第一个是启动多个线程，每个线程管理一个iocontext。第二种是只启动一个iocontext，被多个线程共享，后面的文章会对比两个模式的区别，这里先介绍第一种模式，多个线程，每个线程管理独立的iocontext服务。">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.llfc.club/1685620269385.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20230604151126.png">
 <meta property="article:published_time" content="2023-06-04T01:48:11.000Z">
-<meta property="article:modified_time" content="2023-06-04T01:48:11.786Z">
+<meta property="article:modified_time" content="2023-06-05T02:16:50.685Z">
 <meta property="article:author" content="恋恋风辰">
-<meta property="article:tag" content="C++ python 大并发网络 逆向">
+<meta property="article:tag" content="C++">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.llfc.club/1685620269385.jpg">
 
 
 
@@ -126,7 +129,7 @@
 
 
 
-  <title>asio19 | 恋恋风辰的个人博客</title>
+  <title>asio多线程模型IOServicePool | 恋恋风辰的个人博客</title>
   
 
 
@@ -304,7 +307,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">asio19</h1>
+          <h1 class="post-title" itemprop="name headline">asio多线程模型IOServicePool</h1>
         
 
         <div class="post-meta">
@@ -326,6 +329,28 @@
             
           </span>
 
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
           
 
           
@@ -354,7 +379,41 @@
       
 
       
-        
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前面的设计，我们对asio的使用都是单线程模式，为了提升网络io并发处理的效率，这一次我们设计多线程模式下asio的使用方式。总体来说asio有两个多线程模型，第一个是启动多个线程，每个线程管理一个iocontext。第二种是只启动一个iocontext，被多个线程共享，后面的文章会对比两个模式的区别，这里先介绍第一种模式，多个线程，每个线程管理独立的iocontext服务。</p>
+<span id="more"></span>
+<h2 id="单线程和多线程对比"><a href="#单线程和多线程对比" class="headerlink" title="单线程和多线程对比"></a>单线程和多线程对比</h2><p>之前的单线程模式图如下</p>
+<p><img src="https://cdn.llfc.club/1685620269385.jpg" alt="https://cdn.llfc.club/1685620269385.jpg"></p>
+<p>我们设计的IOServicePool类型的多线程模型如下：</p>
+<p><img src="https://cdn.llfc.club/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20230604151126.png" alt="https://cdn.llfc.club/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20230604151126.png"></p>
+<p>IOServicePool多线程模式特点</p>
+<p>1 &emsp; 每一个io_context跑在不同的线程里，所以同一个socket会被注册在同一个io_context里，它的回调函数也会被单独的一个线程回调，那么对于同一个socket，他的回调函数每次触发都是在同一个线程里，就不会有线程安全问题，网络io层面上的并发是线程安全的。</p>
+<p>2 &emsp; 但是对于不同的socket，回调函数的触发可能是同一个线程(两个socket被分配到同一个io_context)，也可能不是同一个线程(两个socket被分配到不同的io_context里)。所以如果两个socket对应的上层逻辑处理，如果有交互或者访问共享区，会存在线程安全问题。比如socket1代表玩家1，socket2代表玩家2，玩家1和玩家2在逻辑层存在交互，比如两个玩家都在做工会任务，他们属于同一个工会，工会积分的增加就是共享区的数据，需要保证线程安全。可以通过加锁或者逻辑队列的方式解决安全问题，我们目前采取了后者。</p>
+<p>3 &emsp; 多线程相比单线程，极大的提高了并发能力，因为单线程仅有一个io_context服务用来监听读写事件，就绪后回调函数在一个线程里串行调用, 如果一个回调函数的调用时间较长肯定会影响后续的函数调用，毕竟是穿行调用。而采用多线程方式，可以在一定程度上减少前一个逻辑调用影响下一个调用的情况，比如两个socket被部署到不同的iocontext上，但是当两个socket部署到同一个iocontext上时仍然存在调用时间影响的问题。不过我们已经通过逻辑队列的方式将网络线程和逻辑线程解耦合了，不会出现前一个调用时间影响下一个回调触发的问题。</p>
+<h2 id="IOServicePool实现"><a href="#IOServicePool实现" class="headerlink" title="IOServicePool实现"></a>IOServicePool实现</h2><p>IOServicePool本质上是一个线程池，基本功能就是根据构造函数传入的数量创建n个线程和iocontext，然后每个线程跑一个iocontext，这样就可以并发处理不同iocontext读写事件了。</p>
+<p>IOServicePool的声明</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">AsioIOServicePool</span>:<span class="keyword">public</span> Singleton&lt;AsioIOServicePool&gt;</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">friend</span> Singleton&lt;AsioIOServicePool&gt;;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="keyword">using</span> IOService = boost::asio::io_context;</span><br><span class="line">	<span class="keyword">using</span> Work = boost::asio::io_context::work;</span><br><span class="line">	<span class="keyword">using</span> WorkPtr = std::unique_ptr&lt;Work&gt;;</span><br><span class="line">	~<span class="built_in">AsioIOServicePool</span>();</span><br><span class="line">	<span class="built_in">AsioIOServicePool</span>(<span class="type">const</span> AsioIOServicePool&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	AsioIOServicePool&amp; <span class="keyword">operator</span>=(<span class="type">const</span> AsioIOServicePool&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	<span class="comment">// 使用 round-robin 的方式返回一个 io_service</span></span><br><span class="line">	boost::<span class="function">asio::io_context&amp; <span class="title">GetIOService</span><span class="params">()</span></span>;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">Stop</span><span class="params">()</span></span>;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	<span class="built_in">AsioIOServicePool</span>(std::<span class="type">size_t</span> size = std::thread::<span class="built_in">hardware_concurrency</span>());</span><br><span class="line">	std::vector&lt;IOService&gt; _ioServices;</span><br><span class="line">	std::vector&lt;WorkPtr&gt; _works;</span><br><span class="line">	std::vector&lt;std::thread&gt; _threads;</span><br><span class="line">	std::<span class="type">size_t</span>   _nextIOService;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>1 &emsp; <code>_ioServices</code>是一个IOService的vector变量，用来存储初始化的多个IOService。</p>
+<p>2 &emsp; <code>WorkPtr</code>是<code>boost::asio::io_context::work</code>类型的unique指针。<br>在实际使用中，我们通常会将一些异步操作提交给<code>io_context</code>进行处理，然后该操作会被异步执行，而不会立即返回结果。如果没有其他任务需要执行，那么<code>io_context</code>就会停止工作，导致所有正在进行的异步操作都被取消。这时，我们需要使用<code>boost::asio::io_context::work</code>对象来防止<code>io_context</code>停止工作。</p>
+<p><code>boost::asio::io_context::work</code>的作用是持有一个指向<code>io_context</code>的引用，并通过创建一个“工作”项来保证<code>io_context</code>不会停止工作，直到work对象被销毁或者调用<code>reset()</code>方法为止。当所有异步操作完成后，程序可以使用<code>work.reset()</code>方法来释放<code>io_context</code>，从而让其正常退出。</p>
+<p>3 &emsp; <code>_threads</code>是一个线程vector,管理我们开辟的所有线程。</p>
+<p>4 &emsp; <code>_nextIOService</code>是一个轮询索引，我们用最简单的轮询算法为每个新创建的连接分配io_context.</p>
+<p>5 &emsp; 因为IOServicePool不允许被copy构造，所以我们将其拷贝构造和拷贝复制函数置为delete</p>
+<p>接下来我们实现构造函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">AsioIOServicePool::<span class="built_in">AsioIOServicePool</span>(std::<span class="type">size_t</span> size):_ioServices(size),</span><br><span class="line">_works(size), _nextIOService(<span class="number">0</span>)&#123;</span><br><span class="line">	<span class="keyword">for</span> (std::<span class="type">size_t</span> i = <span class="number">0</span>; i &lt; size; ++i) &#123;</span><br><span class="line">		_works[i] = std::<span class="built_in">unique_ptr</span>&lt;Work&gt;(<span class="keyword">new</span> <span class="built_in">Work</span>(_ioServices[i]));</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//遍历多个ioservice，创建多个线程，每个线程内部启动ioservice</span></span><br><span class="line">	<span class="keyword">for</span> (std::<span class="type">size_t</span> i = <span class="number">0</span>; i &lt; _ioServices.<span class="built_in">size</span>(); ++i) &#123;</span><br><span class="line">		_threads.<span class="built_in">emplace_back</span>([<span class="keyword">this</span>, i]() &#123;</span><br><span class="line">			_ioServices[i].<span class="built_in">run</span>();</span><br><span class="line">			&#125;);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>_works是unique_ptr的vector类型，所以初始化时要么放在构造函数初始化列表里初始化，要么通过一个临时的<code>std::unique_ptr</code>右值初始化，我们采取的是第二种。</p>
+<p>实现获取<code>io_context&amp;</code>的函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">boost::<span class="function">asio::io_context&amp; <span class="title">AsioIOServicePool::GetIOService</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">auto</span>&amp; service = _ioServices[_nextIOService++];</span><br><span class="line">	<span class="keyword">if</span> (_nextIOService == _ioServices.<span class="built_in">size</span>()) &#123;</span><br><span class="line">		_nextIOService = <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> service;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们根据<code>_nextIOService</code>作为索引，轮询获取<code>io_context&amp;</code>。</p>
+<p>同样我们要实现Stop函数，控制<code>AsioIOServicePool</code>停止的行为。因为我们要保证每个线程安全退出后再让<code>AsioIOServicePool</code>停止。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">AsioIOServicePool::Stop</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">auto</span>&amp; work : _works) &#123;</span><br><span class="line">		work.<span class="built_in">reset</span>();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">auto</span>&amp; t : _threads) &#123;</span><br><span class="line">		t.<span class="built_in">join</span>();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其中<code>work.reset()</code>是让unique指针置空并释放，那么work的析构函数就会被调用，work被析构，其管理的io_service在没有事件监听时就会被释放。</p>
+<h2 id="优雅退出"><a href="#优雅退出" class="headerlink" title="优雅退出"></a>优雅退出</h2><p>IOServicePool多线程服务器退出时，需要捕获退出信号如SIGINT,SIGTERM等，将退出信号和一个iocontext绑定，当收到退出信号时，我们将IOServicePool停止，并且停止iocontext即可。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		<span class="keyword">auto</span> pool = AsioIOServicePool::<span class="built_in">GetInstance</span>();</span><br><span class="line">		boost::asio::io_context  io_context;</span><br><span class="line">		boost::<span class="function">asio::signal_set <span class="title">signals</span><span class="params">(io_context, SIGINT, SIGTERM)</span></span>;</span><br><span class="line">		signals.<span class="built_in">async_wait</span>([&amp;io_context,pool](<span class="keyword">auto</span>, <span class="keyword">auto</span>) &#123;</span><br><span class="line">			io_context.<span class="built_in">stop</span>();</span><br><span class="line">			pool-&gt;<span class="built_in">Stop</span>();</span><br><span class="line">			&#125;);</span><br><span class="line">		<span class="function">CServer <span class="title">s</span><span class="params">(io_context, <span class="number">10086</span>)</span></span>;</span><br><span class="line">		io_context.<span class="built_in">run</span>();</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">catch</span> (std::exception&amp; e) &#123;</span><br><span class="line">		std::cerr &lt;&lt; <span class="string">&quot;Exception: &quot;</span> &lt;&lt; e.<span class="built_in">what</span>() &lt;&lt; endl;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上例中，我们将一个iocontext绑定给Server，当收到退出消息后停止这个iocontext，并且停止IOServicePool。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文总结了如何使用IOServicePool模式构造多线程模型的asio服务器。</p>
+<p>视频连接<a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=313101">https://space.bilibili.com/271469206/channel/collectiondetail?sid=313101</a></p>
+<p>源码链接<a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn">https://gitee.com/secondtonone1/boostasio-learn</a></p>
+
       
     </div>
     
@@ -368,6 +427,12 @@
     
 
     <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
       
 
       
@@ -438,8 +503,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -515,6 +589,22 @@
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%95%E7%BA%BF%E7%A8%8B%E5%92%8C%E5%A4%9A%E7%BA%BF%E7%A8%8B%E5%AF%B9%E6%AF%94"><span class="nav-number">2.</span> <span class="nav-text">单线程和多线程对比</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#IOServicePool%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.</span> <span class="nav-text">IOServicePool实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BC%98%E9%9B%85%E9%80%80%E5%87%BA"><span class="nav-number">4.</span> <span class="nav-text">优雅退出</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       

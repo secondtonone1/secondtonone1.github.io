@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="简介使用beast网络库实现websocket服务器，一般来说websocket是一个长连接的协议，但是自动包含了解包处理，当我们在浏览器输入一个http请求时如果是以ws开头的如ws:&#x2F;&#x2F;127.0.0.1:9501就是请求本地9501端口的websocket服务器处理。而beast为我们提供了websocket的处理方案，我们可以在http服务器的基础上升级协议为websocket，处理部分w">
+<meta property="og:type" content="article">
+<meta property="og:title" content="beast网络库实现websocket服务器">
+<meta property="og:url" content="http://www.limerence2017.com/2023/06/25/asio24/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="简介使用beast网络库实现websocket服务器，一般来说websocket是一个长连接的协议，但是自动包含了解包处理，当我们在浏览器输入一个http请求时如果是以ws开头的如ws:&#x2F;&#x2F;127.0.0.1:9501就是请求本地9501端口的websocket服务器处理。而beast为我们提供了websocket的处理方案，我们可以在http服务器的基础上升级协议为websocket，处理部分w">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-06-25T07:12:48.000Z">
+<meta property="article:modified_time" content="2023-06-26T08:23:29.161Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2023/06/25/asio24/"/>
+
+
+
+
+
+  <title>beast网络库实现websocket服务器 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/25/asio24/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">beast网络库实现websocket服务器</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-25T15:12:48+08:00">
+                2023-06-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>使用beast网络库实现websocket服务器，一般来说websocket是一个长连接的协议，但是自动包含了解包处理，当我们在浏览器输入一个http请求时如果是以ws开头的如<code>ws://127.0.0.1:9501</code>就是请求本地9501端口的websocket服务器处理。而beast为我们提供了websocket的处理方案，我们可以在http服务器的基础上升级协议为websocket，处理部分websocket请求。如果服务器收到的是普通的http请求则按照http请求处理。我们可以从官方文档中按照示例逐步搭建websocket服务器。</p>
+<span id="more"></span>
+<h2 id="构造websocket"><a href="#构造websocket" class="headerlink" title="构造websocket"></a>构造websocket</h2><p>在开始前我们先准备几个变量</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;boost/beast.hpp&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;boost/beast/ssl.hpp&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;boost/asio.hpp&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;boost/asio/ssl.hpp&gt;</span></span></span><br><span class="line"><span class="keyword">namespace</span> net = boost::asio;</span><br><span class="line"><span class="keyword">namespace</span> beast = boost::beast;</span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> boost::beast;</span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> boost::beast::websocket;</span><br><span class="line"></span><br><span class="line">net::io_context ioc;</span><br><span class="line"><span class="function">tcp_stream <span class="title">sock</span><span class="params">(ioc)</span></span>;</span><br><span class="line">net::<span class="function">ssl::context <span class="title">ctx</span><span class="params">(net::ssl::context::tlsv12)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>WebSocket连接需要一个有状态对象，由Beast中的一个类模板websocket::stream表示。该接口使用分层流模型。一个websocket stream对象包含另一个流对象，称为“下一层”，它用于执行I/O操作。以下是每个模板参数的描述：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> boost &#123;</span><br><span class="line"><span class="keyword">namespace</span> beast &#123;</span><br><span class="line"><span class="keyword">namespace</span> websocket &#123;</span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span>&lt;</span><br><span class="line">    <span class="keyword">class</span> <span class="title class_">NextLayer</span>,</span><br><span class="line">    <span class="type">bool</span> deflateSupported = <span class="literal">true</span>&gt;</span><br><span class="line"><span class="keyword">class</span> stream;</span><br><span class="line"></span><br><span class="line">&#125; <span class="comment">// websocket</span></span><br><span class="line">&#125; <span class="comment">// beast</span></span><br><span class="line">&#125; <span class="comment">// boost</span></span><br></pre></td></tr></table></figure>
+<p>这段代码定义了Beast库中WebSocket实现的命名空间。其中，<code>websocket</code>命名空间下包含一个模板类<code>stream</code>，用于表示WebSocket连接。</p>
+<p><code>stream</code>类有两个模板参数：<code>NextLayer</code>和<code>deflateSupported</code>。其中，<code>NextLayer</code>表示WebSocket连接使用的下一层流类型，例如TCP套接字或TLS握手后的数据流；而<code>deflateSupported</code>则是一个bool值，表示是否支持WebSocket协议内置的压缩功能。</p>
+<p>这些代码所在的三个命名空间分别是<code>boost</code>、<code>beast</code>和<code>websocket</code>，是为了防止与其他库或用户代码发生名称冲突而创建的。将Beast库放在<code>beast</code>命名空间下是为了与Boost库本身分离，方便管理和维护。<br>当创建一个WebSocket流对象时，构造函数提供的任何参数都会被传递给下一层对象的构造函数。以下示例代码声明了一个基于TCP/IP套接字和I/O上下文的WebSocket流对象：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">stream&lt;tcp_stream&gt; <span class="title">ws</span><span class="params">(ioc)</span></span>;</span><br></pre></td></tr></table></figure>
+<p>上述代码创建了一个基于TCP流的WebSocket流对象，使用了指定的I/O上下文，该代码中的stream是Beast库中WebSocket流类模板的别名，其下一层流类型为tcp_stream。</p>
+<p>需要注意的是，WebSocket流使用自己特定的超时功能来管理连接。如果使用tcp_stream或basic_stream类模板与WebSocket流一起使用，那么在连接建立后应该禁用TCP或basic流上的超时设置，否则流的行为将是不确定的。</p>
+<p>这是因为WebSocket协议本身包含了超时机制，当流上发生超时时，WebSocket库会优先处理超时并关闭连接，而不会将超时事件传递给下层TCP或basic流。如果同时在WebSocket和TCP或basic流上启用超时设置，就可能出现冲突和未定义的行为。</p>
+<p>因此，当使用WebSocket流时，应该避免在底层的TCP或basic流上设置超时，而是可以通过WebSocket流对象的<code>set_option</code>函数来设置WebSocket连接的超时时间。这样可以确保WebSocket连接中的超时机制正常工作，并且不会干扰底层流的超时设置。</p>
+<p>与大多数I/O对象一样，WebSocket流对象也不是线程安全的。如果两个不同的线程同时访问该对象，则会产生未定义行为。</p>
+<p>对于多线程程序，可以通过在构造tcp_stream对象时使用executor（如strand）来保证线程安全。下面的代码声明了一个使用strand来调用所有完成处理程序的WebSocket流：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">stream&lt;tcp_stream&gt; <span class="title">ws</span><span class="params">(net::make_strand(ioc))</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>如果下一层流支持移动构造，那么WebSocket流对象可以从一个已移动的对象中构造。</p>
+<p>这意味着，在创建WebSocket流对象时，可以将下一层流对象的所有权转移到WebSocket流对象中，而不需要进行复制或重新分配。这种方式可以避免额外的内存开销和数据拷贝操作，提高程序运行效率。</p>
+<p>例如，可以使用std::move函数将一个已存在的TCP套接字对象移动到WebSocket流中：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">stream&lt;tcp_stream&gt; <span class="title">ws</span><span class="params">(std::move(sock))</span></span>;</span><br></pre></td></tr></table></figure>
+<p>可以通过调用WebSocket流对象的next_layer函数来访问下一层流对象。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ws.<span class="built_in">next_layer</span>().<span class="built_in">close</span>();</span><br></pre></td></tr></table></figure>
+
+<h2 id="使用SSL"><a href="#使用SSL" class="headerlink" title="使用SSL"></a>使用SSL</h2><p>使用”net::ssl::stream”类模板作为流的模板类型，并且将”net::io_context”和”net::ssl::context”参数传递给包装流的构造函数。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">stream&lt;ssl_stream&lt;tcp_stream&gt;&gt; <span class="built_in">wss</span>(net::<span class="built_in">make_strand</span>(ioc), ctx);</span><br></pre></td></tr></table></figure>
+<p>当然如果websocket stream 使用SSL类型需要包含<code>&lt;boost/beast/websocket/ssl.hpp&gt;</code><br><code>next_layer()</code> 函数用于访问底层的 SSL 流。<code>ssl::stream</code> 类中的 <code>next_layer()</code> 函数返回对底层 <code>ssl_stream</code> 的引用，它代表了建立在 <code>SSL/TLS</code> 层之上的网络流。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wss.<span class="built_in">next_layer</span>().<span class="built_in">handshake</span>(net::ssl::stream_base::client);</span><br></pre></td></tr></table></figure>
+<p>在上述声明的多层流（如 SSL 流）中，使用 next_layer 进行链式调用访问每个层可能会很麻烦。为了简化这个过程，Boost.Beast 提供了 get_lowest_layer() 函数，用于获取多层流中的最底层流。</p>
+<p>通过调用 get_lowest_layer() 函数，您可以直接获取多层流中的最底层流，而无需逐层调用 next_layer()。这对于取消所有未完成的 I/O 操作非常有用，例如在关闭连接之前取消所有挂起的异步操作。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">get_lowest_layer</span>(wss).<span class="built_in">cancel</span>();</span><br></pre></td></tr></table></figure>
+<h2 id="连接"><a href="#连接" class="headerlink" title="连接"></a>连接</h2><p>在进行 WebSocket 通信之前，需要首先连接 WebSocket 流，然后执行 WebSocket 握手。WebSocket 流将建立连接的任务委托给下一层流。例如，如果下一层是可连接的流或套接字对象，则可以访问它以调用必要的连接函数。以下是作为客户端执行的示例代码</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">stream&lt;tcp_stream&gt; <span class="title">ws</span><span class="params">(ioc)</span></span>;</span><br><span class="line">net::ip::<span class="function">tcp::resolver <span class="title">resolver</span><span class="params">(ioc)</span></span>;</span><br><span class="line"><span class="built_in">get_lowest_layer</span>(ws).<span class="built_in">connect</span>(resolver.<span class="built_in">resolve</span>(<span class="string">&quot;example.com&quot;</span>, <span class="string">&quot;ws&quot;</span>));</span><br></pre></td></tr></table></figure>
+<p>对于服务器接收连接，在WebSocket服务器中使用一个acceptor来接受传入的连接。当建立了一个传入连接时，可以从acceptor返回的socket构造WebSocket流。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">net::ip::<span class="function">tcp::acceptor <span class="title">acceptor</span><span class="params">(ioc)</span></span>;</span><br><span class="line">acceptor.<span class="built_in">bind</span>(net::ip::tcp::<span class="built_in">endpoint</span>(net::ip::tcp::<span class="built_in">v4</span>(), <span class="number">0</span>));</span><br><span class="line">acceptor.<span class="built_in">listen</span>();</span><br><span class="line"><span class="function">stream&lt;tcp_stream&gt; <span class="title">ws</span><span class="params">(acceptor.accept())</span></span>;</span><br></pre></td></tr></table></figure>
+<p>也可以通过使用acceptor成员函数的另一个重载，将传入连接直接接受到WebSocket流拥有的socket中</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">stream&lt;tcp_stream&gt; <span class="title">ws</span><span class="params">(net::make_strand(ioc))</span></span>;</span><br><span class="line">acceptor.<span class="built_in">accept</span>(<span class="built_in">get_lowest_layer</span>(ws).<span class="built_in">socket</span>());</span><br></pre></td></tr></table></figure>
+<h2 id="握手"><a href="#握手" class="headerlink" title="握手"></a>握手</h2><p>websocket通过握手将http升级为websocket协议，一个websocket协议如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/<span class="number">1.1</span></span><br><span class="line">Host: www.example.com</span><br><span class="line">Upgrade: websocket</span><br><span class="line">Connection: upgrade</span><br><span class="line">Sec-WebSocket-Key: <span class="number">2</span>pGeTR0DsE4dfZs2pH+<span class="number">8</span>MA==</span><br><span class="line">Sec-WebSocket-Version: <span class="number">13</span></span><br><span class="line">User-Agent: Boost.Beast/<span class="number">216</span></span><br></pre></td></tr></table></figure>
+<p>先说客户端如何升级<br>这段代码使用websocket::stream的成员函数handshake和async_handshake，用于使用所需的主机名和目标字符串发送请求。该代码连接到从主机名查找返回的IP地址，然后在客户端角色中执行WebSocket握手</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">stream&lt;tcp_stream&gt; <span class="title">ws</span><span class="params">(ioc)</span></span>;</span><br><span class="line">net::ip::<span class="function">tcp::resolver <span class="title">resolver</span><span class="params">(ioc)</span></span>;</span><br><span class="line"><span class="built_in">get_lowest_layer</span>(ws).<span class="built_in">connect</span>(resolver.<span class="built_in">resolve</span>(<span class="string">&quot;www.example.com&quot;</span>, <span class="string">&quot;ws&quot;</span>));</span><br><span class="line">ws.<span class="built_in">handshake</span>(</span><br><span class="line">    <span class="string">&quot;www.example.com&quot;</span>,  <span class="comment">// The Host field</span></span><br><span class="line">    <span class="string">&quot;/&quot;</span>                 <span class="comment">// The request-target</span></span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<p>在客户端收到来自服务器的HTTP Upgrade响应并指示成功升级时，调用者可能希望对接收到的HTTP响应消息进行额外的验证。例如，检查对基本身份验证挑战的响应是否有效。为了实现这一目的，handshake成员函数提供了重载形式，允许调用者将接收到的HTTP消息存储在类型为response_type的输出引用参数中。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">response_type res;</span><br><span class="line">ws.<span class="built_in">handshake</span>(</span><br><span class="line">    res,                <span class="comment">// Receives the HTTP response</span></span><br><span class="line">    <span class="string">&quot;www.example.com&quot;</span>,  <span class="comment">// The Host field</span></span><br><span class="line">    <span class="string">&quot;/&quot;</span>                 <span class="comment">// The request-target</span></span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<p>所以上述握手函数根据自己的需求调用一个即可。</p>
+<p>再说服务器如何升级</p>
+<p>对于接受传入连接的服务器，websocket::stream可以读取传入的升级请求并自动回复。如果握手符合要求，流将发送带有101切换协议状态码的升级响应。如果握手不符合要求，或者超出了调用者之前设置的流选项允许的参数范围，流将发送一个带有表示错误的状态码的HTTP响应。根据保持活动设置，连接可能保持打开状态，以进行后续握手尝试。在接收到升级请求握手后，由实现创建和发送的典型HTTP升级响应如下所示：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">HTTP/<span class="number">1.1</span> <span class="number">101</span> Switching Protocols</span><br><span class="line">Upgrade: websocket</span><br><span class="line">Connection: upgrade</span><br><span class="line">Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=</span><br><span class="line">Server: Boost.Beast</span><br></pre></td></tr></table></figure>
+<p>stream的accept和async_accept成员函数用于从已连接到传入对等方的流中读取WebSocket HTTP升级请求握手，然后发送WebSocket HTTP升级响应。示例如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ws.<span class="built_in">accept</span>();</span><br></pre></td></tr></table></figure>
+<p>在某些情况下，服务器可能需要从流中读取数据，并在稍后决定将缓冲的字节解释为WebSocket升级请求。为了满足这种需求，accept和async_accept提供了接受额外缓冲区参数的重载版本。</p>
+<p>以下是一个示例，展示了服务器如何将初始的HTTP请求头部读取到一个动态缓冲区中，然后稍后使用缓冲的数据尝试进行WebSocket升级：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">std::string s;</span><br><span class="line">net::<span class="built_in">read_until</span>(sock, net::<span class="built_in">dynamic_buffer</span>(s), <span class="string">&quot;\r\n\r\n&quot;</span>);</span><br><span class="line">ws.<span class="built_in">accept</span>(net::<span class="built_in">buffer</span>(s));</span><br></pre></td></tr></table></figure>
+
+<p>在实现同时支持WebSocket的HTTP服务器时，服务器通常需要从客户端读取HTTP请求。为了检测传入的HTTP请求是否是WebSocket升级请求，可以使用函数is_upgrade。</p>
+<p>一旦调用者确定HTTP请求是WebSocket升级请求，就会提供额外的accept和async_accept重载版本，这些版本接收整个HTTP请求头作为一个对象，以进行握手处理。通过手动读取请求，程序可以处理普通的HTTP请求以及升级请求。程序还可以根据HTTP字段强制执行策略，例如基本身份验证。在这个示例中，首先使用HTTP算法读取请求，然后将其传递给新构建的流：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">flat_buffer buffer;</span><br><span class="line">http::request&lt;http::string_body&gt; req;</span><br><span class="line">http::<span class="built_in">read</span>(sock, buffer, req);</span><br><span class="line"><span class="keyword">if</span>(websocket::<span class="built_in">is_upgrade</span>(req))</span><br><span class="line">&#123;</span><br><span class="line">    <span class="function">stream&lt;tcp_stream&gt; <span class="title">ws</span><span class="params">(std::move(sock))</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">BOOST_ASSERT</span>(buffer.<span class="built_in">size</span>() == <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">    ws.<span class="built_in">accept</span>(req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>所以综上所述，在构建websocket升级时，可以用两种方式，一种是websocket来accept，另一种是在处理http的请求时将请求升级为websocket。<br>而这两种我们在实战的代码中都有实现，可以下载源码查看。</p>
+<h2 id="收发数据"><a href="#收发数据" class="headerlink" title="收发数据"></a>收发数据</h2><p>当我们建立好websocket的握手后，就可以通过读写操作收发数据了。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">flat_buffer buffer;</span><br><span class="line">ws.<span class="built_in">read</span>(buffer);</span><br><span class="line">ws.<span class="built_in">text</span>(ws.<span class="built_in">got_text</span>());</span><br><span class="line">ws.<span class="built_in">write</span>(buffer.<span class="built_in">data</span>());</span><br><span class="line">buffer.<span class="built_in">consume</span>(buffer.<span class="built_in">size</span>());</span><br></pre></td></tr></table></figure>
+<p>上面的代码片段采用同步读和同步写的方式，根据接收消息的类型设置 WebSocket 连接的模式。<br>回显接收到的消息给对等端。<br>清空缓冲区，以便下一次读取可以开始构建新的消息。</p>
+<p>但有些场景我们不能通过buffer一次性的读出数据</p>
+<p>这是一些使用场景，这些场景中无法预先缓冲整个消息：</p>
+<ol>
+<li><p>向终端流式传输多媒体：在流式传输多媒体到终端时，通常不适合或不可能预先缓冲整个消息。例如，在实时视频流或音频流的传输过程中，数据可能以非常大的速率产生，并且需要立即传输给接收端进行实时播放。由于数据量巨大且需即时传输，预先缓冲整个消息可能会导致延迟或资源耗尽。</p>
+</li>
+<li><p>发送超出内存容量的消息：有时候需要发送的消息太大，无法一次性完全存储在内存中。这可能发生在需要传输大型文件或大量数据的情况下。如果尝试将整个消息加载到内存中，可能会导致内存溢出或系统性能下降。在这种情况下，需要通过分块或逐步读取的方式来发送消息，以便逐步加载和传输数据。</p>
+</li>
+<li><p>提供增量结果：在某些情况下，需要在处理过程中提供增量的结果，而不是等待整个处理完成后再返回结果。这可以在长时间运行的计算、搜索或处理任务中发生。通过逐步提供部分结果，可以让用户或应用程序更早地获得一些数据，并可以在处理过程中进行进一步的操作或显示。这种方式可以改善用户体验，并减少等待时间。</p>
+</li>
+</ol>
+<p>在这些特定的使用场景中，需要采用逐步处理、流式传输或增量输出的方式，而不是依赖于预先缓冲整个消息。这样可以提高性能、降低内存消耗，并满足特定需求。</p>
+<p>如下是asio提供的官方案例，通过流式读取的方式获取对端信息</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">multi_buffer buffer;</span><br><span class="line"></span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">&#123;</span><br><span class="line">    ws.<span class="built_in">read_some</span>(buffer, <span class="number">512</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">while</span>(! ws.<span class="built_in">is_message_done</span>());</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">ws.<span class="built_in">binary</span>(ws.<span class="built_in">got_binary</span>());</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">buffers_suffix&lt;multi_buffer::const_buffers_type&gt; cb&#123;buffer.<span class="built_in">data</span>()&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span>(;;)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span>(<span class="built_in">buffer_bytes</span>(cb) &gt; <span class="number">512</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        ws.<span class="built_in">write_some</span>(<span class="literal">false</span>, <span class="built_in">buffers_prefix</span>(<span class="number">512</span>, cb));</span><br><span class="line">        cb.<span class="built_in">consume</span>(<span class="number">512</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        ws.<span class="built_in">write_some</span>(<span class="literal">true</span>, cb);</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">buffer.<span class="built_in">consume</span>(buffer.<span class="built_in">size</span>());</span><br></pre></td></tr></table></figure>
+
+<p>这段代码涉及 WebSocket 数据的读取和写入操作。以下是对每个部分的解释：</p>
+<p>1 <code>multi_buffer buffer;</code><br>这行代码定义了一个名为 <code>buffer</code> 的 <code>multi_buffer</code> 对象，用于存储读取的 WebSocket 数据。</p>
+<p>2 <code>do &#123; ... &#125; while(! ws.is_message_done());</code><br>这部分代码使用一个循环，连续调用 ws.read_some 方法从 WebSocket 连接中读取数据，并将其存储到 buffer 中，直到 WebSocket 消息全部接收完成。</p>
+<p>3 <code>ws.binary(ws.got_binary());</code><br>此行代码将 WebSocket 连接设置为二进制模式，以便在后续的写入操作中正确处理二进制数据。</p>
+<p>4 <code>buffers_suffix&lt;multi_buffer::const_buffers_type&gt; cb&#123;buffer.data()&#125;;</code><br>这行代码创建了一个 cb 对象，它是 buffer 的后缀子序列。它提供了对 buffer 中已接收数据的访问。</p>
+<p>5 <code>if(buffer_bytes(cb) &gt; 512) &#123; ... &#125; else &#123; ... &#125;</code><br>这段代码检查 cb 中的数据量是否大于 512 字节。如果是，将执行 if 语句块；否则，将执行 else 语句块。</p>
+<p>6 <code>ws.write_some(false, buffers_prefix(512, cb));</code><br>如果 cb 中的数据量大于 512 字节，此行代码将发送 cb 的前缀（前 512 字节）到 WebSocket 连接中，并保留剩余的数据。</p>
+<p>7 <code>cb.consume(512);</code><br>这行代码告知 cb 对象消耗了前 512 字节的数据，以便在后续迭代中更新迭代范围。</p>
+<p>8 <code>ws.write_some(true, cb);</code><br>如果 cb 中的数据量少于等于 512 字节，此行代码将发送 cb 中的所有数据到 WebSocket 连接中。</p>
+<p>buffer.consume(buffer.size());<br>这行代码清空 buffer 中存储的数据，使其为空。</p>
+<p>总体来说，这段代码的作用是读取 WebSocket 数据并将其写回 WebSocket 连接，确保数据按照预期进行处理。最后，通过 buffer.consume(buffer.size()) 清空缓冲区，准备下一次数据读取操作。</p>
+<h2 id="关闭连接"><a href="#关闭连接" class="headerlink" title="关闭连接"></a>关闭连接</h2><p>当我们想关闭连接时，可以通过close 或 async_close 的关闭函数。<br>具体而言，WebSocket 协议规定了两种关闭方式：</p>
+<p><code>close</code><br>这是一个同步操作的函数，用于关闭 WebSocket 会话。当调用 close 时，客户端或服务器会向对方发送一个关闭帧，并且在收到对方的关闭帧后，会话将被正常关闭。</p>
+<p>async_close<br>这是一个异步操作的函数，用于关闭 WebSocket 会话。与 close 不同，async_close 是一个非阻塞操作，它不会等待对方的关闭帧，而是立即返回，并触发一个异步关闭操作。这样可以在关闭过程中继续处理其他任务，而不必等待关闭完成。</p>
+<p>这些关闭函数允许主机在 WebSocket 会话中发起关闭请求，以便安全地终止连接。应用程序可以根据需要选择适合的关闭函数，具体取决于其对同步或异步关闭的要求。</p>
+<p>因为一个websocket会包含多个层，所以我们可以通过获取最底层，再执行关闭。这样保证所有层都安全关闭。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">get_lowest_layer</span>(wss).<span class="built_in">close</span>();</span><br></pre></td></tr></table></figure>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>上面讲述了beast网络库websocket的使用方法，我通过实战，利用异步函数封装了一个websocket服务器，可以从下面的源码连接里看看项目代码。</p>
+<p>视频连接<a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=313101">https://space.bilibili.com/271469206/channel/collectiondetail?sid=313101</a></p>
+<p>源码链接<a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn">https://gitee.com/secondtonone1/boostasio-learn</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/06/24/asio23/" rel="next" title="beast网络库搭建http服务器">
+                <i class="fa fa-chevron-left"></i> beast网络库搭建http服务器
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/07/15/asio25/" rel="prev" title="网络答疑汇总">
+                网络答疑汇总 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">277</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9E%84%E9%80%A0websocket"><span class="nav-number">2.</span> <span class="nav-text">构造websocket</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8SSL"><span class="nav-number">3.</span> <span class="nav-text">使用SSL</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9E%E6%8E%A5"><span class="nav-number">4.</span> <span class="nav-text">连接</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8F%A1%E6%89%8B"><span class="nav-number">5.</span> <span class="nav-text">握手</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%94%B6%E5%8F%91%E6%95%B0%E6%8D%AE"><span class="nav-number">6.</span> <span class="nav-text">收发数据</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E9%97%AD%E8%BF%9E%E6%8E%A5"><span class="nav-number">7.</span> <span class="nav-text">关闭连接</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">8.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

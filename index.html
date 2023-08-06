@@ -286,6 +286,1317 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/07/31/concpp/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2023/07/31/concpp/" itemprop="url">C++ 并发(1) 线程基础</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-07-31T16:13:10+08:00">
+                2023-07-31
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文主要介绍线程的基本管控，包括线程的发起，等待，异常条件下如何等待以及后台运行等基础操作。</p>
+<h2 id="线程发起"><a href="#线程发起" class="headerlink" title="线程发起"></a>线程发起</h2><p>线程发起顾名思义就是启动一个线程，C++11标准统一了线程操作，可以在定义一个线程变量后，该变量启动线程执行回调逻辑。如下即可发起一个线程</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">thead_work1</span><span class="params">(std::string str)</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;str is &quot;</span> &lt;&lt; str &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//1 通过()初始化并启动一个线程</span></span><br><span class="line"><span class="function">std::thread <span class="title">t1</span><span class="params">(thead_work1, hellostr)</span></span>;</span><br></pre></td></tr></table></figure>
+<h2 id="线程等待"><a href="#线程等待" class="headerlink" title="线程等待"></a>线程等待</h2><p>当我们启动一个线程后，线程可能没有立即执行，如果在局部作用域启动了一个线程，或者main函数中，很可能子线程没运行就被回收了，回收时会调用线程的析构函数，执行terminate操作。所以为了防止主线程退出或者局部作用域结束导致子线程被析构的情况，我们可以通过join，让主线程等待子线程启动运行，子线程运行结束后主线程再运行。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">std::string hellostr = <span class="string">&quot;hello world!&quot;</span>;</span><br><span class="line"><span class="comment">//1 通过()初始化并启动一个线程</span></span><br><span class="line"><span class="function">std::thread <span class="title">t1</span><span class="params">(thead_work1, hellostr)</span></span>;</span><br><span class="line"><span class="comment">//2 主线程等待子线程退出</span></span><br><span class="line">t1.<span class="built_in">join</span>();</span><br></pre></td></tr></table></figure>
+<h2 id="仿函数作为参数"><a href="#仿函数作为参数" class="headerlink" title="仿函数作为参数"></a>仿函数作为参数</h2><p>当我们用仿函数作为参数传递给线程时，也可以达到启动线程执行某种操作的含义</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">background_task</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">operator</span><span class="params">()</span><span class="params">(std::string str)</span> </span>&#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;str is &quot;</span> &lt;&lt; str &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>如果采用如下方式启动函数，那一定会报错的。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::thread <span class="title">t2</span><span class="params">(background_task())</span></span>;</span><br><span class="line">t2.<span class="built_in">join</span>();</span><br></pre></td></tr></table></figure>
+
+<p>因为编译器会将t2当成一个函数对象, 返回一个std::thread类型的值, 函数的参数为一个函数指针,该函数指针返回值为background_task, 参数为void。可以理解为如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;std::thread (*)(background_task (*)())&quot;</span></span><br></pre></td></tr></table></figure>
+<p>修改的方式很简单</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//可多加一层()</span></span><br><span class="line"><span class="function">std::thread <span class="title">t2</span><span class="params">((background_task()))</span></span>;</span><br><span class="line">t2.<span class="built_in">join</span>();</span><br><span class="line">    </span><br><span class="line"><span class="comment">//可使用&#123;&#125;方式初始化</span></span><br><span class="line">std::thread t3&#123; <span class="built_in">background_task</span>() &#125;;</span><br><span class="line">t3.<span class="built_in">join</span>();</span><br></pre></td></tr></table></figure>
+<h2 id="lambda表达式"><a href="#lambda表达式" class="headerlink" title="lambda表达式"></a>lambda表达式</h2><p>lambda 表达式也可以作为线程的参数传递给thread</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function">std::thread <span class="title">t4</span><span class="params">([](std::string  str) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">    std::cout &lt;&lt; <span class="string">&quot;str is &quot;</span> &lt;&lt; str &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">&#125;,  hellostr)</span></span>;</span><br><span class="line"></span><br><span class="line">t4.<span class="built_in">join</span>();</span><br></pre></td></tr></table></figure>
+<h2 id="线程detach"><a href="#线程detach" class="headerlink" title="线程detach"></a>线程detach</h2><p>线程允许采用分离的方式在后台独自运行，<code>C++ concurrent programing</code>书中称其为守护线程。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">func</span> &#123;</span><br><span class="line">    <span class="type">int</span>&amp; _i;</span><br><span class="line">    <span class="built_in">func</span>(<span class="type">int</span> &amp; i): _i(i)&#123;&#125;</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">operator</span><span class="params">()</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">3</span>; i++) &#123;</span><br><span class="line">            _i = i;</span><br><span class="line">            std::cout &lt;&lt; <span class="string">&quot;_i is &quot;</span> &lt;&lt; _i &lt;&lt; std::endl;</span><br><span class="line">            std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">1</span>));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">oops</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">		<span class="type">int</span> some_local_state = <span class="number">0</span>;</span><br><span class="line">		<span class="function">func <span class="title">myfunc</span><span class="params">(some_local_state)</span></span>;</span><br><span class="line">		<span class="function">std::thread <span class="title">functhread</span><span class="params">(myfunc)</span></span>;</span><br><span class="line">		<span class="comment">//隐患，访问局部变量，局部变量可能会随着&#125;结束而回收或随着主线程退出而回收</span></span><br><span class="line">		functhread.<span class="built_in">detach</span>();	</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// detach 注意事项</span></span><br><span class="line"><span class="built_in">oops</span>();</span><br><span class="line"><span class="comment">//防止主线程退出过快，需要停顿一下，让子线程跑起来detach</span></span><br><span class="line">std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">1</span>));</span><br></pre></td></tr></table></figure>
+<p>上面的例子存在隐患，因为<code>some_local_state</code>是局部变量, 当<code>oops</code>调用结束后局部变量<code>some_local_state</code>就可能被释放了，而线程还在detach后台运行，容易出现崩溃。<br>所以当我们在线程中使用局部变量的时候可以采取几个措施解决局部变量的问题</p>
+<ul>
+<li>通过智能指针传递参数，因为引用计数会随着赋值增加，可保证局部变量在使用期间不被释放，这也就是我们之前提到的伪闭包策略。</li>
+<li>将局部变量的值作为参数传递，这么做需要局部变量有拷贝复制的功能，而且拷贝耗费空间和效率。</li>
+<li>将线程运行的方式修改为join，这样能保证局部变量被释放前线程已经运行结束。但是这么做可能会影响运行逻辑。<br>比如下面的修改<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_join</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span> some_local_state = <span class="number">0</span>;</span><br><span class="line">    <span class="function">func <span class="title">myfunc</span><span class="params">(some_local_state)</span></span>;</span><br><span class="line">    <span class="function">std::thread <span class="title">functhread</span><span class="params">(myfunc)</span></span>;</span><br><span class="line">    functhread.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// join 用法</span></span><br><span class="line"><span class="built_in">use_join</span>();</span><br></pre></td></tr></table></figure>
+<h2 id="异常处理"><a href="#异常处理" class="headerlink" title="异常处理"></a>异常处理</h2></li>
+</ul>
+<p>当我们启动一个线程后，如果主线程产生崩溃，会导致子线程也会异常退出，就是调用terminate，如果子线程在进行一些重要的操作比如将充值信息入库等，丢失这些信息是很危险的。所以常用的做法是捕获异常，并且在异常情况下保证子线程稳定运行结束后，主线程抛出异常结束运行。如下面的逻辑</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">catch_exception</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span> some_local_state = <span class="number">0</span>;</span><br><span class="line">    <span class="function">func <span class="title">myfunc</span><span class="params">(some_local_state)</span></span>;</span><br><span class="line">    std::thread  functhread&#123; myfunc &#125;;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">//本线程做一些事情,可能引发崩溃</span></span><br><span class="line">        std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">1</span>));</span><br><span class="line">    &#125;<span class="built_in">catch</span> (std::exception&amp; e) &#123;</span><br><span class="line">        functhread.<span class="built_in">join</span>();</span><br><span class="line">        <span class="keyword">throw</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    functhread.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>但是用这种方式编码，会显得臃肿，可以采用RAII技术，保证线程对象析构的时候等待线程运行结束，回收资源。如果大家还记得我基于asio实现异步服务时，逻辑处理类LogicSystem的析构函数里等待线程退出。那我们写一个简单的线程守卫</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">thread_guard</span> &#123;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    std::thread&amp; <span class="type">_t</span>;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="keyword">explicit</span> <span class="title">thread_guard</span><span class="params">(std::thread&amp; t)</span>:_t(t)&#123;</span>&#125;</span><br><span class="line">    ~<span class="built_in">thread_guard</span>() &#123;</span><br><span class="line">        <span class="comment">//join只能调用一次</span></span><br><span class="line">        <span class="keyword">if</span> (<span class="type">_t</span>.<span class="built_in">joinable</span>()) &#123;</span><br><span class="line">            <span class="type">_t</span>.<span class="built_in">join</span>();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">thread_guard</span>(thread_guard <span class="type">const</span>&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">    thread_guard&amp; <span class="keyword">operator</span>=(thread_guard <span class="type">const</span>&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>可以这么使用</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">auto_guard</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span> some_local_state = <span class="number">0</span>;</span><br><span class="line">    <span class="function">func <span class="title">my_func</span><span class="params">(some_local_state)</span></span>;</span><br><span class="line">    <span class="function">std::thread  <span class="title">t</span><span class="params">(my_func)</span></span>;</span><br><span class="line">    <span class="function">thread_guard <span class="title">g</span><span class="params">(t)</span></span>;</span><br><span class="line">    <span class="comment">//本线程做一些事情</span></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;auto guard finished &quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="built_in">auto_guard</span>();</span><br></pre></td></tr></table></figure>
+<h2 id="慎用隐式转换"><a href="#慎用隐式转换" class="headerlink" title="慎用隐式转换"></a>慎用隐式转换</h2><p>C++中会有一些隐式转换，比如<code>char*</code> 转换为<code>string</code>等。这些隐式转换在线程的调用上可能会造成崩溃问题</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">danger_oops</span><span class="params">(<span class="type">int</span> som_param)</span> </span>&#123;</span><br><span class="line">    <span class="type">char</span> buffer[<span class="number">1024</span>];</span><br><span class="line">    <span class="built_in">sprintf</span>(buffer, <span class="string">&quot;%i&quot;</span>, som_param);</span><br><span class="line">    <span class="comment">//在线程内部将char const* 转化为std::string</span></span><br><span class="line">    <span class="comment">//指针常量  char const*  指针本身不能变</span></span><br><span class="line">    <span class="comment">//常量指针  const char * 指向的内容不能变</span></span><br><span class="line">    <span class="function">std::thread <span class="title">t</span><span class="params">(print_str, <span class="number">3</span>, buffer)</span></span>;</span><br><span class="line">    t.<span class="built_in">detach</span>();</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;danger oops finished &quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当我们定义一个线程变量<code>thread t</code>时，传递给这个线程的参数<code>buffer</code>会被保存到<code>thread</code>的成员变量中。<br>而在线程对象t内部启动并运行线程时，参数才会被传递给调用函数<code>print_str</code>。<br>而此时<code>buffer</code>可能随着<code>&#125;</code>运行结束而释放了。<br>改进的方式很简单，我们将参数传递给<code>thread</code>时显示转换为<code>string</code>就可以了，<br>这样<code>thread</code>内部保存的是<code>string</code>类型。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">safe_oops</span><span class="params">(<span class="type">int</span> some_param)</span> </span>&#123;</span><br><span class="line">    <span class="type">char</span> buffer[<span class="number">1024</span>];</span><br><span class="line">    <span class="built_in">sprintf</span>(buffer, <span class="string">&quot;%i&quot;</span>, some_param);</span><br><span class="line">    <span class="function">std::thread <span class="title">t</span><span class="params">(print_str, <span class="number">3</span>, std::string(buffer))</span></span>;</span><br><span class="line">    t.<span class="built_in">detach</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>关于为什么参数会像我说的这样保存和调用，我在之后会按照源码给大家讲一讲。</p>
+<h2 id="引用参数"><a href="#引用参数" class="headerlink" title="引用参数"></a>引用参数</h2><p>当线程要调用的回调函数参数为引用类型时，需要将参数显示转化为引用对象传递给线程的构造函数，<br>如果采用如下调用会编译失败</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">change_param</span><span class="params">(<span class="type">int</span>&amp; param)</span> </span>&#123;</span><br><span class="line">    param++;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">ref_oops</span><span class="params">(<span class="type">int</span> some_param)</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;before change , param is &quot;</span> &lt;&lt; some_param &lt;&lt; std::endl;</span><br><span class="line">	<span class="comment">//需使用引用显示转换</span></span><br><span class="line">	<span class="function">std::thread  <span class="title">t2</span><span class="params">(change_param, some_param)</span></span>;</span><br><span class="line">	t2.<span class="built_in">join</span>();</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;after change , param is &quot;</span> &lt;&lt; some_param &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>即使函数<code>change_param</code>的参数为<code>int&amp;</code>类型，我们传递给t2的构造函数为<code>some_param</code>,也不会达到在<code>change_param</code>函数内部修改关联到外部<code>some_param</code>的效果。因为<code>some_param</code>在传递给<code>thread</code>的构造函数后会转变为右值保存，右值传递给一个左值引用会出问题，所以编译出了问题。<br>改为如下调用就可以了</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">ref_oops</span><span class="params">(<span class="type">int</span> some_param)</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;before change , param is &quot;</span> &lt;&lt; some_param &lt;&lt; std::endl;</span><br><span class="line">	<span class="comment">//需使用引用显示转换</span></span><br><span class="line">	<span class="function">std::thread  <span class="title">t2</span><span class="params">(change_param, std::ref(some_param))</span></span>;</span><br><span class="line">	t2.<span class="built_in">join</span>();</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;after change , param is &quot;</span> &lt;&lt; some_param &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="thread原理"><a href="#thread原理" class="headerlink" title="thread原理"></a>thread原理</h2><p>为了详细说明thread参数传递和调用原理，我们看看源码</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> <span class="title class_">_Fn</span>, <span class="keyword">class</span>... _Args, <span class="type">enable_if_t</span>&lt;!is_same_v&lt;_Remove_cvref_t&lt;_Fn&gt;, thread&gt;, <span class="type">int</span>&gt; = <span class="number">0</span>&gt;</span><br><span class="line">_NODISCARD_CTOR <span class="keyword">explicit</span> <span class="built_in">thread</span>(_Fn&amp;&amp; _Fx, _Args&amp;&amp;... _Ax) &#123;</span><br><span class="line">    _Start(_STD forward&lt;_Fn&gt;(_Fx), _STD forward&lt;_Args&gt;(_Ax)...);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>thread构造函数内部通过<code>forward</code>原样转换传递给<code>_Start</code>函数。关于原样转换的知识可以看我之前写的文章。<br><code>_Start</code> 函数内部就是启动了一个线程<code>_beginthreadex</code>执行回调函数。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> <span class="title class_">_Fn</span>, <span class="keyword">class</span>... _Args&gt;</span><br><span class="line">    <span class="type">void</span> _Start(_Fn&amp;&amp; _Fx, _Args&amp;&amp;... _Ax) &#123;</span><br><span class="line">        <span class="keyword">using</span> _Tuple                 = tuple&lt;<span class="type">decay_t</span>&lt;_Fn&gt;, <span class="type">decay_t</span>&lt;_Args&gt;...&gt;;</span><br><span class="line">        <span class="keyword">auto</span> _Decay_copied           = _STD <span class="built_in">make_unique</span>&lt;_Tuple&gt;(_STD forward&lt;_Fn&gt;(_Fx), _STD forward&lt;_Args&gt;(_Ax)...);</span><br><span class="line">        <span class="keyword">constexpr</span> <span class="keyword">auto</span> _Invoker_proc = _Get_invoke&lt;_Tuple&gt;(make_index_sequence&lt;<span class="number">1</span> + <span class="keyword">sizeof</span>...(_Args)&gt;&#123;&#125;);</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">pragma</span> <span class="keyword">warning</span>(push)</span></span><br><span class="line"><span class="meta">#<span class="keyword">pragma</span> <span class="keyword">warning</span>(disable : 5039) <span class="comment">// pointer or reference to potentially throwing function passed to</span></span></span><br><span class="line">                                <span class="comment">// extern C function under -EHc. Undefined behavior may occur</span></span><br><span class="line">                                <span class="comment">// if this function throws an exception. (/Wall)</span></span><br><span class="line">        _Thr._Hnd =</span><br><span class="line">            <span class="built_in">reinterpret_cast</span>&lt;<span class="type">void</span>*&gt;(_CSTD _beginthreadex(<span class="literal">nullptr</span>, <span class="number">0</span>, _Invoker_proc, _Decay_copied.<span class="built_in">get</span>(), <span class="number">0</span>, &amp;_Thr._Id));</span><br><span class="line"><span class="meta">#<span class="keyword">pragma</span> <span class="keyword">warning</span>(pop)</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (_Thr._Hnd) &#123; <span class="comment">// ownership transferred to the thread</span></span><br><span class="line">            (<span class="type">void</span>) _Decay_copied.<span class="built_in">release</span>();</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123; <span class="comment">// failed to start thread</span></span><br><span class="line">            _Thr._Id = <span class="number">0</span>;</span><br><span class="line">            _Throw_Cpp_error(_RESOURCE_UNAVAILABLE_TRY_AGAIN);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们对应<code>ref_oops</code>内部函数的调用，<code>_Start</code>的参数就是<code>void _Start(change_param&amp;&amp; _Fx, int&amp;&amp; Ax)</code></p>
+<p><code>_beginthreadex</code>函数参数分别是安全参数，栈大小，调用函数地址，调用函数参数，初始标记，第三方参数地址。<br>我们关注<code>_beginthreadex</code>的调用函数和参数，调用函数为<code>_Invoker_proc</code>,参数为<code>_Decay_copied</code><br>我们看看这两个变量的定义</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span> _Decay_copied           = _STD <span class="built_in">make_unique</span>&lt;_Tuple&gt;(_STD forward&lt;_Fn&gt;(_Fx), _STD forward&lt;_Args&gt;</span><br><span class="line"><span class="keyword">constexpr</span> <span class="keyword">auto</span> _Invoker_proc = _Get_invoke&lt;_Tuple&gt;(make_index_sequence&lt;<span class="number">1</span> + <span class="keyword">sizeof</span>...(_Args)&gt;&#123;&#125;);</span><br></pre></td></tr></table></figure>
+<p>_Decay_copied 可以理解为</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span> _Decay_copied           = _STD <span class="built_in">make_unique</span>&lt;_Tuple&gt;(_STD forward&lt;change_param&gt;(_Fx), _STD forward&lt;<span class="type">int</span>&gt;</span><br></pre></td></tr></table></figure>
+<p>_Invoker_proc 可以理解为封装的可调用对象</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">constexpr</span> <span class="keyword">auto</span> _Invoker_proc = _Get_invoke&lt;_Tuple&gt;(make_index_sequence&lt;<span class="number">1</span> + <span class="keyword">sizeof</span>...(<span class="type">int</span>)&gt;&#123;&#125;);</span><br></pre></td></tr></table></figure>
+<p>我们做一个简化</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">constexpr</span> <span class="keyword">auto</span> _Invoker_proc = _Get_invoke&lt;_Tuple&gt;(make_index_sequence&lt;<span class="number">2</span>&gt;&#123;&#125;);</span><br></pre></td></tr></table></figure>
+<p>其实就是将参数的索引0,1按照序列传递给<code>_Get_invoke</code><br><code>_Get_invoke</code>原型为</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">_NODISCARD <span class="type">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> _Get_invoke(index_sequence&lt;_Indices...&gt;) <span class="keyword">noexcept</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> &amp;_Invoke&lt;_Tuple, _Indices...&gt;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>所以<code>_Get_invoke</code>函数原型为</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> <span class="title class_">_Tuple</span>, <span class="type">size_t</span>... _Indices&gt;</span><br><span class="line"><span class="type">static</span> <span class="type">unsigned</span> <span class="type">int</span> __stdcall _Invoke(<span class="type">void</span>* _RawVals) <span class="keyword">noexcept</span> <span class="comment">/* terminates */</span> &#123;</span><br><span class="line"><span class="comment">// adapt invoke of user&#x27;s callable object to _beginthreadex&#x27;s thread procedure</span></span><br><span class="line"><span class="type">const</span> unique_ptr&lt;_Tuple&gt; _FnVals(<span class="built_in">static_cast</span>&lt;_Tuple*&gt;(_RawVals));</span><br><span class="line">_Tuple&amp; _Tup = *_FnVals;</span><br><span class="line"><span class="function">_STD <span class="title">invoke</span><span class="params">(_STD move(_STD get&lt;_Indices&gt;(_Tup))...)</span></span>;</span><br><span class="line">_Cnd_do_broadcast_at_thread_exit(); <span class="comment">// TRANSITION, ABI</span></span><br><span class="line"><span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>所以我们可以理解为调用<code>_Get_invoke</code>就是调用<code>invoke(_STD move(_STD get&lt;_Indices&gt;(_Tup))...);</code><br><code>invoke(_STD move(_STD get&lt;_Indices&gt;(_Tup))...);</code>就是将回调函数和参数传递给<code>invoke</code></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">CONSTEXPR17 <span class="keyword">auto</span> <span class="title">invoke</span><span class="params">(_Callable&amp;&amp; _Obj, _Ty1&amp;&amp; _Arg1, _Types2&amp;&amp;... _Args2)</span> <span class="title">noexcept</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="keyword">noexcept</span>(_Invoker1&lt;_Callable, _Ty1&gt;::_Call(</span></span></span><br><span class="line"><span class="params"><span class="function">        <span class="keyword">static_cast</span>&lt;_Callable&amp;&amp;&gt;(_Obj), <span class="keyword">static_cast</span>&lt;_Ty1&amp;&amp;&gt;(_Arg1), <span class="keyword">static_cast</span>&lt;_Types2&amp;&amp;&gt;(_Args2)...)))</span></span></span><br></pre></td></tr></table></figure>
+<p><code>invoke</code>实际就是调用了<code>_Call</code>函数,<code>_Call</code>的作用就是调用回调函数，并传递给回调函数参数，可以理解为向change_param<br>传递int类型的右值数据</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">change_param</span>(<span class="type">int</span>&amp;&amp; _Arg1)</span><br></pre></td></tr></table></figure>
+<p>这与<code>change_param</code>的定义不符合，<code>change_param</code>参数为左值引用， 不能绑定右值，也就是编译错误的原因。</p>
+<p>所以在这里大家就理解了传递给<code>thread</code> 的参数都是按照右值的方式构造为Tuple类型，传递给系统级别函数<code>_beginthreadex</code>调用的。<br>那为什么使用<code>std::ref</code>就可以实现引用效果呢？<br>这里我们看下<code>std::ref</code>的源码</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> <span class="title class_">_Ty</span>&gt;</span><br><span class="line"><span class="function">_NODISCARD _CONSTEXPR20 reference_wrapper&lt;_Ty&gt; <span class="title">ref</span><span class="params">(_Ty&amp; _Val)</span> <span class="keyword">noexcept</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">reference_wrapper</span>&lt;_Ty&gt;(_Val);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>reference_wrapper</code>是一个类类型，说白了就是将参数的地址和类型保存起来。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">_CONSTEXPR20 <span class="title">reference_wrapper</span><span class="params">(_Uty&amp;&amp; _Val)</span> <span class="title">noexcept</span><span class="params">(<span class="keyword">noexcept</span>(_Refwrap_ctor_fun&lt;_Ty&gt;(_STD declval&lt;_Uty&gt;())))</span> </span>&#123;</span><br><span class="line">    _Ty&amp; _Ref = <span class="built_in">static_cast</span>&lt;_Uty&amp;&amp;&gt;(_Val);</span><br><span class="line">     _Ptr      = _STD <span class="built_in">addressof</span>(_Ref);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当我们要使用这个类对象时，自动转化为取内部参数的地址里的数据即可，就达到了和实参关联的效果</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"> _CONSTEXPR20 <span class="keyword">operator</span> _Ty&amp;() <span class="type">const</span> <span class="keyword">noexcept</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> *_Ptr;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function">_NODISCARD _CONSTEXPR20 _Ty&amp; <span class="title">get</span><span class="params">()</span> <span class="type">const</span> <span class="keyword">noexcept</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> *_Ptr;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>所以我们可以这么理解传递给thread对象构造函数的参数，仍然作为右值被保存，如<code>ref(int)</code>实际是作为<code>reference_wrapper(int)</code>对象保存在threa的类成员里。<br>而调用的时候触发了仿函数<code>()</code>进而获取到外部实参的地址内的数据。</p>
+<h2 id="绑定类成员函数"><a href="#绑定类成员函数" class="headerlink" title="绑定类成员函数"></a>绑定类成员函数</h2><p>有时候我们需要绑定一个类的成员函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">X</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">do_lengthy_work</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;do_lengthy_work &quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">bind_class_oops</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	X my_x;</span><br><span class="line">	<span class="function">std::thread <span class="title">t</span><span class="params">(&amp;X::do_lengthy_work, &amp;my_x)</span></span>;</span><br><span class="line">    t.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里大家注意一下，如果thread绑定的回调函数是普通函数，可以在函数前加<code>&amp;</code>或者不加<code>&amp;</code>，因为编译器默认将普通函数名作为函数地址，如下两种写法都正确</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">thead_work1</span><span class="params">(std::string str)</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;str is &quot;</span> &lt;&lt; str &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">std::string hellostr = <span class="string">&quot;hello world!&quot;</span>;</span><br><span class="line"><span class="comment">//两种方式都正确</span></span><br><span class="line"><span class="function">std::thread <span class="title">t1</span><span class="params">(thead_work1, hellostr)</span></span>;</span><br><span class="line"><span class="function">std::thread <span class="title">t2</span><span class="params">(&amp;thead_work1, hellostr)</span></span>;</span><br></pre></td></tr></table></figure>
+<p>但是如果是绑定类的成员函数，必须添加<code>&amp;</code></p>
+<h2 id="使用move操作"><a href="#使用move操作" class="headerlink" title="使用move操作"></a>使用move操作</h2><p>有时候传递给线程的参数是独占的，所谓独占就是不支持拷贝赋值和构造，但是我们可以通过<code>std::move</code>的方式将参数的所有权转移给线程，如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">deal_unique</span><span class="params">(std::unique_ptr&lt;<span class="type">int</span>&gt; p)</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;unique ptr data is &quot;</span> &lt;&lt; *p &lt;&lt; std::endl;</span><br><span class="line">    (*p)++;</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;after unique ptr data is &quot;</span> &lt;&lt; *p &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">move_oops</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">auto</span> p = std::<span class="built_in">make_unique</span>&lt;<span class="type">int</span>&gt;(<span class="number">100</span>);</span><br><span class="line">    <span class="function">std::thread  <span class="title">t</span><span class="params">(deal_unique, std::move(p))</span></span>;</span><br><span class="line">    t.<span class="built_in">join</span>();</span><br><span class="line">    <span class="comment">//不能再使用p了，p已经被move废弃</span></span><br><span class="line">   <span class="comment">// std::cout &lt;&lt; &quot;after unique ptr data is &quot; &lt;&lt; *p &lt;&lt; std::endl;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了<code>std::thread</code>的基本操作，具体视频可以去B站看看我的C++视频讲解</p>
+<p><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=313101&ctype=0">https://space.bilibili.com/271469206/channel/collectiondetail?sid=313101&amp;ctype=0</a></p>
+<p>代码链接</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/open-source-parsers/jsoncpp/releases">https://github.com/open-source-parsers/jsoncpp/releases</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/07/30/asio27/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2023/07/30/asio27/" itemprop="url">Linux C++ 安装和使用grpc和jsoncpp库</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-07-30T19:29:37+08:00">
+                2023-07-30
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文主要教会大家如何在Linux环境搭建C++ 所需的grpc和jsoncpp库，并教会大家如何编写cmake，并配置使用这些库。</p>
+<h2 id="解决vim乱码"><a href="#解决vim乱码" class="headerlink" title="解决vim乱码"></a>解决vim乱码</h2><p>为了解决Linux环境下打开vim中文乱码的问题<br>用vim打开用户目录下的vim配置文件</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim ~/.vimrc</span><br></pre></td></tr></table></figure>
+<p>配置如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">set termencoding=utf<span class="number">-8</span></span><br><span class="line">set encoding=utf8</span><br><span class="line">set fileencodings=utf8,ucs-bom,gbk,cp936,gb2312,gb18030</span><br></pre></td></tr></table></figure>
+<h2 id="配置和使用jsoncpp"><a href="#配置和使用jsoncpp" class="headerlink" title="配置和使用jsoncpp"></a>配置和使用jsoncpp</h2><p>如果你是ubuntu系统，可以通过如下命令直接安装</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">可以通过指令apt install  libjsoncpp-dev 安装</span><br></pre></td></tr></table></figure>
+<p>但是如果是其他Linux系统最好是手动安装源码包，我的操作都是在ubuntu为基础镜像生成的docker中进行的，如果大家使用的是宿主机，可以直接安装。<br>推荐源码安装，去github下载</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/open-source-parsers/jsoncpp/releases">https://github.com/open-source-parsers/jsoncpp/releases</a></p>
+<p>可以选择用wget 命令<br>我在电脑下好后传到云服务器上<br>然后在云服务器上copy到docker里, 如果你是在宿主机进行的，可以略去这一步。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker cp /home/ubuntu/download/jsoncpp-1.9.5.tar.gz  cppubuntu:/test</span><br></pre></td></tr></table></figure>
+
+<p>进入容器</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec -it cppubuntu /bin/bash</span><br></pre></td></tr></table></figure>
+
+<p>接下来解压压缩包，无论docker还是宿主机内，都需执行如下命令</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar zxvf ./jsoncpp-1.9.5.tar.gz </span><br></pre></td></tr></table></figure>
+
+<p>进入到源码目录</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cd  ./json</span><br></pre></td></tr></table></figure>
+
+<p>创建目录</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkdir build</span><br></pre></td></tr></table></figure>
+
+<p>进入目录</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cd build</span><br></pre></td></tr></table></figure>
+
+<p>执行cmake生成makefile</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cmake ../</span><br></pre></td></tr></table></figure>
+
+<p>执行make</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make</span><br></pre></td></tr></table></figure>
+
+<p>执行安装</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make install</span><br></pre></td></tr></table></figure>
+
+<p>更新库</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ldconfig</span><br></pre></td></tr></table></figure>
+
+<p>写一个jsoncpp的测试cpp</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span><span class="string">&lt;json/json.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span><span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span>** argv)</span> </span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">Json::Value root;</span><br><span class="line">Json::FastWriter fast;</span><br><span class="line">root[<span class="string">&quot;ModuleType&quot;</span>]= Json::<span class="built_in">Value</span>(<span class="string">&quot;你好&quot;</span>);</span><br><span class="line">root[<span class="string">&quot;ModuleCode&quot;</span>]= Json::<span class="built_in">Value</span>(<span class="string">&quot;22&quot;</span>);</span><br><span class="line">root[<span class="string">&quot;ModuleDesc&quot;</span>]= Json::<span class="built_in">Value</span>(<span class="string">&quot;33&quot;</span>);</span><br><span class="line">root[<span class="string">&quot;DateTime&quot;</span>]= Json::<span class="built_in">Value</span>(<span class="string">&quot;44&quot;</span>);</span><br><span class="line">root[<span class="string">&quot;LogType&quot;</span>]= Json::<span class="built_in">Value</span>(<span class="string">&quot;55&quot;</span>);</span><br><span class="line">cout&lt;&lt;fast.<span class="built_in">write</span>(root)&lt;&lt;endl;</span><br><span class="line"><span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>执行 编译</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">g++ jsontest.cpp  -o jsontest -ljsoncpp</span><br></pre></td></tr></table></figure>
+<p>或者写个cmake</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">cmake_minimum_required(VERSION 3.12)</span><br><span class="line">project(jsontest)</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">设置 C++ 标准</span></span><br><span class="line">set(CMAKE_CXX_STANDARD 17)</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">添加可执行文件和源文件</span></span><br><span class="line">file(GLOB SOURCES $&#123;CMAKE_CURRENT_SOURCE_DIR&#125;/*.cpp)</span><br><span class="line">set(JSONCPP_INC_DIR  /usr/local/include)</span><br><span class="line"></span><br><span class="line">add_executable(jsontest $&#123;SOURCES&#125;)</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">包含头文件路径（包括其他目录）</span></span><br><span class="line">target_include_directories(jsontest </span><br><span class="line">    PRIVATE </span><br><span class="line">    $&#123;JSONCPP_INC_DIR&#125;</span><br><span class="line">)</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">链接 Boost 库</span></span><br><span class="line">target_link_libraries(jsontest PRIVATE jsoncpp)</span><br></pre></td></tr></table></figure>
+<p>运行 <code>./jsontest</code><br>输出 </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;&quot;DateTime&quot;:&quot;44&quot;,&quot;LogType&quot;:&quot;55&quot;,&quot;ModuleCode&quot;:&quot;22&quot;,&quot;ModuleDesc&quot;:&quot;33&quot;,&quot;ModuleType&quot;:&quot;\u4f60\u597d&quot;&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="grpc配置和使用"><a href="#grpc配置和使用" class="headerlink" title="grpc配置和使用"></a>grpc配置和使用</h2><p>克隆grpc指定分支</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git clone -b v1.34.0 https://gitee.com/mirrors/grpc-framework.git grpc</span><br></pre></td></tr></table></figure>
+
+<p>进入目录并更新子模块</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd grpc</span><br><span class="line">git submodule update --init</span><br></pre></td></tr></table></figure>
+
+<p>编译并生成grpc库</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">cd grpc</span><br><span class="line">mkdir build</span><br><span class="line">cd build</span><br><span class="line">// 指定安装路径 /usr/local </span><br><span class="line">cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..</span><br><span class="line">make -j2</span><br><span class="line">sudo make install</span><br></pre></td></tr></table></figure>
+
+<p>测试安装成功与否</p>
+<p>编译源代码中的helloworld文件夹下的文件，步骤如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">进入grpc文件夹下</span></span><br><span class="line">cd examples/cpp/helloworld</span><br><span class="line">mkdir build</span><br><span class="line">cd build</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">编译</span></span><br><span class="line">cmake ..</span><br><span class="line">make -j8 </span><br></pre></td></tr></table></figure>
+<p>编译完成后，分别执行greeter_server和greeter_client即可测试。</p>
+<h2 id="项目应用grpc"><a href="#项目应用grpc" class="headerlink" title="项目应用grpc"></a>项目应用grpc</h2><p>我们的项目中也用到了grpc， 需要编写一个CMakeLists.txt 配置grpc。<br>大家可以克隆我的boost项目代码</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn">https://gitee.com/secondtonone1/boostasio-learn</a></p>
+<p>进入day19-Grpc-Server目录，我们编写如下的CMakeLists.txt</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">cmake_minimum_required(VERSION 3.1)</span><br><span class="line"></span><br><span class="line">project(GrpcServer LANGUAGES CXX)</span><br><span class="line"></span><br><span class="line">set(CMAKE_INCLUDE_CURRENT_DIR ON)</span><br><span class="line"></span><br><span class="line">set(CMAKE_CXX_STANDARD 17)</span><br><span class="line">set(CMAKE_CXX_STANDARD_REQUIRED ON)</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">假设已经安装好grpc了</span></span><br><span class="line">find_package(Threads REQUIRED)</span><br><span class="line"></span><br><span class="line">set(protobuf_MODULE_COMPATIBLE TRUE)</span><br><span class="line">find_package(Protobuf CONFIG REQUIRED)</span><br><span class="line">message(STATUS &quot;Using protobuf $&#123;Protobuf_VERSION&#125;&quot;)</span><br><span class="line"></span><br><span class="line">set(_PROTOBUF_LIBPROTOBUF protobuf::libprotobuf)</span><br><span class="line">set(_REFLECTION gRPC::grpc++_reflection)</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Find gRPC installation</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Looks <span class="keyword">for</span> gRPCConfig.cmake file installed by gRPC<span class="string">&#x27;s cmake installation.</span></span></span><br><span class="line">find_package(gRPC CONFIG REQUIRED)</span><br><span class="line">message(STATUS &quot;Using gRPC $&#123;gRPC_VERSION&#125;&quot;)</span><br><span class="line"></span><br><span class="line">set(_GRPC_GRPCPP gRPC::grpc++)</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="string">添加可执行文件和源文件</span></span></span><br><span class="line">file(GLOB SOURCES $&#123;CMAKE_CURRENT_SOURCE_DIR&#125;/*.cpp)</span><br><span class="line">file(GLOB PBSOURCES $&#123;CMAKE_CURRENT_SOURCE_DIR&#125;/*.cc)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">add_executable(GrpcServer $&#123;SOURCES&#125;</span><br><span class="line"><span class="meta prompt_">		$</span><span class="language-bash"><span class="string">&#123;PBSOURCES&#125;)</span></span></span><br><span class="line">		</span><br><span class="line">target_link_libraries(GrpcServer</span><br><span class="line">    $&#123;_REFLECTION&#125;</span><br><span class="line">    $&#123;_GRPC_GRPCPP&#125;</span><br><span class="line">    $&#123;_PROTOBUF_LIBPROTOBUF&#125;)</span><br></pre></td></tr></table></figure>
+<p>我们新建一个build文件夹</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkdir build</span><br></pre></td></tr></table></figure>
+<p>进入build文件夹里，执行<code>cmake ..</code>, 再执行<code>make</code>即可。<br>直接执行<code>GrpcServer</code>就可以看到我们的程序跑起来了。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了如何使用Linux环境下配置和使用grpc和cppjson库，我将docker打包为镜像提交到了网盘上，大家感兴趣可以下载看看</p>
+<p><a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1K-NGEh88qUMVJexY6SNA5Q?pwd=5wng">链接</a><br>提取码：5wng</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/07/23/cpp43/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2023/07/23/cpp43/" itemprop="url">可变参数模板+异步队列实现异步打印功能</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-07-23T15:51:35+08:00">
+                2023-07-23
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="场景"><a href="#场景" class="headerlink" title="场景"></a>场景</h2><p>公司有成熟的日志库，但是打印日志的功能是在调用线程里触发的，简而言之就是哪个线程调用了日志库的打印功能，就在哪个线程里输出，如果打印功能频繁，可能会影响该线程的逻辑处理。目前公司的软件界面显示和计算等逻辑很频繁，考虑用异步的方式实现打印。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2023/07/23/cpp43/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/07/21/asio26/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2023/07/21/asio26/" itemprop="url">利用Docker搭建Linux C++ Boost开发环境</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-07-21T10:15:46+08:00">
+                2023-07-21
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文介绍如何使用Docker搭建Linux环境下C++的开发环境。众所周知C++的开发环境分为Windows和Linux两种，在windows配置C++开发环境并实现了Asio服务器的开发，我们也做过QT的配置和使用，前面的教程已经很完善了，接下来介绍如何在Linux系统部署C++开发环境。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2023/07/21/asio26/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/07/15/asio25/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2023/07/15/asio25/" itemprop="url">网络答疑汇总</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-07-15T20:20:05+08:00">
+                2023-07-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>总结下目前视频教程中读者提出的问题，并逐一回答。视频地址在哔哩哔哩<br><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206">https://space.bilibili.com/271469206</a></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2023/07/15/asio25/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/25/asio24/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2023/06/25/asio24/" itemprop="url">beast网络库实现websocket服务器</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-25T15:12:48+08:00">
+                2023-06-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>使用beast网络库实现websocket服务器，一般来说websocket是一个长连接的协议，但是自动包含了解包处理，当我们在浏览器输入一个http请求时如果是以ws开头的如<code>ws://127.0.0.1:9501</code>就是请求本地9501端口的websocket服务器处理。而beast为我们提供了websocket的处理方案，我们可以在http服务器的基础上升级协议为websocket，处理部分websocket请求。如果服务器收到的是普通的http请求则按照http请求处理。我们可以从官方文档中按照示例逐步搭建websocket服务器。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2023/06/25/asio24/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/24/asio23/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2023/06/24/asio23/" itemprop="url">beast网络库搭建http服务器</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-24T17:21:08+08:00">
+                2023-06-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前面的几篇文章已经介绍了如何使用asio搭建高并发的tcp服务器，以及http服务器。但是纯手写http服务器太麻烦了，有网络库beast已经帮我们实现了。这一期讲讲如何使用beast实现一个http服务器。</p>
+<h2 id="连接类"><a href="#连接类" class="headerlink" title="连接类"></a>连接类</h2><p>我们先实现http_server函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">http_server</span><span class="params">(tcp::acceptor&amp; acceptor, tcp::socket&amp; socket)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	acceptor.<span class="built_in">async_accept</span>(socket,</span><br><span class="line">		[&amp;](beast::error_code ec)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="keyword">if</span> (!ec)</span><br><span class="line">				std::<span class="built_in">make_shared</span>&lt;http_connection&gt;(std::<span class="built_in">move</span>(socket))-&gt;<span class="built_in">start</span>();</span><br><span class="line">			<span class="built_in">http_server</span>(acceptor, socket);</span><br><span class="line">		&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2023/06/24/asio23/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/23/asio22/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2023/06/23/asio22/" itemprop="url">asio实现http服务器</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-23T11:56:51+08:00">
+                2023-06-23
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前文介绍了asio如何实现并发的长连接tcp服务器，今天介绍如何实现http服务器，在介绍实现http服务器之前，需要讲述下http报文头的格式，其实http报文头的格式就是为了避免我们之前提到的粘包现象，告诉服务器一个数据包的开始和结尾，并在包头里标识请求的类型如get或post等信息。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2023/06/23/asio22/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/16/asio21/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -565,1201 +1876,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/04/asio19/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2023/06/04/asio19/" itemprop="url">asio多线程模型IOServicePool</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-04T09:48:11+08:00">
-                2023-06-04
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/cpp/" itemprop="url" rel="index">
-                    <span itemprop="name">C++</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前面的设计，我们对asio的使用都是单线程模式，为了提升网络io并发处理的效率，这一次我们设计多线程模式下asio的使用方式。总体来说asio有两个多线程模型，第一个是启动多个线程，每个线程管理一个iocontext。第二种是只启动一个iocontext，被多个线程共享，后面的文章会对比两个模式的区别，这里先介绍第一种模式，多个线程，每个线程管理独立的iocontext服务。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2023/06/04/asio19/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/03/asio18/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2023/06/03/asio18/" itemprop="url">逻辑层设计</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-03T09:49:07+08:00">
-                2023-06-03
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/cpp/" itemprop="url" rel="index">
-                    <span itemprop="name">C++</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="优雅退出"><a href="#优雅退出" class="headerlink" title="优雅退出"></a>优雅退出</h2><p>服务器优雅退出一直是服务器设计必须考虑的一个方向，意在能通过捕获信号使服务器安全退出。我们可以通过asio提供的信号机制绑定回调函数即可实现优雅退出。在主函数中我们添加</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		boost::asio::io_context  io_context;</span><br><span class="line">		boost::<span class="function">asio::signal_set <span class="title">signals</span><span class="params">(io_context, SIGINT, SIGTERM)</span></span>;</span><br><span class="line">		signals.<span class="built_in">async_wait</span>([&amp;io_context](<span class="keyword">auto</span>, <span class="keyword">auto</span>) &#123;</span><br><span class="line">			io_context.<span class="built_in">stop</span>();</span><br><span class="line">			&#125;);</span><br><span class="line">		<span class="function">CServer <span class="title">s</span><span class="params">(io_context, <span class="number">10086</span>)</span></span>;</span><br><span class="line">		io_context.<span class="built_in">run</span>();</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">catch</span> (std::exception&amp; e) &#123;</span><br><span class="line">		std::cerr &lt;&lt; <span class="string">&quot;Exception: &quot;</span> &lt;&lt; e.<span class="built_in">what</span>() &lt;&lt; endl;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>利用signal_set 定义了一系列信号合集，并且绑定了一个匿名函数，匿名函数捕获了io_context的引用，并且函数中设置了停止操作，也就是说当捕获到SIGINT,SIGTERM等信号时，会调用<code>io_context.stop</code>。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2023/06/03/asio18/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/01/asio17/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2023/06/01/asio17/" itemprop="url">逻辑层设计和消息完善</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-01T18:45:58+08:00">
-                2023-06-01
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/cpp/" itemprop="url" rel="index">
-                    <span itemprop="name">C++</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文概述基于<code>boost::asio</code>实现的服务器逻辑层结构，并且完善之前设计的消息结构。因为为了简化粘包处理，我们简化了发送数据的结构,这次我们给出完整的消息设计，以及服务器架构设计。</p>
-<h2 id="服务器架构设计"><a href="#服务器架构设计" class="headerlink" title="服务器架构设计"></a>服务器架构设计</h2><p>之前我们设计了Session(会话层)，并且给大家讲述了Asio底层的通信过程，如下图</p>
-<p><img src="https://cdn.llfc.club/1685620269385.jpg" alt="https://cdn.llfc.club/1685620269385.jpg"></p>
-<p>我们接下来要设计的服务器结构是这样的</p>
-<p><img src="https://cdn.llfc.club/1685621283099.jpg" alt="https://cdn.llfc.club/1685621283099.jpg"></p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2023/06/01/asio17/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/05/31/asio16/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2023/05/31/asio16/" itemprop="url">windows配置和使用grpc</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-05-31T18:41:39+08:00">
-                2023-05-31
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/cpp/" itemprop="url" rel="index">
-                    <span itemprop="name">C++</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文主要讲述如何在Windows环境下使用visual studio配置grpc，并且实现grpc通信的例子。前文<a target="_blank" rel="noopener" href="https://llfc.club/articlepage?id=2QSEHcC1he1RgiewYG93ilaAMiY">windows配置和编译grpc</a>已经介绍了如何在windows环境配置grpc，接下来我们利用之前编译好的库配置到项目中，并实现grpc通信。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2023/05/31/asio16/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/05/29/qt27/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2023/05/29/qt27/" itemprop="url">QT 实现电子相册(六)--总结</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-05-29T15:44:35+08:00">
-                2023-05-29
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Qt/" itemprop="url" rel="index">
-                    <span itemprop="name">Qt</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前面几篇的讲解，我们已经完成QT电子相册的开发，这里做一个总结，说明各个类的功能，以及关联和使用情况。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2023/05/29/qt27/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/05/28/asio15/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2023/05/28/asio15/" itemprop="url">windows配置和编译grpc</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-05-28T13:56:35+08:00">
-                2023-05-28
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/cpp/" itemprop="url" rel="index">
-                    <span itemprop="name">C++</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="grpc简介"><a href="#grpc简介" class="headerlink" title="grpc简介"></a>grpc简介</h2><p>gRPC是Google开发的一种高性能、开源的远程过程调用（RPC）框架。它可以让客户端应用程序像调用本地服务一样轻松地调用远程服务，并提供了多种语言的支持，如C++、Java、Python、Go等。</p>
-<p>gRPC使用Protocol Buffers作为数据格式，可以在不同的平台上进行应用程序之间的通信，支持多种编程语言和多种操作系统。它采用基于HTTP/2的协议，提供了高效、快速且可扩展的远程调用功能，并带有负载均衡、认证、监控等功能，方便用户管理和维护分布式系统。</p>
-<p>gRPC可用于构建各种类型的分布式应用程序，如微服务、云原生应用程序、大规模Web应用程序、移动应用程序等场景。由于其高性能和可扩展性，越来越多的企业和组织开始采用gRPC来构建他们的应用程序和服务。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2023/05/28/asio15/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/05/25/asio14/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2023/05/25/asio14/" itemprop="url">asio处理粘包的简易方式</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-05-25T19:58:32+08:00">
-                2023-05-25
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/cpp/" itemprop="url" rel="index">
-                    <span itemprop="name">C++</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="简易方式"><a href="#简易方式" class="headerlink" title="简易方式"></a>简易方式</h2><p>之前我们介绍了通过async_read_some函数监听读事件，并且绑定了读事件的回调函数HandleRead</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">_socket.<span class="built_in">async_read_some</span>(boost::asio::<span class="built_in">buffer</span>(_data, MAX_LENGTH), std::<span class="built_in">bind</span>(&amp;CSession::HandleRead, <span class="keyword">this</span>, </span><br><span class="line">std::placeholders::_1, std::placeholders::_2, <span class="built_in">SharedSelf</span>()));</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2023/05/25/asio14/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/05/21/asio13/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2023/05/21/asio13/" itemprop="url">visual studio配置jsoncpp</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-05-21T10:39:51+08:00">
-                2023-05-21
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/cpp/" itemprop="url" rel="index">
-                    <span itemprop="name">C++</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="jsoncpp简介"><a href="#jsoncpp简介" class="headerlink" title="jsoncpp简介"></a>jsoncpp简介</h2><p>jsoncpp 是一个 C++ JSON 库，它提供了将 JSON 数据解析为 C++ 对象、将 C++ 对象序列化为 JSON 数据的功能。它支持所有主流操作系统（包括 Windows、Linux、Mac OS X 等），并且可以与常见编译器（包括 Visual Studio、GCC 等）兼容。</p>
-<p>jsoncpp 库是以源代码的形式发布的，因此使用者需要自己构建和链接库文件。该库文件不依赖于第三方库，只需包含头文件即可使用。</p>
-<p>jsoncpp 库的特点包括：</p>
-<ol>
-<li><p>轻量级：JSON 解析器和序列化器都非常快速，不会占用太多的 CPU 和内存资源；</p>
-</li>
-<li><p>易于使用：提供简单的 API，易于理解和使用；</p>
-</li>
-<li><p>可靠性高：经过广泛测试，已被许多企业和开发者用于生产环境中；</p>
-</li>
-<li><p>开源免费：遵循 MIT 许可证发布，使用和修改均免费。</p>
-</li>
-</ol>
-<p>总之，jsoncpp 是一款优秀的 C++ JSON 库，它可以帮助你轻松地处理 JSON 数据，为你的项目带来便利和高效。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2023/05/21/asio13/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/27/">27</a><a class="extend next" rel="next" href="/page/2/">&gt;</a>
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/28/">28</a><a class="extend next" rel="next" href="/page/2/">&gt;</a>
   </nav>
 
 
@@ -1805,7 +1926,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">269</span>
+                  <span class="site-state-item-count">277</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>

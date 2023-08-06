@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="简介前文介绍了asio如何实现并发的长连接tcp服务器，今天介绍如何实现http服务器，在介绍实现http服务器之前，需要讲述下http报文头的格式，其实http报文头的格式就是为了避免我们之前提到的粘包现象，告诉服务器一个数据包的开始和结尾，并在包头里标识请求的类型如get或post等信息。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="asio实现http服务器">
+<meta property="og:url" content="http://www.limerence2017.com/2023/06/23/asio22/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="简介前文介绍了asio如何实现并发的长连接tcp服务器，今天介绍如何实现http服务器，在介绍实现http服务器之前，需要讲述下http报文头的格式，其实http报文头的格式就是为了避免我们之前提到的粘包现象，告诉服务器一个数据包的开始和结尾，并在包头里标识请求的类型如get或post等信息。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-06-23T03:56:51.000Z">
+<meta property="article:modified_time" content="2023-06-25T01:08:23.624Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2023/06/23/asio22/"/>
+
+
+
+
+
+  <title>asio实现http服务器 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/23/asio22/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">asio实现http服务器</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-23T11:56:51+08:00">
+                2023-06-23
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前文介绍了asio如何实现并发的长连接tcp服务器，今天介绍如何实现http服务器，在介绍实现http服务器之前，需要讲述下http报文头的格式，其实http报文头的格式就是为了避免我们之前提到的粘包现象，告诉服务器一个数据包的开始和结尾，并在包头里标识请求的类型如get或post等信息。</p>
+<span id="more"></span>
+<h2 id="HTTP包头信息"><a href="#HTTP包头信息" class="headerlink" title="HTTP包头信息"></a>HTTP包头信息</h2><p>一个标准的HTTP报文头通常由请求头和响应头两部分组成。</p>
+<h3 id="HTTP-请求头"><a href="#HTTP-请求头" class="headerlink" title="HTTP 请求头"></a>HTTP 请求头</h3><p>HTTP请求头包括以下字段：</p>
+<ul>
+<li><strong>Request-line</strong>：包含用于描述请求类型、要访问的资源以及所使用的HTTP版本的信息。</li>
+<li><strong>Host</strong>：指定被请求资源的主机名或IP地址和端口号。</li>
+<li><strong>Accept</strong>：指定客户端能够接收的媒体类型列表，用逗号分隔，例如 text/plain, text/html。</li>
+<li><strong>User-Agent</strong>：客户端使用的浏览器类型和版本号，供服务器统计用户代理信息。</li>
+<li><strong>Cookie</strong>：如果请求中包含cookie信息，则通过这个字段将cookie信息发送给Web服务器。</li>
+<li><strong>Connection</strong>：表示是否需要持久连接（keep-alive）。</li>
+</ul>
+<p>比如下面就是一个实际应用</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">GET /index.html HTTP/<span class="number">1.1</span></span><br><span class="line">Host: www.example.com</span><br><span class="line">Accept: text/html, application/xhtml+xml, *<span class="comment">/*</span></span><br><span class="line"><span class="comment">User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0</span></span><br><span class="line"><span class="comment">Cookie: sessionid=abcdefg1234567</span></span><br><span class="line"><span class="comment">Connection: keep-alive</span></span><br><span class="line"><span class="comment"></span></span><br></pre></td></tr></table></figure>
+
+<p>上述请求头包括了以下字段：</p>
+<ul>
+<li><strong>Request-line</strong>：指定使用GET方法请求/index.html资源，并使用HTTP/1.1协议版本。</li>
+<li><strong>Host</strong>：指定被请求资源所在主机名或IP地址和端口号。</li>
+<li><strong>Accept</strong>：客户端期望接收的媒体类型列表，本例中指定了text/html、application/xhtml+xml和任意类型的文件（*/*）。</li>
+<li><strong>User-Agent</strong>：客户端浏览器类型和版本号。</li>
+<li><strong>Cookie</strong>：客户端发送给服务器的cookie信息。</li>
+<li><strong>Connection</strong>：客户端请求后是否需要保持长连接。</li>
+</ul>
+<h3 id="HTTP-响应头"><a href="#HTTP-响应头" class="headerlink" title="HTTP 响应头"></a>HTTP 响应头</h3><p>HTTP响应头包括以下字段：</p>
+<ul>
+<li><strong>Status-line</strong>：包含协议版本、状态码和状态消息。</li>
+<li><strong>Content-Type</strong>：响应体的MIME类型。</li>
+<li><strong>Content-Length</strong>：响应体的字节数。</li>
+<li><strong>Set-Cookie</strong>：服务器向客户端发送cookie信息时使用该字段。</li>
+<li><strong>Server</strong>：服务器类型和版本号。</li>
+<li><strong>Connection</strong>：表示是否需要保持长连接（keep-alive）。</li>
+</ul>
+<p>在实际的HTTP报文头中，还可以包含其他可选字段。<br>如下是一个http响应头的示例</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">HTTP/1.1 200 OK</span><br><span class="line">Content-Type: text/html; charset=UTF-8</span><br><span class="line">Content-Length: 1024</span><br><span class="line">Set-Cookie: sessionid=abcdefg1234567; HttpOnly; Path=/</span><br><span class="line">Server: Apache/2.2.32 (Unix) mod_ssl/2.2.32 OpenSSL/1.0.1e-fips mod_bwlimited/1.4</span><br><span class="line">Connection: keep-alive</span><br></pre></td></tr></table></figure>
+
+<p>上述响应头包括了以下字段：</p>
+<ul>
+<li><strong>Status-line</strong>：指定HTTP协议版本、状态码和状态消息。</li>
+<li><strong>Content-Type</strong>：指定响应体的MIME类型及字符编码格式。</li>
+<li><strong>Content-Length</strong>：指定响应体的字节数。</li>
+<li><strong>Set-Cookie</strong>：服务器向客户端发送cookie信息时使用该字段。</li>
+<li><strong>Server</strong>：服务器类型和版本号。</li>
+<li><strong>Connection</strong>：服务器是否需要保持长连接。</li>
+</ul>
+<h2 id="客户端的编写"><a href="#客户端的编写" class="headerlink" title="客户端的编写"></a>客户端的编写</h2><p>客户端每次发送数据都要携带头部信息，所以为了减少每次重新构造头部的开销，我们在客户端的构造函数里将头部信息构造好，作为一个成员放入客户端的类成员里。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">  <span class="built_in">client</span>(boost::asio::io_context&amp; io_context,</span><br><span class="line">      <span class="type">const</span> std::string&amp; server, <span class="type">const</span> std::string&amp; path)</span><br><span class="line">      : <span class="built_in">resolver_</span>(io_context),</span><br><span class="line">      <span class="built_in">socket_</span>(io_context)</span><br><span class="line">  &#123;</span><br><span class="line">      <span class="comment">// Form the request. We specify the &quot;Connection: close&quot; header so that the</span></span><br><span class="line">      <span class="comment">// server will close the socket after transmitting the response. This will</span></span><br><span class="line">      <span class="comment">// allow us to treat all data up until the EOF as the content.</span></span><br><span class="line">      <span class="function">std::ostream <span class="title">request_stream</span><span class="params">(&amp;request_)</span></span>;</span><br><span class="line">      request_stream &lt;&lt; <span class="string">&quot;GET &quot;</span> &lt;&lt; path &lt;&lt; <span class="string">&quot; HTTP/1.0\r\n&quot;</span>;</span><br><span class="line">      request_stream &lt;&lt; <span class="string">&quot;Host: &quot;</span> &lt;&lt; server &lt;&lt; <span class="string">&quot;\r\n&quot;</span>;</span><br><span class="line">      request_stream &lt;&lt; <span class="string">&quot;Accept: */*\r\n&quot;</span>;</span><br><span class="line">      request_stream &lt;&lt; <span class="string">&quot;Connection: close\r\n\r\n&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">size_t</span> pos = server.<span class="built_in">find</span>(<span class="string">&quot;:&quot;</span>);</span><br><span class="line">std::string ip = server.<span class="built_in">substr</span>(<span class="number">0</span>, pos);</span><br><span class="line">std::string port = server.<span class="built_in">substr</span>(pos + <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">      <span class="comment">// Start an asynchronous resolve to translate the server and service names</span></span><br><span class="line">      <span class="comment">// into a list of endpoints.</span></span><br><span class="line">      resolver_.<span class="built_in">async_resolve</span>(ip, port,</span><br><span class="line">          boost::<span class="built_in">bind</span>(&amp;client::handle_resolve, <span class="keyword">this</span>,</span><br><span class="line">              boost::asio::placeholders::error,</span><br><span class="line">              boost::asio::placeholders::results));</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>我们的客户端构造了一个<code>request_</code>成员变量，依次写入请求的路径，主机地址，期望接受的媒体类型，以及每次收到请求后断开连接，也就是短链接的方式。<br>接着又异步解析ip和端口，解析成功后调用<code>handle_resolve</code>函数。<br><code>handle_resolve</code>函数里异步处理连接</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">handle_resolve</span><span class="params">(<span class="type">const</span> boost::system::error_code&amp; err,</span></span></span><br><span class="line"><span class="params"><span class="function">     <span class="type">const</span> tcp::resolver::results_type&amp; endpoints)</span></span></span><br><span class="line"><span class="function"> </span>&#123;</span><br><span class="line">     <span class="keyword">if</span> (!err)</span><br><span class="line">     &#123;</span><br><span class="line">         <span class="comment">// Attempt a connection to each endpoint in the list until we</span></span><br><span class="line">         <span class="comment">// successfully establish a connection.</span></span><br><span class="line">         boost::asio::<span class="built_in">async_connect</span>(socket_, endpoints,</span><br><span class="line">             boost::<span class="built_in">bind</span>(&amp;client::handle_connect, <span class="keyword">this</span>,</span><br><span class="line">                 boost::asio::placeholders::error));</span><br><span class="line">     &#125;</span><br><span class="line">     <span class="keyword">else</span></span><br><span class="line">     &#123;</span><br><span class="line">         std::cout &lt;&lt; <span class="string">&quot;Error: &quot;</span> &lt;&lt; err.<span class="built_in">message</span>() &lt;&lt; <span class="string">&quot;\n&quot;</span>;</span><br><span class="line">     &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>处理连接</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">handle_connect</span><span class="params">(<span class="type">const</span> boost::system::error_code&amp; err)</span></span></span><br><span class="line"><span class="function"> </span>&#123;</span><br><span class="line">     <span class="keyword">if</span> (!err)</span><br><span class="line">     &#123;</span><br><span class="line">         <span class="comment">// The connection was successful. Send the request.</span></span><br><span class="line">         boost::asio::<span class="built_in">async_write</span>(socket_, request_,</span><br><span class="line">             boost::<span class="built_in">bind</span>(&amp;client::handle_write_request, <span class="keyword">this</span>,</span><br><span class="line">                 boost::asio::placeholders::error));</span><br><span class="line">     &#125;</span><br><span class="line">     <span class="keyword">else</span></span><br><span class="line">     &#123;</span><br><span class="line">         std::cout &lt;&lt; <span class="string">&quot;Error: &quot;</span> &lt;&lt; err.<span class="built_in">message</span>() &lt;&lt; <span class="string">&quot;\n&quot;</span>;</span><br><span class="line">     &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>在连接成功后，我们首先将头部信息发送给服务器,发送完成后监听对端发送的数据</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">handle_write_request</span><span class="params">(<span class="type">const</span> boost::system::error_code&amp; err)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!err)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// Read the response status line. The response_ streambuf will</span></span><br><span class="line">        <span class="comment">// automatically grow to accommodate the entire line. The growth may be</span></span><br><span class="line">        <span class="comment">// limited by passing a maximum size to the streambuf constructor.</span></span><br><span class="line">        boost::asio::<span class="built_in">async_read_until</span>(socket_, response_, <span class="string">&quot;\r\n&quot;</span>,</span><br><span class="line">            boost::<span class="built_in">bind</span>(&amp;client::handle_read_status_line, <span class="keyword">this</span>,</span><br><span class="line">                boost::asio::placeholders::error));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Error: &quot;</span> &lt;&lt; err.<span class="built_in">message</span>() &lt;&lt; <span class="string">&quot;\n&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当收到对方数据时，先解析响应的头部信息</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">handle_read_status_line</span><span class="params">(<span class="type">const</span> boost::system::error_code&amp; err)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!err)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// Check that response is OK.</span></span><br><span class="line">        <span class="function">std::istream <span class="title">response_stream</span><span class="params">(&amp;response_)</span></span>;</span><br><span class="line">        std::string http_version;</span><br><span class="line">        response_stream &gt;&gt; http_version;</span><br><span class="line">        <span class="type">unsigned</span> <span class="type">int</span> status_code;</span><br><span class="line">        response_stream &gt;&gt; status_code;</span><br><span class="line">        std::string status_message;</span><br><span class="line">        std::<span class="built_in">getline</span>(response_stream, status_message);</span><br><span class="line">        <span class="keyword">if</span> (!response_stream || http_version.<span class="built_in">substr</span>(<span class="number">0</span>, <span class="number">5</span>) != <span class="string">&quot;HTTP/&quot;</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            std::cout &lt;&lt; <span class="string">&quot;Invalid response\n&quot;</span>;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (status_code != <span class="number">200</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            std::cout &lt;&lt; <span class="string">&quot;Response returned with status code &quot;</span>;</span><br><span class="line">            std::cout &lt;&lt; status_code &lt;&lt; <span class="string">&quot;\n&quot;</span>;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Read the response headers, which are terminated by a blank line.</span></span><br><span class="line">        boost::asio::<span class="built_in">async_read_until</span>(socket_, response_, <span class="string">&quot;\r\n\r\n&quot;</span>,</span><br><span class="line">            boost::<span class="built_in">bind</span>(&amp;client::handle_read_headers, <span class="keyword">this</span>,</span><br><span class="line">                boost::asio::placeholders::error));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Error: &quot;</span> &lt;&lt; err &lt;&lt; <span class="string">&quot;\n&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面的代码先读出HTTP版本，以及返回的状态码，如果状态码不是200，则返回，是200说明响应成功。接下来把所有的头部信息都读出来。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">handle_read_headers</span><span class="params">(<span class="type">const</span> boost::system::error_code&amp; err)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!err)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// Process the response headers.</span></span><br><span class="line">        <span class="function">std::istream <span class="title">response_stream</span><span class="params">(&amp;response_)</span></span>;</span><br><span class="line">        std::string header;</span><br><span class="line">        <span class="keyword">while</span> (std::<span class="built_in">getline</span>(response_stream, header) &amp;&amp; header != <span class="string">&quot;\r&quot;</span>)</span><br><span class="line">            std::cout &lt;&lt; header &lt;&lt; <span class="string">&quot;\n&quot;</span>;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;\n&quot;</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Write whatever content we already have to output.</span></span><br><span class="line">        <span class="keyword">if</span> (response_.<span class="built_in">size</span>() &gt; <span class="number">0</span>)</span><br><span class="line">            std::cout &lt;&lt; &amp;response_;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Start reading remaining data until EOF.</span></span><br><span class="line">        boost::asio::<span class="built_in">async_read</span>(socket_, response_,</span><br><span class="line">            boost::asio::<span class="built_in">transfer_at_least</span>(<span class="number">1</span>),</span><br><span class="line">            boost::<span class="built_in">bind</span>(&amp;client::handle_read_content, <span class="keyword">this</span>,</span><br><span class="line">                boost::asio::placeholders::error));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Error: &quot;</span> &lt;&lt; err &lt;&lt; <span class="string">&quot;\n&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面的代码逐行读出头部信息，然后读出响应的内容，继续监听读事件读取相应的内容，直到接收到EOF信息，也就是对方关闭，继续监听读事件是因为有可能是长连接的方式，当然如果是短链接，则服务器关闭连接后，客户端也是通过异步函数读取EOF进而结束请求。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">handle_read_content</span><span class="params">(<span class="type">const</span> boost::system::error_code&amp; err)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!err)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// Write all of the data that has been read so far.</span></span><br><span class="line">        std::cout &lt;&lt; &amp;response_;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Continue reading remaining data until EOF.</span></span><br><span class="line">        boost::asio::<span class="built_in">async_read</span>(socket_, response_,</span><br><span class="line">            boost::asio::<span class="built_in">transfer_at_least</span>(<span class="number">1</span>),</span><br><span class="line">            boost::<span class="built_in">bind</span>(&amp;client::handle_read_content, <span class="keyword">this</span>,</span><br><span class="line">                boost::asio::placeholders::error));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (err != boost::asio::error::eof)</span><br><span class="line">    &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Error: &quot;</span> &lt;&lt; err &lt;&lt; <span class="string">&quot;\n&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在主函数中调用客户端请求服务器信息, 请求的路由地址为<code>/</code></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span>* argv[])</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">try</span></span><br><span class="line">    &#123;</span><br><span class="line">        boost::asio::io_context io_context;</span><br><span class="line">        <span class="function">client <span class="title">c</span><span class="params">(io_context, <span class="string">&quot;127.0.0.1:8080&quot;</span>, <span class="string">&quot;/&quot;</span>)</span></span>;</span><br><span class="line">        io_context.<span class="built_in">run</span>();</span><br><span class="line">        <span class="built_in">getchar</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">catch</span> (std::exception&amp; e)</span><br><span class="line">    &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Exception: &quot;</span> &lt;&lt; e.<span class="built_in">what</span>() &lt;&lt; <span class="string">&quot;\n&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="服务器设计"><a href="#服务器设计" class="headerlink" title="服务器设计"></a>服务器设计</h2><p>为了方便理解，我们从服务器的调用流程讲起</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span>* argv[])</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">try</span></span><br><span class="line">	&#123;</span><br><span class="line">		std::filesystem::path path = std::filesystem::<span class="built_in">current_path</span>() / <span class="string">&quot;res&quot;</span>;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 使用 std::cout 输出拼接后的路径</span></span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;Path: &quot;</span> &lt;&lt; path.<span class="built_in">string</span>() &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;Usage: http_server &lt;127.0.0.1&gt; &lt;8080&gt; &quot;</span>&lt;&lt; path.<span class="built_in">string</span>() &lt;&lt;<span class="string">&quot;\n&quot;</span>;</span><br><span class="line">		<span class="comment">// Initialise the server.</span></span><br><span class="line">		http::<span class="function">server::server <span class="title">s</span><span class="params">(<span class="string">&quot;127.0.0.1&quot;</span>, <span class="string">&quot;8080&quot;</span>, path.string())</span></span>;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Run the server until stopped.</span></span><br><span class="line">		s.<span class="built_in">run</span>();</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">catch</span> (std::exception&amp; e)</span><br><span class="line">	&#123;</span><br><span class="line">		std::cerr &lt;&lt; <span class="string">&quot;exception: &quot;</span> &lt;&lt; e.<span class="built_in">what</span>() &lt;&lt; <span class="string">&quot;\n&quot;</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>主函数里构造了一个server对象，然后调用了run函数使其跑起来。<br>run函数其实就是调用了server类成员的ioservice</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">server::run</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    io_service_.<span class="built_in">run</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>server类的构造函数里初始化一些成员变量，比如acceptor连接器，绑定了终止信号，并且监听对端连接</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">server::<span class="built_in">server</span>(<span class="type">const</span> std::string&amp; address, <span class="type">const</span> std::string&amp; port,</span><br><span class="line">	<span class="type">const</span> std::string&amp; doc_root)</span><br><span class="line">			: <span class="built_in">io_service_</span>(),</span><br><span class="line">			<span class="built_in">signals_</span>(io_service_),</span><br><span class="line">			<span class="built_in">acceptor_</span>(io_service_),</span><br><span class="line">			<span class="built_in">connection_manager_</span>(),</span><br><span class="line">			<span class="built_in">socket_</span>(io_service_),</span><br><span class="line">			<span class="built_in">request_handler_</span>(doc_root)</span><br><span class="line">    &#123;</span><br><span class="line">			signals_.<span class="built_in">add</span>(SIGINT);</span><br><span class="line">			signals_.<span class="built_in">add</span>(SIGTERM);</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(SIGQUIT)</span></span><br><span class="line">			signals_.<span class="built_in">add</span>(SIGQUIT);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> </span></span><br><span class="line">			<span class="built_in">do_await_stop</span>();</span><br><span class="line">			boost::asio::ip::<span class="function">tcp::resolver <span class="title">resolver</span><span class="params">(io_service_)</span></span>;</span><br><span class="line">			boost::asio::ip::tcp::endpoint endpoint = *resolver.<span class="built_in">resolve</span>(&#123; address, port &#125;);</span><br><span class="line">			acceptor_.<span class="built_in">open</span>(endpoint.<span class="built_in">protocol</span>());</span><br><span class="line">			acceptor_.<span class="built_in">set_option</span>(boost::asio::ip::tcp::acceptor::<span class="built_in">reuse_address</span>(<span class="literal">true</span>));</span><br><span class="line">			acceptor_.<span class="built_in">bind</span>(endpoint);</span><br><span class="line">			acceptor_.<span class="built_in">listen</span>();</span><br><span class="line">			<span class="built_in">do_accept</span>();</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<p>接收连接</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">server::do_accept</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	acceptor_.<span class="built_in">async_accept</span>(socket_,</span><br><span class="line">		[<span class="keyword">this</span>](boost::system::error_code ec)</span><br><span class="line">		&#123;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (!acceptor_.<span class="built_in">is_open</span>())</span><br><span class="line">			&#123;</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (!ec)</span><br><span class="line">			&#123;</span><br><span class="line">				connection_manager_.<span class="built_in">start</span>(std::<span class="built_in">make_shared</span>&lt;connection&gt;(</span><br><span class="line">							std::<span class="built_in">move</span>(socket_), connection_manager_, request_handler_));</span><br><span class="line">					&#125;</span><br><span class="line"></span><br><span class="line">				<span class="built_in">do_accept</span>();</span><br><span class="line">			&#125;);</span><br><span class="line">		&#125;</span><br></pre></td></tr></table></figure>
+<p>接收函数里通过<code>connection_manager_</code>启动了一个新的连接，用来处理读写函数。<br>处理方式和我们之前的写法类似，只是我们之前管理连接用的server，这次用的conneciton_manager</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">connection_manager::start</span><span class="params">(connection_ptr c)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	connections_.<span class="built_in">insert</span>(c);</span><br><span class="line">	c-&gt;<span class="built_in">start</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>start函数里处理读写</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">connection::start</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="built_in">do_read</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>处理读数据比较复杂，我们分部分解释</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">connection::do_read</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="function"><span class="keyword">auto</span> <span class="title">self</span><span class="params">(shared_from_this())</span></span>;</span><br><span class="line">	socket_.<span class="built_in">async_read_some</span>(boost::asio::<span class="built_in">buffer</span>(buffer_),</span><br><span class="line">		[<span class="keyword">this</span>, self](boost::system::error_code ec, std::<span class="type">size_t</span> bytes_transferred)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">if</span> (!ec)</span><br><span class="line">		&#123;</span><br><span class="line">			request_parser::result_type result;</span><br><span class="line">			std::<span class="built_in">tie</span>(result, std::ignore) = request_parser_.<span class="built_in">parse</span>(</span><br><span class="line">				request_, buffer_.<span class="built_in">data</span>(), buffer_.<span class="built_in">data</span>() + bytes_transferred);</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (result == request_parser::good)</span><br><span class="line">			&#123;</span><br><span class="line">				request_handler_.<span class="built_in">handle_request</span>(request_, reply_);</span><br><span class="line">				<span class="built_in">do_write</span>();</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">else</span> <span class="keyword">if</span> (result == request_parser::bad)</span><br><span class="line">			&#123;</span><br><span class="line">				reply_ = reply::<span class="built_in">stock_reply</span>(reply::bad_request);</span><br><span class="line">				<span class="built_in">do_write</span>();</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">else</span></span><br><span class="line">			&#123;</span><br><span class="line">				<span class="built_in">do_read</span>();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">else</span> <span class="keyword">if</span> (ec != boost::asio::error::operation_aborted)</span><br><span class="line">		&#123;</span><br><span class="line">			connection_manager_.<span class="built_in">stop</span>(<span class="built_in">shared_from_this</span>());</span><br><span class="line">		&#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p> 通过<code>request_parser_</code>解析请求，然后根据请求结果选择处理请求还是返回错误。<br> <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::tuple&lt;result_type, InputIterator&gt; <span class="title">parse</span><span class="params">(request&amp; req,</span></span></span><br><span class="line"><span class="params"><span class="function">				InputIterator begin, InputIterator end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">while</span> (begin != end)</span><br><span class="line">	&#123;</span><br><span class="line">		result_type result = <span class="built_in">consume</span>(req, *begin++);</span><br><span class="line">		<span class="keyword">if</span> (result == good || result == bad)</span><br><span class="line">			<span class="keyword">return</span> std::<span class="built_in">make_tuple</span>(result, begin);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> std::<span class="built_in">make_tuple</span>(indeterminate, begin);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><br> parse是解析请求的函数，内部调用了consume不断处理请求头中的数据，其实就是一个逐行解析的过程, consume函数很长，这里就不解释了，其实就是每解析一行就更改一下状态，这样可以继续解析。具体可以看看源码。</p>
+<p> 在consume()函数中，根据每个字符输入的不同情况，判断当前所处状态state_，进而执行相应的操作，包括：</p>
+<ul>
+<li>将HTTP请求方法、URI和HTTP版本号解析到request结构体中。</li>
+<li>解析每个请求头部字段的名称和值，并将其添加到request结构体中的headers vector中。</li>
+<li>如果输入字符为<code>\r\n</code>，则修改状态以开始下一行的解析。</li>
+</ul>
+<p>最后，返回一个枚举类型request_parser::result_type作为解析结果，包括indeterminate、good和bad三种状态。其中，indeterminate表示还需要继续等待更多字符输入；good表示成功解析出了一个完整的HTTP请求头部；bad表示遇到无效字符或格式错误，解析失败。</p>
+<p>解析完成头部后会调用处理请求的函数,这里只是简单的写了一个作为资源服务器解析资源请求的逻辑，具体可以看源码。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">request_handler::handle_request</span><span class="params">(<span class="type">const</span> request&amp; req, reply&amp; rep)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// Decode url to path.</span></span><br><span class="line">	std::string request_path;</span><br><span class="line">	<span class="keyword">if</span> (!<span class="built_in">url_decode</span>(req.uri, request_path))</span><br><span class="line">	&#123;</span><br><span class="line">		rep = reply::<span class="built_in">stock_reply</span>(reply::bad_request);</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// Request path must be absolute and not contain &quot;..&quot;.</span></span><br><span class="line">	<span class="keyword">if</span> (request_path.<span class="built_in">empty</span>() || request_path[<span class="number">0</span>] != <span class="string">&#x27;/&#x27;</span></span><br><span class="line">		|| request_path.<span class="built_in">find</span>(<span class="string">&quot;..&quot;</span>) != std::string::npos)</span><br><span class="line">	&#123;</span><br><span class="line">		rep = reply::<span class="built_in">stock_reply</span>(reply::bad_request);</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// If path ends in slash (i.e. is a directory) then add &quot;index.html&quot;.</span></span><br><span class="line">	<span class="keyword">if</span> (request_path[request_path.<span class="built_in">size</span>() - <span class="number">1</span>] == <span class="string">&#x27;/&#x27;</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		request_path += <span class="string">&quot;index.html&quot;</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Determine the file extension.</span></span><br><span class="line">	std::<span class="type">size_t</span> last_slash_pos = request_path.<span class="built_in">find_last_of</span>(<span class="string">&quot;/&quot;</span>);</span><br><span class="line">	std::<span class="type">size_t</span> last_dot_pos = request_path.<span class="built_in">find_last_of</span>(<span class="string">&quot;.&quot;</span>);</span><br><span class="line">	std::string extension;</span><br><span class="line">	<span class="keyword">if</span> (last_dot_pos != std::string::npos &amp;&amp; last_dot_pos &gt; last_slash_pos)</span><br><span class="line">    &#123;</span><br><span class="line">		extension = request_path.<span class="built_in">substr</span>(last_dot_pos + <span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Open the file to send back.</span></span><br><span class="line">	std::string full_path = doc_root_ + request_path;</span><br><span class="line">	<span class="function">std::ifstream <span class="title">is</span><span class="params">(full_path.c_str(), std::ios::in | std::ios::binary)</span></span>;</span><br><span class="line">	<span class="keyword">if</span> (!is)</span><br><span class="line">	&#123;</span><br><span class="line">		rep = reply::<span class="built_in">stock_reply</span>(reply::not_found);</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Fill out the reply to be sent to the client.</span></span><br><span class="line">	rep.status = reply::ok;</span><br><span class="line">	<span class="type">char</span> buf[<span class="number">512</span>];</span><br><span class="line">	<span class="keyword">while</span> (is.<span class="built_in">read</span>(buf, <span class="built_in">sizeof</span>(buf)).<span class="built_in">gcount</span>() &gt; <span class="number">0</span>)</span><br><span class="line">		rep.content.<span class="built_in">append</span>(buf, is.<span class="built_in">gcount</span>());</span><br><span class="line">		rep.headers.<span class="built_in">resize</span>(<span class="number">2</span>);</span><br><span class="line">		rep.headers[<span class="number">0</span>].name = <span class="string">&quot;Content-Length&quot;</span>;</span><br><span class="line">		rep.headers[<span class="number">0</span>].value = std::<span class="built_in">to_string</span>(rep.content.<span class="built_in">size</span>());</span><br><span class="line">		rep.headers[<span class="number">1</span>].name = <span class="string">&quot;Content-Type&quot;</span>;</span><br><span class="line">		rep.headers[<span class="number">1</span>].value = mime_types::<span class="built_in">extension_to_type</span>(extension);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>上述代码根据url中的<code>.</code>来做切割，获取请求的文件类型，然后根据<code>/</code>切割url，获取资源目录，最后返回资源文件。<br>如果你想实现普通的路由请求返回json或者text格式，可以重写处理请求的逻辑。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了如何使用asio实现http服务器，具体可以查看下方源码，其实这些仅作为了解即可，不推荐从头造轮子，我们可以用一些C++ 成熟的http服务库比如beast，下一节再介绍。</p>
+<p>视频连接<a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=313101">https://space.bilibili.com/271469206/channel/collectiondetail?sid=313101</a></p>
+<p>源码链接<a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn">https://gitee.com/secondtonone1/boostasio-learn</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/06/16/asio21/" rel="next" title="利用asio协程调度实现并发服务器">
+                <i class="fa fa-chevron-left"></i> 利用asio协程调度实现并发服务器
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/06/24/asio23/" rel="prev" title="beast网络库搭建http服务器">
+                beast网络库搭建http服务器 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">277</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#HTTP%E5%8C%85%E5%A4%B4%E4%BF%A1%E6%81%AF"><span class="nav-number">2.</span> <span class="nav-text">HTTP包头信息</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#HTTP-%E8%AF%B7%E6%B1%82%E5%A4%B4"><span class="nav-number">2.1.</span> <span class="nav-text">HTTP 请求头</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#HTTP-%E5%93%8D%E5%BA%94%E5%A4%B4"><span class="nav-number">2.2.</span> <span class="nav-text">HTTP 响应头</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%A2%E6%88%B7%E7%AB%AF%E7%9A%84%E7%BC%96%E5%86%99"><span class="nav-number">3.</span> <span class="nav-text">客户端的编写</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AE%BE%E8%AE%A1"><span class="nav-number">4.</span> <span class="nav-text">服务器设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

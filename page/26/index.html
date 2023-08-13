@@ -286,6 +286,171 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/07/libevent1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/08/07/libevent1/" itemprop="url">libevent文档学习(一)多线程接口和使用</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-07T10:44:51+08:00">
+                2017-08-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/netprogram/" itemprop="url" rel="index">
+                    <span itemprop="name">网络编程</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>参考libevent官方提供的文档： <a target="_blank" rel="noopener" href="http://www.wangafu.net/~nickm/libevent-book/Ref1_libsetup.html">http://www.wangafu.net/~nickm/libevent-book/Ref1_libsetup.html</a></p>
+<p>这一篇主要翻译<code>libevent多线程</code>的使用接口和文档。</p>
+<p>As you probably know if you’re writing multithreaded programs, it isn’t always safe to access the same data from multiple threads at the same time.</p>
+<p>Libevent structures can generally work three ways with multithreading.</p>
+<p>Some structures are inherently single-threaded: it is never safe to use them from more than one thread at the same time.</p>
+<p>Some structures are optionally locked: you can tell Libevent for each object whether you need to use it from multiple threads at once.</p>
+<p>Some structures are always locked: if Libevent is running with lock support, then they are always safe to use from multiple threads at once.</p>
+<p>当你编写多线程程序的时候，多个线程访问同一块数据并不安全。对于多线程libevent通常采取以下三种方式工作，</p>
+<p><code>1 一些结构内不是单线程的，多线程同时访问这个结构是不安全的。</code></p>
+<p><code>2一些结构内部是选择性加锁的，你需要通知libevent，对于每个对象你是否采用多线程的方式使用它。</code></p>
+<p><code>3一些结构总是加锁的，如果libevent设置了加锁的模式，采用多线程方式是安全的。</code></p>
+<p>To get locking in Libevent, you must tell Libevent which locking functions to use. You need to do this before you call any Libevent function</p>
+<p>that allocates a structure that needs to be shared between threads.</p>
+<p>If you are using the pthreads library, or the native Windows threading code, you’re in luck. There are pre-defined functions that will set</p>
+<p>Libevent up to use the right pthreads or Windows functions for you.</p>
+<p>如果要使用libevent多线程锁的功能，需要开辟一个线程共享的结构，如果您使用windows或者linux提供的pthread库，libevent已经定义好了。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifdef</span> WIN32</span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">evthread_use_windows_threads</span><span class="params">(<span class="type">void</span>)</span></span>;</span><br><span class="line"><span class="meta">#<span class="keyword">define</span> EVTHREAD_USE_WINDOWS_THREADS_IMPLEMENTED</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> _EVENT_HAVE_PTHREADS</span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">evthread_use_pthreads</span><span class="params">(<span class="type">void</span>)</span></span>;</span><br><span class="line"><span class="meta">#<span class="keyword">define</span> EVTHREAD_USE_PTHREADS_IMPLEMENTED</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+<p>libevent针对win32平台定义了<code>evthread_use_windows_threads</code>,</p>
+<p>libevent针对Linux thread库 定义了<code>evthread_use_pthreads</code></p>
+<p>evthread_use_pthread函数是这样的</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/08/07/libevent1/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/07/libevent2/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1618,158 +1783,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/04/redisset/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/08/04/redisset/" itemprop="url">redis 配置和使用(C++)</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-04T16:17:47+08:00">
-                2017-08-04
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/netprogram/" itemprop="url" rel="index">
-                    <span itemprop="name">网络编程</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="一、Redis简介："><a href="#一、Redis简介：" class="headerlink" title="一、Redis简介："></a>一、Redis简介：</h2><p><code>Redis</code>为<code>非关系型数据库</code>，Redis是一个<code>Key-Value</code>存储系统。它支持存储的value类型有：<code>string(字符串)</code>,<code>list(链表)</code>, <code>set(无序集合)</code>,<code>zset(sorted set有序集合)</code>和<code>hash</code>，Redis支持各种不同方式的排序。数据都是<code>缓存</code>在<code>内存</code>中的，它也可以周期性的把更新的数据写入磁盘或者把修改操作写入追加的记录文件，并实现了<code>master-slave(主从)同步</code>。</p>
-<h2 id="二、Redis安装和使用："><a href="#二、Redis安装和使用：" class="headerlink" title="二、Redis安装和使用："></a>二、Redis安装和使用：</h2><p>Redis下载地址，我下载的为最新版本：</p>
-<p>wget [<a target="_blank" rel="noopener" href="http://download.redis.io/releases/redis-3.2.8.tar.gz]">http://download.redis.io/releases/redis-3.2.8.tar.gz]</a>(wget <a target="_blank" rel="noopener" href="http://download.redis.io/releases/redis-3.2.8.tar.gz">http://download.redis.io/releases/redis-3.2.8.tar.gz</a>)  </p>
-<p>解压安装：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ tar xzf redis-3.2.8.tar.gz</span><br><span class="line">$ <span class="built_in">cd</span> redis-3.2.8</span><br><span class="line">$ make</span><br></pre></td></tr></table></figure>
-<p>make完后 redis-3.2.8目录下会出现redis-server和redis-cli<br>下面在src目录下启动redis服务.</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$./redis-server</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2017/08/04/redisset/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1820,7 +1833,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">277</span>
+                  <span class="site-state-item-count">278</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>

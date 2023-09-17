@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="简介本文介绍C++ 并发中使用的其他类型的锁，包括unique_lock，shared_lock, 以及recursive_lock等。shared_lock和unique_lock比较常用，而recursive_lock用的不多，或尽可能规避用这种锁。 unique_lockunique_lock和lock_guard基本用法相同，构造时默认加锁，析构时默认解锁，但unique_lock有个好处">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C++ 并发(4) unique_lock，读写锁以及递归锁">
+<meta property="og:url" content="http://www.limerence2017.com/2023/08/31/concpp04/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="简介本文介绍C++ 并发中使用的其他类型的锁，包括unique_lock，shared_lock, 以及recursive_lock等。shared_lock和unique_lock比较常用，而recursive_lock用的不多，或尽可能规避用这种锁。 unique_lockunique_lock和lock_guard基本用法相同，构造时默认加锁，析构时默认解锁，但unique_lock有个好处">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-08-31T02:14:12.000Z">
+<meta property="article:modified_time" content="2023-09-01T01:38:44.528Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2023/08/31/concpp04/"/>
+
+
+
+
+
+  <title>C++ 并发(4) unique_lock，读写锁以及递归锁 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/08/31/concpp04/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">C++ 并发(4) unique_lock，读写锁以及递归锁</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-08-31T10:14:12+08:00">
+                2023-08-31
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文介绍C++ 并发中使用的其他类型的锁，包括<code>unique_lock</code>，<code>shared_lock</code>, 以及<code>recursive_lock</code>等。<code>shared_lock</code>和<code>unique_lock</code>比较常用，而<code>recursive_lock</code>用的不多，或尽可能规避用这种锁。</p>
+<h2 id="unique-lock"><a href="#unique-lock" class="headerlink" title="unique_lock"></a>unique_lock</h2><p><code>unique_lock</code>和<code>lock_guard</code>基本用法相同，构造时默认加锁，析构时默认解锁，但<code>unique_lock</code>有个好处就是可以手动解锁。这一点尤为重要，方便我们控制锁住区域的粒度(加锁的范围大小),也能支持和条件变量配套使用，至于条件变量我们之后再介绍，本文主要介绍锁的相关操作。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//unique_lock 基本用法</span></span><br><span class="line">std::mutex mtx;</span><br><span class="line"><span class="type">int</span> shared_data = <span class="number">0</span>;</span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_unique</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">//lock可自动解锁，也可手动解锁</span></span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx)</span></span>;</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;lock success&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	shared_data++;</span><br><span class="line">    lock.<span class="built_in">unlock</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们可以通过<code>unique_lock</code>的<code>owns_lock</code>判断是否持有锁</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//可判断是否占有锁</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">owns_lock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">//lock可自动解锁，也可手动解锁</span></span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx)</span></span>;</span><br><span class="line">	shared_data++;</span><br><span class="line">	<span class="keyword">if</span> (lock.<span class="built_in">owns_lock</span>()) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;owns lock&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;doesn&#x27;t own lock&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	lock.<span class="built_in">unlock</span>();</span><br><span class="line">	<span class="keyword">if</span> (lock.<span class="built_in">owns_lock</span>()) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;owns lock&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;doesn&#x27;t own lock&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述代码输出</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">owns lock</span><br><span class="line">doesn<span class="string">&#x27;t own lock</span></span><br></pre></td></tr></table></figure>
+<p><code>unique_lock</code>可以延迟加锁</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"> <span class="comment">//可以延迟加锁</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">defer_lock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">//延迟加锁</span></span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx, std::defer_lock)</span></span>;</span><br><span class="line">	<span class="comment">//可以加锁</span></span><br><span class="line">	lock.<span class="built_in">lock</span>();</span><br><span class="line">	<span class="comment">//可以自动析构解锁，也可以手动解锁</span></span><br><span class="line">	lock.<span class="built_in">unlock</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>那我们写一段代码综合运用<code>owns_lock</code>和<code>defer_lock</code></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//同时使用owns和defer</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_own_defer</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt;  <span class="title">lock</span><span class="params">(mtx)</span></span>;</span><br><span class="line">	<span class="comment">// 判断是否拥有锁</span></span><br><span class="line">	<span class="keyword">if</span> (lock.<span class="built_in">owns_lock</span>())</span><br><span class="line">	&#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;Main thread has the lock.&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">	&#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;Main thread does not have the lock.&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">t</span><span class="params">([]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		std::unique_lock&lt;std::mutex&gt; lock(mtx, std::defer_lock);</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="comment">// 判断是否拥有锁</span></span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">if</span> (lock.owns_lock())</span></span></span><br><span class="line"><span class="params"><span class="function">		&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::cout &lt;&lt; <span class="string">&quot;Thread has the lock.&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">else</span></span></span></span><br><span class="line"><span class="params"><span class="function">		&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::cout &lt;&lt; <span class="string">&quot;Thread does not have the lock.&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="comment">// 加锁</span></span></span></span><br><span class="line"><span class="params"><span class="function">		lock.lock();</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="comment">// 判断是否拥有锁</span></span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">if</span> (lock.owns_lock())</span></span></span><br><span class="line"><span class="params"><span class="function">		&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::cout &lt;&lt; <span class="string">&quot;Thread has the lock.&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">else</span></span></span></span><br><span class="line"><span class="params"><span class="function">		&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::cout &lt;&lt; <span class="string">&quot;Thread does not have the lock.&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="comment">// 解锁</span></span></span></span><br><span class="line"><span class="params"><span class="function">		lock.unlock();</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;)</span></span>;</span><br><span class="line">	t.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述代码回依次输出, 但是程序会阻塞，因为子线程会卡在加锁的逻辑上，因为主线程未释放锁，而主线程又等待子线程退出，导致整个程序卡住。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Main thread has the lock.</span><br><span class="line">Thread does not have the lock. </span><br></pre></td></tr></table></figure>
+<p>和<code>lock_guard</code>一样，<code>unique_lock</code>也支持领养锁</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//同样支持领养操作</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_own_adopt</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	mtx.<span class="built_in">lock</span>();</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx, std::adopt_lock)</span></span>;</span><br><span class="line">	<span class="keyword">if</span> (lock.<span class="built_in">owns_lock</span>()) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;owns lock&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;does not have the lock&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	&#125;</span><br><span class="line">	lock.<span class="built_in">unlock</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>尽管是领养的，但是打印还是会出现<code>owns lock</code>，因为不管如何锁被加上，就会输出<code>owns lock</code>。</p>
+<p>既然<code>unique_lock</code>支持领养操作也支持延迟加锁，那么可以用两种方式实现前文<code>lock_guard</code>实现的<code>swap</code>操作。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//之前的交换代码可以可以用如下方式等价实现</span></span><br><span class="line"><span class="type">int</span> a = <span class="number">10</span>;</span><br><span class="line"><span class="type">int</span> b = <span class="number">99</span>;</span><br><span class="line">std::mutex  mtx1;</span><br><span class="line">std::mutex  mtx2;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">safe_swap</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::<span class="built_in">lock</span>(mtx1, mtx2);</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock1</span><span class="params">(mtx1, std::adopt_lock)</span></span>;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock2</span><span class="params">(mtx2, std::adopt_lock)</span></span>;</span><br><span class="line">	std::<span class="built_in">swap</span>(a, b);</span><br><span class="line">    <span class="comment">//错误用法</span></span><br><span class="line">	<span class="comment">//mtx1.unlock();</span></span><br><span class="line">	<span class="comment">//mtx2.unlock();</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">safe_swap2</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock1</span><span class="params">(mtx1, std::defer_lock)</span></span>;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock2</span><span class="params">(mtx2, std::defer_lock)</span></span>;</span><br><span class="line">	<span class="comment">//需用lock1,lock2加锁</span></span><br><span class="line">	std::<span class="built_in">lock</span>(lock1, lock2);</span><br><span class="line">	<span class="comment">//错误用法</span></span><br><span class="line">	<span class="comment">//std::lock(mtx1, mtx2);</span></span><br><span class="line">	std::<span class="built_in">swap</span>(a, b);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>大家注意一旦<code>mutex</code>被<code>unique_lock</code>管理，加锁和释放的操作就交给<code>unique_lock</code>，不能调用<code>mutex</code>加锁和解锁，因为锁的使用权已经交给<code>unique_lock</code>了。</p>
+<p>我们知道<code>mutex</code>是不支持移动和拷贝的，但是<code>unique_lock</code>支持移动，当一个<code>mutex</code>被转移给<code>unique_lock</code>后，可以通过unique_ptr转移其归属权.</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//转移互斥量所有权</span></span><br><span class="line"><span class="comment">//互斥量本身不支持move操作，但是unique_lock支持</span></span><br><span class="line">std::unique_lock &lt;std::mutex&gt;  <span class="built_in">get_lock</span>() &#123;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt;  <span class="title">lock</span><span class="params">(mtx)</span></span>;</span><br><span class="line">	shared_data++;</span><br><span class="line">	<span class="keyword">return</span> lock;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_return</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(get_lock())</span></span>;</span><br><span class="line">	shared_data++;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>锁的粒度表示加锁的精细程度，一个锁的粒度要足够大，保证可以锁住要访问的共享数据。</p>
+<p>同时一个锁的粒度要足够小，保证非共享数据不被锁住影响性能。</p>
+<p>而<code>unique_ptr</code>则很好的支持手动解锁。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">precision_lock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx)</span></span>;</span><br><span class="line">	shared_data++;</span><br><span class="line">	lock.<span class="built_in">unlock</span>();</span><br><span class="line">	<span class="comment">//不设计共享数据的耗时操作不要放在锁内执行</span></span><br><span class="line">	std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">1</span>));</span><br><span class="line">	lock.<span class="built_in">lock</span>();</span><br><span class="line">	shared_data++;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="共享锁"><a href="#共享锁" class="headerlink" title="共享锁"></a>共享锁</h2><p>试想这样一个场景，对于一个DNS服务，我们可以根据域名查询服务对应的ip地址，它很久才更新一次，比如新增记录，删除记录或者更新记录等。平时大部分时间都是提供给外部查询，对于查询操作，即使多个线程并发查询不加锁也不会有问题，但是当有线程修改DNS服务的ip记录或者增减记录时，其他线程不能查询，需等待修改完再查询。或者等待查询完，线程才能修改。也就是说读操作并不是互斥的，同一时间可以有多个线程同时读，但是写和读是互斥的，写与写是互斥的，简而言之，写操作需要独占锁。而读操作需要共享锁。</p>
+<p>要想使用共享锁，需使用共享互斥量<code>std::shared_mutex</code>,<code>std::shared_mutex</code>是C++17标准提出的。<br>C++14标准可以使用<code>std::shared_time_mutex</code>,</p>
+<p><code>std::shared_mutex</code> 和 <code>std::shared_timed_mutex</code> 都是用于实现多线程并发访问共享数据的互斥锁，但它们之间存在一些区别：</p>
+<ol>
+<li><code>std::shared_mutex</code>：</li>
+</ol>
+<pre><code>* 提供了 `lock()`, `try_lock()`, 和 `try_lock_for()` 以及 `try_lock_until()` 函数，这些函数都可以用于获取互斥锁。
+* 提供了 `try_lock_shared()` 和 `lock_shared()` 函数，这些函数可以用于获取共享锁。
+* 当 `std::shared_mutex` 被锁定后，其他尝试获取该锁的线程将会被阻塞，直到该锁被解锁。
+</code></pre>
+<ol start="2">
+<li><code>std::shared_timed_mutex</code>：</li>
+</ol>
+<pre><code>* 与 `std::shared_mutex` 类似，也提供了 `lock()`, `try_lock()`, 和 `try_lock_for()` 以及 `try_lock_until()` 函数用于获取互斥锁。
+* 与 `std::shared_mutex` 不同的是，它还提供了 `try_lock_shared()` 和 `lock_shared()` 函数用于获取共享锁，这些函数在尝试获取共享锁时具有超时机制。
+* 当 `std::shared_timed_mutex` 被锁定后，其他尝试获取该锁的线程将会被阻塞，直到该锁被解锁，这与 `std::shared_mutex` 相同。然而，当尝试获取共享锁时，如果不能立即获得锁，`std::shared_timed_mutex` 会设置一个超时，超时过后如果仍然没有获取到锁，则操作将返回失败。
+</code></pre>
+<p>因此，<code>std::shared_timed_mutex</code> 提供了额外的超时机制，这使得它在某些情况下更适合于需要处理超时的并发控制。然而，如果不需要超时机制，可以使用更简单的 <code>std::shared_mutex</code>。</p>
+<p>C++11标准没有共享互斥量，可以使用boost提供的<code>boost::shared_mutex</code>。</p>
+<p>如果我们想构造共享锁，可以使用<code>std::shared_lock</code>，如果我们想构造独占锁, 可以使用<code>std::lock_gurad</code>.</p>
+<p>我们用一个类<code>DNService</code>代表DNS服务，查询操作使用共享锁，而写操作使用独占锁，可以是如下方式的。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">DNService</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">DNService</span>() &#123;&#125;</span><br><span class="line">	<span class="comment">//读操作采用共享锁</span></span><br><span class="line">	<span class="function">std::string <span class="title">QueryDNS</span><span class="params">(std::string dnsname)</span> </span>&#123;</span><br><span class="line">		<span class="function">std::shared_lock&lt;std::shared_mutex&gt; <span class="title">shared_locks</span><span class="params">(_shared_mtx)</span></span>;</span><br><span class="line">		<span class="keyword">auto</span> iter = _dns_info.<span class="built_in">find</span>(dnsname);</span><br><span class="line">		<span class="keyword">if</span> (iter != _dns_info.<span class="built_in">end</span>()) &#123;</span><br><span class="line">			<span class="keyword">return</span> iter-&gt;second;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">return</span> <span class="string">&quot;&quot;</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//写操作采用独占锁</span></span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">AddDNSInfo</span><span class="params">(std::string dnsname, std::string dnsentry)</span> </span>&#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::shared_mutex&gt;  <span class="title">guard_locks</span><span class="params">(_shared_mtx)</span></span>;</span><br><span class="line">		_dns_info.<span class="built_in">insert</span>(std::<span class="built_in">make_pair</span>(dnsname, dnsentry));</span><br><span class="line">	&#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	std::map&lt;std::string, std::string&gt; _dns_info;</span><br><span class="line">	<span class="keyword">mutable</span> std::shared_mutex  _shared_mtx;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><code>QueryDNS</code> 用来查询dns信息，多个线程可同时访问。<br><code>AddDNSInfo</code> 用来添加dns信息，属独占锁，同一时刻只有一个线程在修改。</p>
+<h2 id="递归锁"><a href="#递归锁" class="headerlink" title="递归锁"></a>递归锁</h2><p>有时候我们在实现接口的时候内部加锁，接口内部调用完结束自动解锁。会出现一个接口调用另一个接口的情况，如果用普通的<code>std::mutex</code>就会出现卡死，因为嵌套加锁导致卡死。但是我们可以使用递归锁。</p>
+<p>但我个人并不推荐递归锁，可以从设计源头规避嵌套加锁的情况，我们可以将接口相同的功能抽象出来，统一加锁。下面的设计演示了如何使用递归锁</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">RecursiveDemo</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">RecursiveDemo</span>() &#123;&#125;</span><br><span class="line">	<span class="function"><span class="type">bool</span> <span class="title">QueryStudent</span><span class="params">(std::string name)</span> </span>&#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::recursive_mutex&gt;  <span class="title">recursive_lock</span><span class="params">(_recursive_mtx)</span></span>;</span><br><span class="line">		<span class="keyword">auto</span> iter_find = _students_info.<span class="built_in">find</span>(name);</span><br><span class="line">		<span class="keyword">if</span> (iter_find == _students_info.<span class="built_in">end</span>()) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">AddScore</span><span class="params">(std::string name, <span class="type">int</span> score)</span> </span>&#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::recursive_mutex&gt;  <span class="title">recursive_lock</span><span class="params">(_recursive_mtx)</span></span>;</span><br><span class="line">		<span class="keyword">if</span> (!<span class="built_in">QueryStudent</span>(name)) &#123;</span><br><span class="line">			_students_info.<span class="built_in">insert</span>(std::<span class="built_in">make_pair</span>(name, score));</span><br><span class="line">			<span class="keyword">return</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		_students_info[name] = _students_info[name] + score;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//不推荐采用递归锁，使用递归锁说明设计思路并不理想，需优化设计</span></span><br><span class="line">	<span class="comment">//推荐拆分逻辑，将共有逻辑拆分为统一接口</span></span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">AddScoreAtomic</span><span class="params">(std::string name, <span class="type">int</span> score)</span> </span>&#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::recursive_mutex&gt;  <span class="title">recursive_lock</span><span class="params">(_recursive_mtx)</span></span>;</span><br><span class="line">		<span class="keyword">auto</span> iter_find = _students_info.<span class="built_in">find</span>(name);</span><br><span class="line">		<span class="keyword">if</span> (iter_find == _students_info.<span class="built_in">end</span>()) &#123;</span><br><span class="line">			_students_info.<span class="built_in">insert</span>(std::<span class="built_in">make_pair</span>(name, score));</span><br><span class="line">			<span class="keyword">return</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		_students_info[name] = _students_info[name] + score;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line"></span><br><span class="line">	std::map&lt;std::string, <span class="type">int</span>&gt; _students_info;</span><br><span class="line">	std::recursive_mutex   _recursive_mtx;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以看到<code>AddScore</code>函数内部调用了<code>QueryStudent</code>, 所以采用了递归锁。</p>
+<p>但是我们同样可以改变设计，将两者公有的部分抽离出来生成一个新的接口<code>AddScoreAtomic</code>.</p>
+<p><code>AddScoreAtomic</code>可以不适用递归锁，照样能完成线程安全操作的目的。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了unique_lock，共享锁，递归锁等的使用，较为全面的介绍了这几种锁的使用场景和潜在风险。</p>
+<p>视频链接</p>
+<p><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290">https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290</a></p>
+<p>源码链接</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn">https://gitee.com/secondtonone1/boostasio-learn</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/08/20/concpp03/" rel="next" title="C++ 并发(3) 互斥与死锁">
+                <i class="fa fa-chevron-left"></i> C++ 并发(3) 互斥与死锁
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/09/03/concpp05/" rel="prev" title="线程安全的单例模式">
+                线程安全的单例模式 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">283</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#unique-lock"><span class="nav-number">2.</span> <span class="nav-text">unique_lock</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B1%E4%BA%AB%E9%94%81"><span class="nav-number">3.</span> <span class="nav-text">共享锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%92%E5%BD%92%E9%94%81"><span class="nav-number">4.</span> <span class="nav-text">递归锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

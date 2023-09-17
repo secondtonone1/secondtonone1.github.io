@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="简介本文介绍C++ 并发三剑客， future, promise以及async用法。这三个类是实现并发技术的关键，接下来详细介绍一下 async用法std::async 是一个用于异步执行函数的模板函数，它返回一个 std::future 对象，该对象用于获取函数的返回值。 以下是一个使用 std::async 的示例： 12345678910111213141516171819202122232">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C++ 并发三剑客future, promise和async">
+<meta property="og:url" content="http://www.limerence2017.com/2023/09/17/concpp07/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="简介本文介绍C++ 并发三剑客， future, promise以及async用法。这三个类是实现并发技术的关键，接下来详细介绍一下 async用法std::async 是一个用于异步执行函数的模板函数，它返回一个 std::future 对象，该对象用于获取函数的返回值。 以下是一个使用 std::async 的示例： 12345678910111213141516171819202122232">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-09-17T07:11:40.000Z">
+<meta property="article:modified_time" content="2023-09-17T10:01:25.853Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2023/09/17/concpp07/"/>
+
+
+
+
+
+  <title>C++ 并发三剑客future, promise和async | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/09/17/concpp07/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">C++ 并发三剑客future, promise和async</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-09-17T15:11:40+08:00">
+                2023-09-17
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文介绍C++ 并发三剑客， future, promise以及async用法。这三个类是实现并发技术的关键，接下来详细介绍一下</p>
+<h2 id="async用法"><a href="#async用法" class="headerlink" title="async用法"></a>async用法</h2><p><code>std::async</code> 是一个用于异步执行函数的模板函数，它返回一个 <code>std::future</code> 对象，该对象用于获取函数的返回值。</p>
+<p>以下是一个使用 <code>std::async</code> 的示例：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;future&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;chrono&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 定义一个异步任务</span></span><br><span class="line"><span class="function">std::string <span class="title">fetchDataFromDB</span><span class="params">(std::string query)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 模拟一个异步任务，比如从数据库中获取数据</span></span><br><span class="line">    std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">5</span>));</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;Data: &quot;</span> + query;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 使用 std::async 异步调用 fetchDataFromDB</span></span><br><span class="line">    std::future&lt;std::string&gt; resultFromDB = std::<span class="built_in">async</span>(std::launch::async, fetchDataFromDB, <span class="string">&quot;Data&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 在主线程中做其他事情</span></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Doing something else...&quot;</span> &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 从 future 对象中获取数据</span></span><br><span class="line">    std::string dbData = resultFromDB.<span class="built_in">get</span>();</span><br><span class="line">    std::cout &lt;&lt; dbData &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在这个示例中，<code>std::async</code> 创建了一个新的线程（或从内部线程池中挑选一个线程）并自动与一个 <code>std::promise</code> 对象相关联。<code>std::promise</code> 对象被传递给 <code>fetchDataFromDB</code> 函数，函数的返回值被存储在 <code>std::future</code> 对象中。在主线程中，我们可以使用 <code>std::future::get</code> 方法从 <code>std::future</code> 对象中获取数据。注意，在使用 <code>std::async</code> 的情况下，我们必须使用 <code>std::launch::async</code> 标志来明确表明我们希望函数异步执行。</p>
+<p>上面的例子输出</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Doing something <span class="keyword">else</span>...</span><br><span class="line">Data: Data</span><br></pre></td></tr></table></figure>
+
+<h2 id="async的启动策略"><a href="#async的启动策略" class="headerlink" title="async的启动策略"></a>async的启动策略</h2><p><code>std::async</code>函数可以接受几个不同的启动策略，这些策略在<code>std::launch</code>枚举中定义。除了<code>std::launch::async</code>之外，还有以下启动策略：</p>
+<ol>
+<li><code>std::launch::deferred</code>：这种策略意味着任务将在调用<code>std::future::get()</code>或<code>std::future::wait()</code>函数时延迟执行。换句话说，任务将在需要结果时同步执行。</li>
+<li><code>std::launch::async | std::launch::deferred</code>：这种策略是上面两个策略的组合。任务可以在一个单独的线程上异步执行，也可以延迟执行，具体取决于实现。</li>
+</ol>
+<p>默认情况下，<code>std::async</code>使用<code>std::launch::async | std::launch::deferred</code>策略。这意味着任务可能异步执行，也可能延迟执行，具体取决于实现。需要注意的是，不同的编译器和操作系统可能会有不同的默认行为。</p>
+<h2 id="future的wait和get"><a href="#future的wait和get" class="headerlink" title="future的wait和get"></a>future的wait和get</h2><p><code>std::future::get()</code> 和 <code>std::future::wait()</code> 是 C++ 中用于处理异步任务的两个方法，它们的功能和用法有一些重要的区别。</p>
+<ol>
+<li><strong>std::future::get()</strong>:</li>
+</ol>
+<p><code>std::future::get()</code> 是一个阻塞调用，用于获取 <code>std::future</code> 对象表示的值或异常。如果异步任务还没有完成，<code>get()</code> 会阻塞当前线程，直到任务完成。如果任务已经完成，<code>get()</code> 会立即返回任务的结果。重要的是，<code>get()</code> 只能调用一次，因为它会移动或消耗掉 <code>std::future</code> 对象的状态。一旦 <code>get()</code> 被调用，<code>std::future</code> 对象就不能再被用来获取结果。<br>2. <strong>std::future::wait()</strong>:</p>
+<p><code>std::future::wait()</code> 也是一个阻塞调用，但它与 <code>get()</code> 的主要区别在于 <code>wait()</code> 不会返回任务的结果。它只是等待异步任务完成。如果任务已经完成，<code>wait()</code> 会立即返回。如果任务还没有完成，<code>wait()</code> 会阻塞当前线程，直到任务完成。与 <code>get()</code> 不同，<code>wait()</code> 可以被多次调用，它不会消耗掉 <code>std::future</code> 对象的状态。</p>
+<p>总结一下，这两个方法的主要区别在于：</p>
+<ul>
+<li><code>std::future::get()</code> 用于获取并返回任务的结果，而 <code>std::future::wait()</code> 只是等待任务完成。</li>
+<li><code>get()</code> 只能调用一次，而 <code>wait()</code> 可以被多次调用。</li>
+<li>如果任务还没有完成，<code>get()</code> 和 <code>wait()</code> 都会阻塞当前线程，但 <code>get()</code> 会一直阻塞直到任务完成并返回结果，而 <code>wait()</code> 只是在等待任务完成。</li>
+</ul>
+<p>你可以使用std::future的wait_for()或wait_until()方法来检查异步操作是否已完成。这些方法返回一个表示操作状态的std::future_status值。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(fut.<span class="built_in">wait_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">0</span>)) == std::future_status::ready) &#123;  </span><br><span class="line">    <span class="comment">// 操作已完成  </span></span><br><span class="line">&#125; <span class="keyword">else</span> &#123;  </span><br><span class="line">    <span class="comment">// 操作尚未完成  </span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="将任务和future关联"><a href="#将任务和future关联" class="headerlink" title="将任务和future关联"></a>将任务和future关联</h2><p><code>std::packaged_task</code>和<code>std::future</code>是C++11中引入的两个类，它们用于处理异步任务的结果。</p>
+<p><code>std::packaged_task</code>是一个可调用目标，它包装了一个任务，该任务可以在另一个线程上运行。它可以捕获任务的返回值或异常，并将其存储在<code>std::future</code>对象中，以便以后使用。</p>
+<p><code>std::future</code>代表一个异步操作的结果。它可以用于从异步任务中获取返回值或异常。</p>
+<p>以下是使用<code>std::packaged_task</code>和<code>std::future</code>的基本步骤：</p>
+<ol>
+<li>创建一个<code>std::packaged_task</code>对象，该对象包装了要执行的任务。</li>
+<li>调用<code>std::packaged_task</code>对象的<code>get_future()</code>方法，该方法返回一个与任务关联的<code>std::future</code>对象。</li>
+<li>在另一个线程上调用<code>std::packaged_task</code>对象的<code>operator()</code>，以执行任务。</li>
+<li>在需要任务结果的地方，调用与任务关联的<code>std::future</code>对象的<code>get()</code>方法，以获取任务的返回值或异常。</li>
+</ol>
+<p>以下是一个简单的示例代码：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">my_task</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">5</span>));</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;my task run 5 s&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">42</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_package</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">// 创建一个包装了任务的 std::packaged_task 对象  </span></span><br><span class="line">	<span class="function">std::packaged_task&lt;<span class="title">int</span><span class="params">()</span>&gt; <span class="title">task</span><span class="params">(my_task)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 获取与任务关联的 std::future 对象  </span></span><br><span class="line">	std::future&lt;<span class="type">int</span>&gt; result = task.<span class="built_in">get_future</span>();</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 在另一个线程上执行任务  </span></span><br><span class="line">	<span class="function">std::thread <span class="title">t</span><span class="params">(std::move(task))</span></span>;</span><br><span class="line">	t.<span class="built_in">detach</span>(); <span class="comment">// 将线程与主线程分离，以便主线程可以等待任务完成  </span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 等待任务完成并获取结果  </span></span><br><span class="line">	<span class="type">int</span> value = result.<span class="built_in">get</span>();</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;The result is: &quot;</span> &lt;&lt; value &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在上面的示例中，我们创建了一个包装了任务的<code>std::packaged_task</code>对象，并获取了与任务关联的<code>std::future</code>对象。然后，我们在另一个线程上执行任务，并等待任务完成并获取结果。最后，我们输出结果。</p>
+<p>我们可以使用 std::function 和 std::package_task 来包装带参数的函数。std::package_task 是一个模板类，它包装了一个可调用对象，并允许我们将其作为异步任务传递。</p>
+<h2 id="promise-用法"><a href="#promise-用法" class="headerlink" title="promise 用法"></a>promise 用法</h2><p>C++11引入了<code>std::promise</code>和<code>std::future</code>两个类，用于实现异步编程。<code>std::promise</code>用于在某一线程中设置某个值或异常，而<code>std::future</code>则用于在另一线程中获取这个值或异常。</p>
+<p>下面是<code>std::promise</code>的基本用法：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;thread&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;future&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">set_value</span><span class="params">(std::promise&lt;<span class="type">int</span>&gt; prom)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 设置 promise 的值</span></span><br><span class="line">    prom.<span class="built_in">set_value</span>(<span class="number">10</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 创建一个 promise 对象</span></span><br><span class="line">    std::promise&lt;<span class="type">int</span>&gt; prom;</span><br><span class="line">    <span class="comment">// 获取与 promise 相关联的 future 对象</span></span><br><span class="line">    std::future&lt;<span class="type">int</span>&gt; fut = prom.<span class="built_in">get_future</span>();</span><br><span class="line">    <span class="comment">// 在新线程中设置 promise 的值</span></span><br><span class="line">    <span class="function">std::thread <span class="title">t</span><span class="params">(set_value, std::move(prom))</span></span>;</span><br><span class="line">    <span class="comment">// 在主线程中获取 future 的值</span></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Waiting for the thread to set the value...\n&quot;</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Value set by the thread: &quot;</span> &lt;&lt; fut.<span class="built_in">get</span>() &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line">    t.<span class="built_in">join</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>程序输出</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Waiting <span class="keyword">for</span> the thread to <span class="built_in">set</span> the value...</span><br><span class="line">promise <span class="built_in">set</span> value successValue <span class="built_in">set</span> by the thread:</span><br><span class="line">10</span><br></pre></td></tr></table></figure>
+
+<p>在上面的代码中，我们首先创建了一个<code>std::promise&lt;int&gt;</code>对象，然后通过调用<code>get_future()</code>方法获取与之相关联的<code>std::future&lt;int&gt;</code>对象。然后，我们在新线程中通过调用<code>set_value()</code>方法设置<code>promise</code>的值，并在主线程中通过调用<code>fut.get()</code>方法获取这个值。注意，在调用<code>fut.get()</code>方法时，如果<code>promise</code>的值还没有被设置，则该方法会阻塞当前线程，直到值被设置为止。</p>
+<p>除了<code>set_value()</code>方法外，<code>std::promise</code>还有一个<code>set_exception()</code>方法，用于设置异常。该方法接受一个<code>std::exception_ptr</code>参数，该参数可以通过调用<code>std::current_exception()</code>方法获取。下面是一个例子：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;thread&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;future&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">set_exception</span><span class="params">(std::promise&lt;<span class="type">void</span>&gt; prom)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 抛出一个异常</span></span><br><span class="line">        <span class="keyword">throw</span> std::<span class="built_in">runtime_error</span>(<span class="string">&quot;An error occurred!&quot;</span>);</span><br><span class="line">    &#125; <span class="built_in">catch</span>(...) &#123;</span><br><span class="line">        <span class="comment">// 设置 promise 的异常</span></span><br><span class="line">        prom.<span class="built_in">set_exception</span>(std::<span class="built_in">current_exception</span>());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 创建一个 promise 对象</span></span><br><span class="line">    std::promise&lt;<span class="type">void</span>&gt; prom;</span><br><span class="line">    <span class="comment">// 获取与 promise 相关联的 future 对象</span></span><br><span class="line">    std::future&lt;<span class="type">void</span>&gt; fut = prom.<span class="built_in">get_future</span>();</span><br><span class="line">    <span class="comment">// 在新线程中设置 promise 的异常</span></span><br><span class="line">    <span class="function">std::thread <span class="title">t</span><span class="params">(set_exception, std::move(prom))</span></span>;</span><br><span class="line">    <span class="comment">// 在主线程中获取 future 的异常</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Waiting for the thread to set the exception...\n&quot;</span>;</span><br><span class="line">        fut.<span class="built_in">get</span>();</span><br><span class="line">    &#125; <span class="built_in">catch</span>(<span class="type">const</span> std::exception&amp; e) &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Exception set by the thread: &quot;</span> &lt;&lt; e.<span class="built_in">what</span>() &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    t.<span class="built_in">join</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述代码输出</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Waiting <span class="keyword">for</span> the thread to <span class="built_in">set</span> the exception...</span><br><span class="line">Exception <span class="built_in">set</span> by the thread: An error occurred!</span><br></pre></td></tr></table></figure>
+
+<p>当然我们使用promise时要注意一点，如果promise被释放了，而其他的线程还未使用与promise关联的future，当其使用这个future时会报错。如下是一段错误展示</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_promise_destruct</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::thread t;</span><br><span class="line">	std::future&lt;<span class="type">int</span>&gt; fut;</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="comment">// 创建一个 promise 对象</span></span><br><span class="line">		std::promise&lt;<span class="type">int</span>&gt; prom;</span><br><span class="line">		<span class="comment">// 获取与 promise 相关联的 future 对象</span></span><br><span class="line">		fut = prom.<span class="built_in">get_future</span>();</span><br><span class="line">		<span class="comment">// 在新线程中设置 promise 的值</span></span><br><span class="line">		 t = std::<span class="built_in">thread</span>(set_value, std::<span class="built_in">move</span>(prom));</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 在主线程中获取 future 的值</span></span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;Waiting for the thread to set the value...\n&quot;</span>;</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;Value set by the thread: &quot;</span> &lt;&lt; fut.<span class="built_in">get</span>() &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line">	t.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>随着局部作用域<code>&#125;</code>的结束，<code>prom</code>可能被释放也可能会被延迟释放，<br>如果立即释放则<code>fut.get()</code>获取的值会报<code>error_value</code>的错误。</p>
+<h2 id="共享类型的future"><a href="#共享类型的future" class="headerlink" title="共享类型的future"></a>共享类型的future</h2><p>当我们需要多个线程等待同一个执行结果时，需要使用std::shared_future</p>
+<p>以下是一个适合使用<code>std::shared_future</code>的场景，多个线程等待同一个异步操作的结果：</p>
+<p>假设你有一个异步任务，需要多个线程等待其完成，然后这些线程需要访问任务的结果。在这种情况下，你可以使用<code>std::shared_future</code>来共享异步任务的结果。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">myFunction</span><span class="params">(std::promise&lt;<span class="type">int</span>&gt;&amp;&amp; promise)</span> </span>&#123;</span><br><span class="line">	<span class="comment">// 模拟一些工作</span></span><br><span class="line">	std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">1</span>));</span><br><span class="line">	promise.<span class="built_in">set_value</span>(<span class="number">42</span>); <span class="comment">// 设置 promise 的值</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">threadFunction</span><span class="params">(std::shared_future&lt;<span class="type">int</span>&gt; future)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		<span class="type">int</span> result = future.<span class="built_in">get</span>();</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;Result: &quot;</span> &lt;&lt; result &lt;&lt; std::endl;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">catch</span> (<span class="type">const</span> std::future_error&amp; e) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;Future error: &quot;</span> &lt;&lt; e.<span class="built_in">what</span>() &lt;&lt; std::endl;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_shared_future</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::promise&lt;<span class="type">int</span>&gt; promise;</span><br><span class="line">	std::shared_future&lt;<span class="type">int</span>&gt; future = promise.<span class="built_in">get_future</span>();</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">myThread1</span><span class="params">(myFunction, std::move(promise))</span></span>; <span class="comment">// 将 promise 移动到线程中</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 使用 share() 方法获取新的 shared_future 对象  </span></span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">myThread2</span><span class="params">(threadFunction, future)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">myThread3</span><span class="params">(threadFunction, future)</span></span>;</span><br><span class="line"></span><br><span class="line">	myThread1.<span class="built_in">join</span>();</span><br><span class="line">	myThread2.<span class="built_in">join</span>();</span><br><span class="line">	myThread3.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在这个示例中，我们创建了一个<code>std::promise&lt;int&gt;</code>对象<code>promise</code>和一个与之关联的<code>std::shared_future&lt;int&gt;</code>对象<code>future</code>。然后，我们将<code>promise</code>对象移动到另一个线程<code>myThread1</code>中，该线程将执行<code>myFunction</code>函数，并在完成后设置<code>promise</code>的值。我们还创建了两个线程<code>myThread2</code>和<code>myThread3</code>，它们将等待<code>future</code>对象的结果。如果<code>myThread1</code>成功地设置了<code>promise</code>的值，那么<code>future.get()</code>将返回该值。这些线程可以同时访问和等待<code>future</code>对象的结果，而不会相互干扰。</p>
+<p>但是大家要注意，如果一个<code>future</code>被移动给两个<code>shared_future</code>是错误的。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_shared_future</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::promise&lt;<span class="type">int</span>&gt; promise;</span><br><span class="line">	std::shared_future&lt;<span class="type">int</span>&gt; future = promise.<span class="built_in">get_future</span>();</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">myThread1</span><span class="params">(myFunction, std::move(promise))</span></span>; <span class="comment">// 将 promise 移动到线程中</span></span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">myThread2</span><span class="params">(threadFunction, std::move(future))</span></span>;</span><br><span class="line">	<span class="function">std::thread <span class="title">myThread3</span><span class="params">(threadFunction, std::move(future))</span></span>;</span><br><span class="line"></span><br><span class="line">	myThread1.<span class="built_in">join</span>();</span><br><span class="line">	myThread2.<span class="built_in">join</span>();</span><br><span class="line">	myThread3.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这种用法是错误的，一个<code>future</code>通过隐式构造传递给<code>shared_future</code>之后，这个<code>shared_future</code>被移动传递给两个线程是不合理的，因为第一次移动后<code>shared_future</code>的生命周期被转移了，接下来<code>myThread3</code>构造时用的<code>std::move(future)</code>future已经失效了，会报错，一般都是<code>no state</code> 之类的错误。</p>
+<h2 id="异常处理"><a href="#异常处理" class="headerlink" title="异常处理"></a>异常处理</h2><p><code>std::future</code> 是C++的一个模板类，它用于表示一个可能还没有准备好的异步操作的结果。你可以通过调用 <code>std::future::get</code> 方法来获取这个结果。如果在获取结果时发生了异常，那么 <code>std::future::get</code> 会重新抛出这个异常。</p>
+<p>以下是一个例子，演示了如何在 <code>std::future</code> 中获取异常：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;future&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdexcept&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;thread&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">may_throw</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// 这里我们抛出一个异常。在实际的程序中，这可能在任何地方发生。</span></span><br><span class="line">    <span class="keyword">throw</span> std::<span class="built_in">runtime_error</span>(<span class="string">&quot;Oops, something went wrong!&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// 创建一个异步任务</span></span><br><span class="line">    <span class="function">std::future&lt;<span class="type">void</span>&gt; <span class="title">result</span><span class="params">(std::async(std::launch::async, may_throw))</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 获取结果（如果在获取结果时发生了异常，那么会重新抛出这个异常）</span></span><br><span class="line">        result.<span class="built_in">get</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">catch</span> (<span class="type">const</span> std::exception &amp;e)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 捕获并打印异常</span></span><br><span class="line">        std::cerr &lt;&lt; <span class="string">&quot;Caught exception: &quot;</span> &lt;&lt; e.<span class="built_in">what</span>() &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在这个例子中，我们创建了一个异步任务 <code>may_throw</code>，这个任务会抛出一个异常。然后，我们创建一个 <code>std::future</code> 对象 <code>result</code> 来表示这个任务的结果。在 <code>main</code> 函数中，我们调用 <code>result.get()</code> 来获取任务的结果。如果在获取结果时发生了异常，那么 <code>result.get()</code> 会重新抛出这个异常，然后我们在 <code>catch</code> 块中捕获并打印这个异常。</p>
+<p>上面的例子输出</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Caught exception: Oops, something went wrong!</span><br></pre></td></tr></table></figure>
+
+<h2 id="线程池"><a href="#线程池" class="headerlink" title="线程池"></a>线程池</h2><p>我们可以利用上面提到的<code>std::packaged_task</code>和<code>std::promise</code>构建线程池，提高程序的并发能力。<br>先了解什么是线程池：</p>
+<p>线程池是一种多线程处理形式，它处理过程中将任务添加到队列，然后在创建线程后自动启动这些任务。线程池线程都是后台线程。每个线程都使用默认的堆栈大小，以默认的优先级运行，并处于多线程单元中。如果某个线程在托管代码中空闲（如正在等待某个事件）,则线程池将插入另一个辅助线程来使所有处理器保持繁忙。如果所有线程池线程都始终保持繁忙，但队列中包含挂起的工作，则线程池将在一段时间后创建另一个辅助线程但线程的数目永远不会超过最大值。超过最大值的线程可以排队，但他们要等到其他线程完成后才启动。</p>
+<p>线程池可以避免在处理短时间任务时创建与销毁线程的代价，它维护着多个线程，等待着监督管理者分配可并发执行的任务，从而提高了整体性能。</p>
+<p>下面是我提供的一套线程池源码，目前用在公司的项目中</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifndef</span> __THREAD_POOL_H__</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __THREAD_POOL_H__</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;atomic&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;condition_variable&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;future&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;mutex&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;queue&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;thread&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;Instrument/none_copyable.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">ThreadPool</span> : <span class="keyword">private</span> NoneCopyable &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">ThreadPool</span>(<span class="type">const</span> ThreadPool&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">    ThreadPool&amp;        <span class="keyword">operator</span>=(<span class="type">const</span> ThreadPool&amp;) = <span class="keyword">delete</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="type">static</span> ThreadPool&amp; <span class="title">instance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="type">static</span> ThreadPool ins;</span><br><span class="line">        <span class="keyword">return</span> ins;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">using</span> Task = std::packaged_task&lt;<span class="built_in">void</span>()&gt;;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">ThreadPool</span>(<span class="type">unsigned</span> <span class="type">int</span> num = <span class="number">15</span>)</span><br><span class="line">        : <span class="built_in">stop_</span>(<span class="literal">false</span>) &#123;</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (num &lt; <span class="number">1</span>)</span><br><span class="line">                thread_num_ = <span class="number">1</span>;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">                thread_num_ = num;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">start</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    ~<span class="built_in">ThreadPool</span>() &#123;</span><br><span class="line">        <span class="built_in">stop</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">template</span> &lt;<span class="keyword">class</span> <span class="title class_">F</span>, <span class="keyword">class</span>... Args&gt;</span><br><span class="line">    <span class="function"><span class="keyword">auto</span> <span class="title">commit</span><span class="params">(F&amp;&amp; f, Args&amp;&amp;... args)</span> -&gt; std::future&lt;<span class="title">decltype</span><span class="params">(f(args...))</span>&gt; </span>&#123;</span><br><span class="line">        <span class="keyword">using</span> RetType = <span class="keyword">decltype</span>(<span class="built_in">f</span>(args...));</span><br><span class="line">        <span class="keyword">if</span> (stop_.<span class="built_in">load</span>())</span><br><span class="line">            <span class="keyword">return</span> std::future&lt;RetType&gt;&#123;&#125;;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">auto</span> task = std::make_shared&lt;std::packaged_task&lt;<span class="built_in">RetType</span>()&gt;&gt;(</span><br><span class="line">            std::<span class="built_in">bind</span>(std::forward&lt;F&gt;(f), std::forward&lt;Args&gt;(args)...));</span><br><span class="line"></span><br><span class="line">        std::future&lt;RetType&gt; ret = task-&gt;<span class="built_in">get_future</span>();</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">cv_mt</span><span class="params">(cv_mt_)</span></span>;</span><br><span class="line">            tasks_.<span class="built_in">emplace</span>([task] &#123; (*task)(); &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">        cv_lock_.<span class="built_in">notify_one</span>();</span><br><span class="line">        <span class="keyword">return</span> ret;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="type">int</span> <span class="title">idleThreadCount</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> thread_num_;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">start</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; thread_num_; ++i) &#123;</span><br><span class="line">            pool_.<span class="built_in">emplace_back</span>([<span class="keyword">this</span>]() &#123;</span><br><span class="line">                <span class="keyword">while</span> (!<span class="keyword">this</span>-&gt;stop_.<span class="built_in">load</span>()) &#123;</span><br><span class="line">                    Task task;</span><br><span class="line">                    &#123;</span><br><span class="line">                        std::unique_lock&lt;std::mutex&gt; <span class="built_in">cv_mt</span>(cv_mt_);</span><br><span class="line">                        <span class="keyword">this</span>-&gt;cv_lock_.<span class="built_in">wait</span>(cv_mt, [<span class="keyword">this</span>] &#123;</span><br><span class="line">                            <span class="keyword">return</span> <span class="keyword">this</span>-&gt;stop_.<span class="built_in">load</span>() || !<span class="keyword">this</span>-&gt;tasks_.<span class="built_in">empty</span>();</span><br><span class="line">                        &#125;);</span><br><span class="line">                        <span class="keyword">if</span> (<span class="keyword">this</span>-&gt;tasks_.<span class="built_in">empty</span>())</span><br><span class="line">                            <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">                        task = std::<span class="built_in">move</span>(<span class="keyword">this</span>-&gt;tasks_.<span class="built_in">front</span>());</span><br><span class="line">                        <span class="keyword">this</span>-&gt;tasks_.<span class="built_in">pop</span>();</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">this</span>-&gt;thread_num_--;</span><br><span class="line">                    <span class="built_in">task</span>();</span><br><span class="line">                    <span class="keyword">this</span>-&gt;thread_num_++;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">stop</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        stop_.<span class="built_in">store</span>(<span class="literal">true</span>);</span><br><span class="line">        cv_lock_.<span class="built_in">notify_all</span>();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">auto</span>&amp; td : pool_) &#123;</span><br><span class="line">            <span class="keyword">if</span> (td.<span class="built_in">joinable</span>()) &#123;</span><br><span class="line">                std::cout &lt;&lt; <span class="string">&quot;join thread &quot;</span> &lt;&lt; td.<span class="built_in">get_id</span>() &lt;&lt; std::endl;</span><br><span class="line">                td.<span class="built_in">join</span>();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    std::mutex               cv_mt_;</span><br><span class="line">    std::condition_variable  cv_lock_;</span><br><span class="line">    std::atomic_bool         stop_;</span><br><span class="line">    std::atomic_int          thread_num_;</span><br><span class="line">    std::queue&lt;Task&gt;         tasks_;</span><br><span class="line">    std::vector&lt;std::thread&gt; pool_;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span>  <span class="comment">// !__THREAD_POOL_H__</span></span></span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了如何使用future, promise以及async用法</p>
+<p>视频链接</p>
+<p><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290">https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290</a></p>
+<p>源码链接</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn">https://gitee.com/secondtonone1/boostasio-learn</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/09/09/concpp06/" rel="next" title="利用条件变量构造线程安全队列">
+                <i class="fa fa-chevron-left"></i> 利用条件变量构造线程安全队列
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">283</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#async%E7%94%A8%E6%B3%95"><span class="nav-number">2.</span> <span class="nav-text">async用法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#async%E7%9A%84%E5%90%AF%E5%8A%A8%E7%AD%96%E7%95%A5"><span class="nav-number">3.</span> <span class="nav-text">async的启动策略</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#future%E7%9A%84wait%E5%92%8Cget"><span class="nav-number">4.</span> <span class="nav-text">future的wait和get</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B0%86%E4%BB%BB%E5%8A%A1%E5%92%8Cfuture%E5%85%B3%E8%81%94"><span class="nav-number">5.</span> <span class="nav-text">将任务和future关联</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#promise-%E7%94%A8%E6%B3%95"><span class="nav-number">6.</span> <span class="nav-text">promise 用法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B1%E4%BA%AB%E7%B1%BB%E5%9E%8B%E7%9A%84future"><span class="nav-number">7.</span> <span class="nav-text">共享类型的future</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86"><span class="nav-number">8.</span> <span class="nav-text">异常处理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BA%BF%E7%A8%8B%E6%B1%A0"><span class="nav-number">9.</span> <span class="nav-text">线程池</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">10.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

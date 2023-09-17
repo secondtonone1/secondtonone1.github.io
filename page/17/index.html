@@ -286,6 +286,598 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/11/08/golang18/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/11/08/golang18/" itemprop="url">golang实现生产者消费者模型</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-11-08T15:57:04+08:00">
+                2019-11-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="生产者消费者模型分析"><a href="#生产者消费者模型分析" class="headerlink" title="生产者消费者模型分析"></a>生产者消费者模型分析</h2><p>操作系统中的经典模型，由若干个消费者和生产者，消费者消耗系统资源，生产者创造系统资源，资源的数量要保持在一个合理范围(小于数量上限，大约0)。而消费者和生产者是通过并发或并行方式访问系统资源的，需要保持资源的原子操作。<br>其实就是生产者线程增加资源数，如果资源数大于最大值则生产者线程挂起等待，当收到消费者线程的通知后继续生产。<br>消费者线程减少资源数，如果资源数为0，则消费者线程挂起，等待生产者通知后继续生产。<br>将该模型提炼成伪代码如下:</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">func consume()&#123;</span><br><span class="line">    Lock()</span><br><span class="line">    <span class="keyword">if</span> count &lt;= <span class="number">0</span></span><br><span class="line">        挂起等待(解锁，并等待资源数大于<span class="number">0</span>)</span><br><span class="line">        收到系统通知资源数大约<span class="number">0</span>，抢占加锁</span><br><span class="line">    count--</span><br><span class="line">    如果当前资源数由最大值变少则通知生产者生产</span><br><span class="line">    ULock()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func produce()&#123;</span><br><span class="line">    Lock()</span><br><span class="line">    <span class="keyword">if</span> count &gt;= 最大值</span><br><span class="line">        挂起等待(解锁，并等待资源数小于最大值)</span><br><span class="line">        收到系统通知资源小于最大值，抢占加锁</span><br><span class="line">    count++</span><br><span class="line">    如果当前资源数由最小值<span class="number">0</span>增加则通知消费者可以消耗</span><br><span class="line">    ULock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>consume()消耗资源，produce()生产资源，之前实现过C版本的该模型<br><a href="http://www.limerence2017.com/2017/08/08/pthreadwait/">http://www.limerence2017.com/2017/08/08/pthreadwait/</a><br>C方式实现的是抢占式的，线程切换开销较大。下面给出golang协程方式的实现。</p>
+<h2 id="先实现资源的互斥访问"><a href="#先实现资源的互斥访问" class="headerlink" title="先实现资源的互斥访问"></a>先实现资源的互斥访问</h2><p>对于资源的互斥访问，其他语言提供了线程锁，golang也有线程锁，当然可以通过channel实现，这里我给出加锁访问资源的方式，因为channel内部也是通过加锁实现的，而且我习惯用channel做协程通信，对于共享资源的控制习惯用锁来控制，也比较高效。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2019/11/08/golang18/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/11/08/golang19/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/11/08/golang19/" itemprop="url">golang channel详解和协程优雅退出</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-11-08T15:57:04+08:00">
+                2019-11-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="非缓冲chan，读写对称"><a href="#非缓冲chan，读写对称" class="headerlink" title="非缓冲chan，读写对称"></a>非缓冲chan，读写对称</h2><p>非缓冲channel,要求一端读取，一端写入。channel大小为零，所以读写操作一定要匹配。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	nochan := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(ch <span class="keyword">chan</span> <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">		data := &lt;-ch</span><br><span class="line">		fmt.Println(<span class="string">&quot;receive data &quot;</span>, data)</span><br><span class="line">	&#125;(nochan)</span><br><span class="line">	nochan &lt;- <span class="number">5</span></span><br><span class="line">	fmt.Println(<span class="string">&quot;send data &quot;</span>, <span class="number">5</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们启动了一个协程从channel中读取数据，在主协程中写入，程序的运行流程是主协程优先启动，运行到nochan&lt;-5写入是阻塞，然后启动协程读取，从而完成协程间通信。<br>程序输出</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">receive data  <span class="number">5</span></span><br><span class="line">send data  <span class="number">5</span></span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2019/11/08/golang19/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/11/05/golang17/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/11/05/golang17/" itemprop="url">图解Go协程调度原理，小白都能理解</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-11-05T10:42:53+08:00">
+                2019-11-05
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>阅读本文仅需五分钟，golang协程调度原理，小白也能看懂，超实用。</p>
+<h2 id="什么是协程"><a href="#什么是协程" class="headerlink" title="什么是协程"></a>什么是协程</h2><p>对于进程、线程，都是有内核进行调度，有CPU时间片的概念，进行抢占式调度。协程，又称微线程，纤程。英文名Coroutine。协程的调用有点类似子程序，如程序A调用了子程序B，子程序B调用了子程序C，当子程序C结束了返回子程序B继续执行之后的逻辑，当子程序B运行结束了返回程序A，直到程序A运行结束。但是和子程序相比，协程有挂起的概念，协程可以挂起跳转执行其他协程，合适的时机再跳转回来。</p>
+<h2 id="线程调度原理"><a href="#线程调度原理" class="headerlink" title="线程调度原理"></a>线程调度原理</h2><p>N:1模型，多个用户空间线程在1个内核空间线程上运行。优势是上下文切换非常快，因为这些线程都在内核态运行，但是无法利用多核系统的优点。<br>1:1模型，1个内核空间线程运行一个用户空间线程。这种充分利用了多核系统的优势但是上下文切换非常慢，因为每一次调度都会在用户态和内核态之间切换。POSIX线程模型(pthread)就是这么做的。<br>M:N模型，内核空间开启多个内核线程，一个内核空间线程对应多个用户空间线程。效率非常高，但是管理复杂。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2019/11/05/golang17/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/10/31/news1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/10/31/news1/" itemprop="url">不推荐新手的编程语言，你中枪了吗</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-10-31T12:57:40+08:00">
+                2019-10-31
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/news/" itemprop="url" rel="index">
+                    <span itemprop="name">生活感悟</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="TIOBE-编程语言排名前20"><a href="#TIOBE-编程语言排名前20" class="headerlink" title="TIOBE 编程语言排名前20"></a>TIOBE 编程语言排名前20</h2><p>随着时代的发展，编程语言日益丰富。诚然，熟练掌握多门编程语言是很多开发者梦寐以求的事，不过人的精力有限，要有选择性的学习。最好是能够结合自己的工作或者爱好有针对性的训练和学习。语言只是工具，但是这些工具的应用场景不尽相同。下图为TIOBE 2019年9月统计的编程语言排名</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2019/10/31/news1/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/10/29/eos10/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1159,605 +1751,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/09/11/golang12/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/09/11/golang12/" itemprop="url">golang结构体</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-09-11T15:37:30+08:00">
-                2019-09-11
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>golang支持面向对象的设计，一般支持面向对象的语言都会有class的设计，但是golang没有class关键字，只有struct结构体。通过结构体达到类的效果，这叫做大成若缺，其用不弊。</p>
-<h2 id="struct简介"><a href="#struct简介" class="headerlink" title="struct简介"></a>struct简介</h2><p>在使用struct之前，先介绍golang的一个特性，golang允许用户将类型A定义为另一种类型B，并为类型B添加方法。</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Integer <span class="type">int</span> </span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a Integer)</span></span> Less (b Integer) <span class="type">bool</span>&#123;</span><br><span class="line">    <span class="keyword">return</span> a &lt; b</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2019/09/11/golang12/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/09/11/golang11/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/09/11/golang11/" itemprop="url">golang 函数介绍</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-09-11T14:50:45+08:00">
-                2019-09-11
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="函数简介"><a href="#函数简介" class="headerlink" title="函数简介"></a>函数简介</h2><p>函数是编程语言中不可缺少的部分，在golang这门语言中函数是一等公民。也是使用好golang的必备技能。<br>看下golang函数的格式</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> 函数名<span class="params">(函数参数)</span></span>返回值类型&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>一个简单的函数</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">HelloFunc</span><span class="params">(str <span class="type">string</span>)</span></span> <span class="type">string</span>&#123;</span><br><span class="line">    <span class="keyword">return</span> str</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>该函数返回传入的字符串,函数调用如下</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fmt.Println(Hello(<span class="string">&quot;Nice to meet you!&quot;</span>))</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2019/09/11/golang11/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/08/29/golang10/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/08/29/golang10/" itemprop="url">golang 使用etcd</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-08-29T16:40:47+08:00">
-                2019-08-29
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="etcd-安装和配置"><a href="#etcd-安装和配置" class="headerlink" title="etcd 安装和配置"></a>etcd 安装和配置</h2><p>下载etcd release版本：<a target="_blank" rel="noopener" href="https://github.com/coreos/etcd/releases/">https://github.com/coreos/etcd/releases/</a><br>我的是windows版本，下载win64的就行了，下载后进入文件夹，建立几个配置文件启动就行了，可以写yml文件，我是windows的就做成了bat命令。<br>一般是一个节点对应一个配置，一个节点的配置如下<br>yml文件版本</p>
-<figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">name:</span> <span class="string">etcd-1</span></span><br><span class="line"><span class="attr">data-dir:</span> <span class="string">.\data\etcd01</span> </span><br><span class="line"><span class="attr">advertise-client-urls:</span> <span class="string">http://127.0.0.1:2379</span> </span><br><span class="line"><span class="attr">listen-client-urls:</span> <span class="string">http://127.0.0.1:2379</span> </span><br><span class="line"><span class="attr">listen-peer-urls:</span> <span class="string">http://127.0.0.1:2380</span> </span><br><span class="line"><span class="attr">initial-advertise-peer-urls:</span> <span class="string">http://127.0.0.1:2380</span> </span><br><span class="line"><span class="attr">initial-cluster-token:</span> <span class="string">etcd-cluster-1</span> </span><br><span class="line"><span class="attr">initial-cluster:</span> <span class="string">etcd01=http://127.0.0.1:2380,etcd02=http://127.0.0.1:2381,etcd03=http://127.0.0.1:2382</span> <span class="string">^</span></span><br><span class="line"><span class="attr">initial-cluster-state:</span> <span class="string">new</span></span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2019/08/29/golang10/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/07/02/golang09/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/07/02/golang09/" itemprop="url">解密定时器的实现细节</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-07-02T09:55:31+08:00">
-                2019-07-02
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>后端开发常常需要设计定时器，介于现在可用的网络库和第三方库较为全面，所以不需要我们自己造轮子了，有时候做技术开发需要知其然，知其所以然。定时器的实现有很多种方式，采用小根堆实现定时器是较为常见的一种。</p>
-<h2 id="一个假定的定时器结构"><a href="#一个假定的定时器结构" class="headerlink" title="一个假定的定时器结构"></a>一个假定的定时器结构</h2><p>如果用golang实现，定时器的每个任务应该包含如下结构</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> HeapEle <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">//任务的回调函数</span></span><br><span class="line">	callback <span class="function"><span class="keyword">func</span><span class="params">(<span class="keyword">interface</span>&#123;&#125;)</span></span> <span class="type">bool</span></span><br><span class="line">	<span class="comment">//回调函数的参数</span></span><br><span class="line">	params <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">	<span class="comment">//任务设置的定时器时间</span></span><br><span class="line">	deadline <span class="type">int64</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2019/07/02/golang09/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/16/">&lt;</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/16/">16</a><span class="page-number current">17</span><a class="page-number" href="/page/18/">18</a><span class="space">&hellip;</span><a class="page-number" href="/page/28/">28</a><a class="extend next" rel="next" href="/page/18/">&gt;</a>
+    <a class="extend prev" rel="prev" href="/page/16/">&lt;</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/16/">16</a><span class="page-number current">17</span><a class="page-number" href="/page/18/">18</a><span class="space">&hellip;</span><a class="page-number" href="/page/29/">29</a><a class="extend next" rel="next" href="/page/18/">&gt;</a>
   </nav>
 
 
@@ -1803,7 +1801,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">279</span>
+                  <span class="site-state-item-count">283</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>

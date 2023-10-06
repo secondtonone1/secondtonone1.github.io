@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="简介前文介绍了async用法，很多朋友说用的不多，我对async的理解就是开辟一个一次性的线程执行并行任务，主线程可以通过future在合适的时机执行等待汇总结果。本文通过并行和函数式编程，演示快速排序提升效率的一种方式。 快速排序快速排序（Quick Sort）是一种高效的排序算法，采用分治法的思想进行排序。以下是快速排序的基本步骤：  选择一个基准元素（pivot）：从数组中选择一个元素作为基">
+<meta property="og:type" content="article">
+<meta property="og:title" content="利用并行和函数式编程提高运算效率">
+<meta property="og:url" content="http://www.limerence2017.com/2023/09/24/concpp08/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="简介前文介绍了async用法，很多朋友说用的不多，我对async的理解就是开辟一个一次性的线程执行并行任务，主线程可以通过future在合适的时机执行等待汇总结果。本文通过并行和函数式编程，演示快速排序提升效率的一种方式。 快速排序快速排序（Quick Sort）是一种高效的排序算法，采用分治法的思想进行排序。以下是快速排序的基本步骤：  选择一个基准元素（pivot）：从数组中选择一个元素作为基">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-09-24T09:12:55.000Z">
+<meta property="article:modified_time" content="2023-09-24T10:42:21.171Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2023/09/24/concpp08/"/>
+
+
+
+
+
+  <title>利用并行和函数式编程提高运算效率 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/09/24/concpp08/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">利用并行和函数式编程提高运算效率</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-09-24T17:12:55+08:00">
+                2023-09-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前文介绍了<code>async</code>用法，很多朋友说用的不多，我对<code>async</code>的理解就是开辟一个一次性的线程执行并行任务，主线程可以通过<code>future</code>在合适的时机执行等待汇总结果。本文通过并行和函数式编程，演示快速排序提升效率的一种方式。</p>
+<h2 id="快速排序"><a href="#快速排序" class="headerlink" title="快速排序"></a>快速排序</h2><p>快速排序（Quick Sort）是一种高效的排序算法，采用分治法的思想进行排序。以下是快速排序的基本步骤：</p>
+<ol>
+<li>选择一个基准元素（pivot）：从数组中选择一个元素作为基准元素。选择基准元素的方式有很多种，常见的是选择数组的第一个元素或最后一个元素。</li>
+<li>分区（partitioning）：重新排列数组，把比基准元素小的元素放在它的左边，把比基准元素大的元素放在它的右边。在这个过程结束时，基准元素就处于数组的最终位置。</li>
+<li>递归排序子数组：递归地对基准元素左边和右边的两个子数组进行快速排序。</li>
+</ol>
+<p>以下是一个基本的快速排序的C++实现：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//c++ 版本的快速排序算法</span></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">quick_sort_recursive</span><span class="params">(T arr[], <span class="type">int</span> start, <span class="type">int</span> end)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (start &gt;= end) <span class="keyword">return</span>;</span><br><span class="line">	T key = arr[start];</span><br><span class="line">	<span class="type">int</span> left = start, right = end;</span><br><span class="line">	<span class="keyword">while</span>(left &lt; right) &#123;</span><br><span class="line">		<span class="keyword">while</span> (arr[right] &gt;= key &amp;&amp; left &lt; right) right--;</span><br><span class="line">		<span class="keyword">while</span> (arr[left] &lt;= key &amp;&amp; left &lt; right) left++;</span><br><span class="line">		std::<span class="built_in">swap</span>(arr[left], arr[right]);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (arr[left] &lt; key) &#123;</span><br><span class="line">		std::<span class="built_in">swap</span>(arr[left], arr[start]);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	<span class="built_in">quick_sort_recursive</span>(arr, start, left - <span class="number">1</span>);</span><br><span class="line">	<span class="built_in">quick_sort_recursive</span>(arr, left + <span class="number">1</span>, end);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">quick_sort</span><span class="params">(T arr[], <span class="type">int</span> len)</span> </span>&#123;</span><br><span class="line">	<span class="built_in">quick_sort_recursive</span>(arr, <span class="number">0</span>, len - <span class="number">1</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>排序演示</p>
+<p>假设一开始序列{xi}是：5，3，7，6，4，1，0，2，9，10，8。</p>
+<p>此时，ref=5，i=1，j=11，从后往前找，第一个比5小的数是x8=2，因此序列为：2，3，7，6，4，1，0，5，9，10，8。</p>
+<p>此时i=1，j=8，从前往后找，第一个比5大的数是x3=7，因此序列为：2，3，5，6，4，1，0，7，9，10，8。</p>
+<p>此时，i=3，j=8，从第8位往前找，第一个比5小的数是x7=0，因此：2，3，0，6，4，1，5，7，9，10，8。</p>
+<p>此时，i=3，j=7，从第3位往后找，第一个比5大的数是x4=6，因此：2，3，0，5，4，1，6，7，9，10，8。</p>
+<p>此时，i=4，j=7，从第7位往前找，第一个比5小的数是x6=1，因此：2，3，0，1，4，5，6，7，9，10，8。</p>
+<p>此时，i=4，j=6，从第4位往后找，直到第6位才有比5大的数，这时，i=j=6，ref成为一条分界线，它之前的数都比它小，之后的数都比它大，对于前后两部分数，可以采用同样的方法来排序。 </p>
+<p>调用比较简单</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_quick_sort</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="type">int</span> num_arr[] = &#123; <span class="number">5</span>，<span class="number">3</span>，<span class="number">7</span>，<span class="number">6</span>，<span class="number">4</span>，<span class="number">1</span>，<span class="number">0</span>，<span class="number">2</span>，<span class="number">9</span>，<span class="number">10</span>，<span class="number">8</span> &#125;;</span><br><span class="line">	<span class="type">int</span> length = <span class="built_in">sizeof</span>(num_arr) / <span class="built_in">sizeof</span>(<span class="type">int</span>);</span><br><span class="line">	 <span class="built_in">quick_sort</span>(num_arr, length );</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;sorted result is &quot;</span>;</span><br><span class="line">	<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; length; i++) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot; &quot;</span> &lt;&lt; num_arr[i];</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	std::cout &lt;&lt; std::endl;	</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种实现方式比较依赖存储数据的数据结构，比如上面是通过数组存储的，那如果我想实现<code>list</code>容器中元素的排序怎么办？我既不想关注存储的容器，也不想关注存储的类型，想实现一套通用的比较规则？那就需要函数式编程来解决</p>
+<h2 id="函数式编程"><a href="#函数式编程" class="headerlink" title="函数式编程"></a>函数式编程</h2><p>C++函数式编程是一种编程范式，它将计算视为数学上的函数求值，并避免改变状态和使用可变数据。在函数式编程中，程序是由一系列函数组成的，每个函数都接受输入并产生输出，而且没有任何副作用。</p>
+<p>在C++中，函数式编程可以使用函数指针、函数对象（functor）和lambda表达式等机制来实现。这些机制允许您编写可以像普通函数一样调用的代码块，并将它们作为参数传递给其他函数或作为返回值返回。</p>
+<p>C++11引入了一些新功能，如constexpr函数和表达式模板，这些功能使得在C++中进行函数式编程更加容易和直观。</p>
+<p>我们用函数式编程修改上面的快速排序</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function">std::list&lt;T&gt; <span class="title">sequential_quick_sort</span><span class="params">(std::list&lt;T&gt; input)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (input.<span class="built_in">empty</span>())</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">return</span> input;</span><br><span class="line">	&#125;</span><br><span class="line">	std::list&lt;T&gt; result;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//  ① 将input中的第一个元素放入result中，并且将这第一个元素从input中删除</span></span><br><span class="line">	result.<span class="built_in">splice</span>(result.<span class="built_in">begin</span>(), input, input.<span class="built_in">begin</span>());  </span><br><span class="line"></span><br><span class="line">	<span class="comment">//  ② 取result的第一个元素，将来用这个元素做切割，切割input中的列表。</span></span><br><span class="line">	T <span class="type">const</span>&amp; pivot = *result.<span class="built_in">begin</span>();    </span><br><span class="line"></span><br><span class="line">	<span class="comment">//  ③std::partition 是一个标准库函数，用于将容器或数组中的元素按照指定的条件进行分区，</span></span><br><span class="line">	<span class="comment">// 使得满足条件的元素排在不满足条件的元素之前。</span></span><br><span class="line">	<span class="comment">// 所以经过计算divide_point指向的是input中第一个大于等于pivot的元素</span></span><br><span class="line">		<span class="keyword">auto</span> divide_point = std::<span class="built_in">partition</span>(input.<span class="built_in">begin</span>(), input.<span class="built_in">end</span>(),</span><br><span class="line">			[&amp;](T <span class="type">const</span>&amp; t) &#123;<span class="keyword">return</span> t &lt; pivot; &#125;);    </span><br><span class="line">	</span><br><span class="line">	<span class="comment">// ④ 我们将小于pivot的元素放入lower_part中</span></span><br><span class="line">	std::list&lt;T&gt; lower_part;</span><br><span class="line">	lower_part.<span class="built_in">splice</span>(lower_part.<span class="built_in">end</span>(), input, input.<span class="built_in">begin</span>(),</span><br><span class="line">		divide_point);  </span><br><span class="line"></span><br><span class="line">	<span class="comment">// ⑤我们将lower_part传递给sequential_quick_sort 返回一个新的有序的从小到大的序列</span></span><br><span class="line">	<span class="comment">//lower_part 中都是小于divide_point的值</span></span><br><span class="line">		<span class="function"><span class="keyword">auto</span> <span class="title">new_lower</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">			sequential_quick_sort(std::move(lower_part)))</span></span>;    </span><br><span class="line">	<span class="comment">// ⑥我们剩余的input列表传递给sequential_quick_sort递归调用，input中都是大于divide_point的值。</span></span><br><span class="line">		<span class="function"><span class="keyword">auto</span> <span class="title">new_higher</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">			sequential_quick_sort(std::move(input)))</span></span>;    </span><br><span class="line">		<span class="comment">//⑦到此时new_higher和new_lower都是从小到大排序好的列表</span></span><br><span class="line">		<span class="comment">//将new_higher 拼接到result的尾部</span></span><br><span class="line">		result.<span class="built_in">splice</span>(result.<span class="built_in">end</span>(), new_higher);    </span><br><span class="line">		<span class="comment">//将new_lower 拼接到result的头部</span></span><br><span class="line">		result.<span class="built_in">splice</span>(result.<span class="built_in">begin</span>(), new_lower);   </span><br><span class="line">		<span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>用如下方式调用</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_sequential_quick</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::list&lt;<span class="type">int</span>&gt; numlists = &#123; <span class="number">6</span>,<span class="number">1</span>,<span class="number">0</span>,<span class="number">7</span>,<span class="number">5</span>,<span class="number">2</span>,<span class="number">9</span>,<span class="number">-1</span> &#125;;</span><br><span class="line">	<span class="keyword">auto</span> sort_result = <span class="built_in">sequential_quick_sort</span>(numlists);</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;sorted result is &quot;</span>;</span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">auto</span> iter = sort_result.<span class="built_in">begin</span>(); iter != sort_result.<span class="built_in">end</span>(); iter++) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot; &quot;</span> &lt;&lt; (*iter);</span><br><span class="line">	&#125;</span><br><span class="line">	std::cout &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个函数是一个使用快速排序算法对链表进行排序的实现。快速排序是一种常用的排序算法，它的基本思想是选择一个基准元素，然后将数组分为两部分，一部分是小于基准元素的元素，另一部分是大于基准元素的元素。然后对这两部分再分别进行快速排序。这个函数使用了C++的模板，可以处理任何数据类型的链表。函数的主要步骤包括：</p>
+<ol>
+<li><p>将链表的第一个元素作为基准元素，并将其从链表中删除。</p>
+</li>
+<li><p>使用std::partition函数将链表分为两部分，一部分是小于基准元素的元素，另一部分是大于或等于基准元素的元素。</p>
+</li>
+<li><p>对这两部分分别进行递归排序。\n4. 将排序后的两部分和基准元素合并，返回排序后的链表。</p>
+</li>
+</ol>
+<h2 id="并行方式"><a href="#并行方式" class="headerlink" title="并行方式"></a>并行方式</h2><p>我们提供并行方式的函数式编程，可以极大的利用cpu多核的优势，这在并行计算中很常见。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//并行版本</span></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function">std::list&lt;T&gt; <span class="title">parallel_quick_sort</span><span class="params">(std::list&lt;T&gt; input)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (input.<span class="built_in">empty</span>())</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">return</span> input;</span><br><span class="line">	&#125;</span><br><span class="line">	std::list&lt;T&gt; result;</span><br><span class="line">	result.<span class="built_in">splice</span>(result.<span class="built_in">begin</span>(), input, input.<span class="built_in">begin</span>());</span><br><span class="line">	T <span class="type">const</span>&amp; pivot = *result.<span class="built_in">begin</span>();</span><br><span class="line">	<span class="keyword">auto</span> divide_point = std::<span class="built_in">partition</span>(input.<span class="built_in">begin</span>(), input.<span class="built_in">end</span>(),</span><br><span class="line">		[&amp;](T <span class="type">const</span>&amp; t) &#123;<span class="keyword">return</span> t &lt; pivot; &#125;);</span><br><span class="line">	std::list&lt;T&gt; lower_part;</span><br><span class="line">	lower_part.<span class="built_in">splice</span>(lower_part.<span class="built_in">end</span>(), input, input.<span class="built_in">begin</span>(),</span><br><span class="line">		divide_point);</span><br><span class="line">	<span class="comment">// ①因为lower_part是副本，所以并行操作不会引发逻辑错误，这里可以启动future做排序</span></span><br><span class="line">	std::future&lt;std::list&lt;T&gt;&gt; <span class="built_in">new_lower</span>(</span><br><span class="line">		std::<span class="built_in">async</span>(&amp;parallel_quick_sort&lt;T&gt;, std::<span class="built_in">move</span>(lower_part)));</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// ②</span></span><br><span class="line">	<span class="function"><span class="keyword">auto</span> <span class="title">new_higher</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">		parallel_quick_sort(std::move(input)))</span></span>;    </span><br><span class="line">		result.<span class="built_in">splice</span>(result.<span class="built_in">end</span>(), new_higher);    </span><br><span class="line">		result.<span class="built_in">splice</span>(result.<span class="built_in">begin</span>(), new_lower.<span class="built_in">get</span>());    </span><br><span class="line">		<span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>测试调用如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_sequential_quick</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::list&lt;<span class="type">int</span>&gt; numlists = &#123; <span class="number">6</span>,<span class="number">1</span>,<span class="number">0</span>,<span class="number">7</span>,<span class="number">5</span>,<span class="number">2</span>,<span class="number">9</span>,<span class="number">-1</span> &#125;;</span><br><span class="line">	<span class="keyword">auto</span> sort_result = <span class="built_in">sequential_quick_sort</span>(numlists);</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;sorted result is &quot;</span>;</span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">auto</span> iter = sort_result.<span class="built_in">begin</span>(); iter != sort_result.<span class="built_in">end</span>(); iter++) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot; &quot;</span> &lt;&lt; (*iter);</span><br><span class="line">	&#125;</span><br><span class="line">	std::cout &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们对<code>lower_part</code>的排序调用了<code>std::async</code>并行处理。而<code>higher_part</code>则是串行执行的。这么做提高了计算的并行能力，但有人会问如果数组的大小为1024，那么就是2的10次方，需要启动10个线程执行，这仅是对一个1024大小的数组的排序，如果有多个数组排序，开辟线程会不会很多？其实不用担心这个，因为<code>async</code>的实现方式在上一节中已经提及了，是通过<code>std::launch::async</code>或者<code>std::launch::deffered</code>完成的。编译器会计算当前能否开辟线程，如果能则使用<code>std::launch::async</code>模式开辟线程，如果不能则采用<code>std::launch::deffered</code>串行执行。当然，我们也可以通过我们上文提及的线程池方式实现并行计算</p>
+<h2 id="ThreadPool方式的并行排序"><a href="#ThreadPool方式的并行排序" class="headerlink" title="ThreadPool方式的并行排序"></a>ThreadPool方式的并行排序</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//线程池版本</span></span><br><span class="line"><span class="comment">//并行版本</span></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function">std::list&lt;T&gt; <span class="title">thread_pool_quick_sort</span><span class="params">(std::list&lt;T&gt; input)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (input.<span class="built_in">empty</span>())</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">return</span> input;</span><br><span class="line">	&#125;</span><br><span class="line">	std::list&lt;T&gt; result;</span><br><span class="line">	result.<span class="built_in">splice</span>(result.<span class="built_in">begin</span>(), input, input.<span class="built_in">begin</span>());</span><br><span class="line">	T <span class="type">const</span>&amp; pivot = *result.<span class="built_in">begin</span>();</span><br><span class="line">	<span class="keyword">auto</span> divide_point = std::<span class="built_in">partition</span>(input.<span class="built_in">begin</span>(), input.<span class="built_in">end</span>(),</span><br><span class="line">		[&amp;](T <span class="type">const</span>&amp; t) &#123;<span class="keyword">return</span> t &lt; pivot; &#125;);</span><br><span class="line">	std::list&lt;T&gt; lower_part;</span><br><span class="line">	lower_part.<span class="built_in">splice</span>(lower_part.<span class="built_in">end</span>(), input, input.<span class="built_in">begin</span>(),</span><br><span class="line">		divide_point);</span><br><span class="line">	<span class="comment">// ①因为lower_part是副本，所以并行操作不会引发逻辑错误，这里投递给线程池处理</span></span><br><span class="line">	<span class="keyword">auto</span> new_lower = ThreadPool::<span class="built_in">commit</span>(&amp;parallel_quick_sort&lt;T&gt;, std::<span class="built_in">move</span>(lower_part));</span><br><span class="line">	<span class="comment">// ②</span></span><br><span class="line">	<span class="function"><span class="keyword">auto</span> <span class="title">new_higher</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">		parallel_quick_sort(std::move(input)))</span></span>;</span><br><span class="line">	result.<span class="built_in">splice</span>(result.<span class="built_in">end</span>(), new_higher);</span><br><span class="line">	result.<span class="built_in">splice</span>(result.<span class="built_in">begin</span>(), new_lower.<span class="built_in">get</span>());</span><br><span class="line">	<span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过如下方式测试</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_thread_pool_sort</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::list&lt;<span class="type">int</span>&gt; numlists = &#123; <span class="number">6</span>,<span class="number">1</span>,<span class="number">0</span>,<span class="number">7</span>,<span class="number">5</span>,<span class="number">2</span>,<span class="number">9</span>,<span class="number">-1</span> &#125;;</span><br><span class="line">	<span class="keyword">auto</span> sort_result = <span class="built_in">thread_pool_quick_sort</span>(numlists);</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;sorted result is &quot;</span>;</span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">auto</span> iter = sort_result.<span class="built_in">begin</span>(); iter != sort_result.<span class="built_in">end</span>(); iter++) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot; &quot;</span> &lt;&lt; (*iter);</span><br><span class="line">	&#125;</span><br><span class="line">	std::cout &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>到此我们实现了多种版本的快速排序，并不是鼓励读者造轮子，而是提供一种并行处理的思想，相信读者在后续的工作中在合适的时机采用并行处理的方式，可以极大的提高程序处理问题的效率。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了如何使用future, promise以及async用法</p>
+<p>视频链接</p>
+<p><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290">https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290</a></p>
+<p>源码链接</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn">https://gitee.com/secondtonone1/boostasio-learn</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/09/17/concpp07/" rel="next" title="C++ 并发三剑客future, promise和async">
+                <i class="fa fa-chevron-left"></i> C++ 并发三剑客future, promise和async
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/10/06/concpp09/" rel="prev" title="Actor和CSP设计模式">
+                Actor和CSP设计模式 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">285</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BF%AB%E9%80%9F%E6%8E%92%E5%BA%8F"><span class="nav-number">2.</span> <span class="nav-text">快速排序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">函数式编程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B9%B6%E8%A1%8C%E6%96%B9%E5%BC%8F"><span class="nav-number">4.</span> <span class="nav-text">并行方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ThreadPool%E6%96%B9%E5%BC%8F%E7%9A%84%E5%B9%B6%E8%A1%8C%E6%8E%92%E5%BA%8F"><span class="nav-number">5.</span> <span class="nav-text">ThreadPool方式的并行排序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">6.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

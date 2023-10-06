@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="简介本文介绍两种并发设计中常用的设计模式，包括Actor和CSP模式。传统的并发设计经常都是通过共享内存加锁保证逻辑安全，这种模式有几个缺点，包括1 频繁加锁影响性能，2 耦合度高。后来大家提出了Actor和CSP设计模式。 Actor设计模式简单点说，actor通过消息传递的方式与外界通信。消息传递是异步的。每个actor都有一个邮箱，该邮箱接收并缓存其他actor发过来的消息，actor一次只">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Actor和CSP设计模式">
+<meta property="og:url" content="http://www.limerence2017.com/2023/10/06/concpp09/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="简介本文介绍两种并发设计中常用的设计模式，包括Actor和CSP模式。传统的并发设计经常都是通过共享内存加锁保证逻辑安全，这种模式有几个缺点，包括1 频繁加锁影响性能，2 耦合度高。后来大家提出了Actor和CSP设计模式。 Actor设计模式简单点说，actor通过消息传递的方式与外界通信。消息传递是异步的。每个actor都有一个邮箱，该邮箱接收并缓存其他actor发过来的消息，actor一次只">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.llfc.club/1696556496577.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/img_2f50c511653189037c3ac1a36c7962a2.png">
+<meta property="og:image" content="https://cdn.llfc.club/csp.png">
+<meta property="og:image" content="https://cdn.llfc.club/1696562243686.jpg">
+<meta property="article:published_time" content="2023-10-06T01:17:35.000Z">
+<meta property="article:modified_time" content="2023-10-06T03:32:17.666Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.llfc.club/1696556496577.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2023/10/06/concpp09/"/>
+
+
+
+
+
+  <title>Actor和CSP设计模式 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/10/06/concpp09/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Actor和CSP设计模式</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-10-06T09:17:35+08:00">
+                2023-10-06
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文介绍两种并发设计中常用的设计模式，包括Actor和CSP模式。传统的并发设计经常都是通过共享内存加锁保证逻辑安全，这种模式有几个缺点，包括1 频繁加锁影响性能，2 耦合度高。后来大家提出了Actor和CSP设计模式。</p>
+<h2 id="Actor设计模式"><a href="#Actor设计模式" class="headerlink" title="Actor设计模式"></a>Actor设计模式</h2><p>简单点说，actor通过消息传递的方式与外界通信。消息传递是异步的。每个actor都有一个邮箱，该邮箱接收并缓存其他actor发过来的消息，actor一次只能同步处理一个消息，处理消息过程中，除了可以接收消息，不能做任何其他操作。<br>每一个类独立在一个线程里称作Actor，Actor之间通过队列通信，比如Actor1 发消息给Actor2， Actor2 发消息给Actor1都是投递到对方的队列中。好像给对方发邮件，对方从邮箱中取出一样。如下图</p>
+<p><img src="https://cdn.llfc.club/1696556496577.jpg" alt="https://cdn.llfc.club/1696556496577.jpg"></p>
+<p>Actor模型的另一个好处就是可以消除共享状态，因为它每次只能处理一条消息，所以actor内部可以安全的处理状态，而不用考虑锁机制。</p>
+<p><img src="https://cdn.llfc.club/img_2f50c511653189037c3ac1a36c7962a2.png" alt="https://cdn.llfc.club/img_2f50c511653189037c3ac1a36c7962a2.png"></p>
+<p>我们在网络编程中对于逻辑层的处理就采用了将要处理的逻辑消息封装成包投递给逻辑队列，逻辑类从队列中消费的思想，其实就是一种Actor设计模式。Erlang是天然支持Actor的语言。</p>
+<h2 id="CSP模式"><a href="#CSP模式" class="headerlink" title="CSP模式"></a>CSP模式</h2><p>CSP 是 Communicating Sequential Process 的简称，中文可以叫做通信顺序进程，是一种并发编程模型，是一个很强大的并发数据模型，是上个世纪七十年代提出的，用于描述两个独立的并发实体通过共享的通讯 channel(管道)进行通信的并发模型。相对于Actor模型，CSP中channel是第一类对象，它不关注发送消息的实体，而关注与发送消息时使用的channel。go是天然支持csp模式的语言。</p>
+<p>CSP和Actor类似，只不过CSP将消息投递给channel，至于谁从channel中取数据，发送的一方是不关注的。简单的说Actor在发送消息前是直到接收方是谁，而接受方收到消息后也知道发送方是谁，更像是邮件的通信模式。而csp是完全解耦合的。</p>
+<p><img src="https://cdn.llfc.club/csp.png" alt="https://cdn.llfc.club/csp.png"></p>
+<p>无论Actor还是CSP，他们都有一个共同的特性”Do not communicate by sharing memory; instead, share memory by communicating”</p>
+<h2 id="go风格的csp"><a href="#go风格的csp" class="headerlink" title="go风格的csp"></a>go风格的csp</h2><p>我们通过生产者和消费者模型给大家演示csp模式的使用方式，用go来做示例</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;cspdemo/message&quot;</span></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;os&quot;</span></span><br><span class="line">	<span class="string">&quot;os/signal&quot;</span></span><br><span class="line">	<span class="string">&quot;syscall&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> closeChan <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"><span class="keyword">var</span> sigs <span class="keyword">chan</span> os.Signal</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">//类似于auto</span></span><br><span class="line">	sigs = <span class="built_in">make</span>(<span class="keyword">chan</span> os.Signal)</span><br><span class="line">	<span class="comment">//具体类型初始化</span></span><br><span class="line">	closeChan = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)</span><br><span class="line">	<span class="comment">//可以理解为C++ 的匿名函数，或者js的匿名函数，此处通过go原语启动一个协程并行执行</span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		sig := &lt;-sigs</span><br><span class="line">		fmt.Println(<span class="string">&quot;receive signal is &quot;</span>, sig)</span><br><span class="line">		<span class="built_in">close</span>(closeChan)</span><br><span class="line">		message.ConsumerInst().Exit()</span><br><span class="line">		message.ProducerInst().Exit()</span><br><span class="line">	&#125;()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="string">&quot;Main Process begin!&quot;</span>)</span><br><span class="line">	&lt;-closeChan</span><br><span class="line">	message.ConsumerInst().Join()</span><br><span class="line">	message.ProducerInst().Join()</span><br><span class="line">	fmt.Println(<span class="string">&quot;Main Process exit!&quot;</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>在上面的代码中我们启动了一个协程监听Ctrl+C等退出操作，当收到Ctrl+C的信号后，会关闭closeChan这个channel。这样主函数中<code>&lt;-closeChan</code>就会从channel中取出数据。然后等待消费者和生产者退出。</p>
+<p>接下来我们将生产者和消费者的实现放入message包，先看下message公共数据的定义</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> message</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> MAX_COUNT = <span class="number">200</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> msgChan = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>, MAX_COUNT)</span><br></pre></td></tr></table></figure>
+<p>上面的代码中我们定义了一个channel，大小为200，大家可以理解为仓库的大小为200，生产者向仓库中投递数据如果达到200就会阻塞。直到有消费者从中消费数据，如果消费者发现channel中数据为0，则阻塞。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> message</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;context&quot;</span></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;sync&quot;</span></span><br><span class="line">	<span class="string">&quot;time&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> producer *Producer = <span class="literal">nil</span></span><br><span class="line"><span class="keyword">var</span> producer_once sync.Once</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// Consumer1 = new(Consumer)</span></span><br><span class="line">	<span class="comment">//类似于C++ std::call_once</span></span><br><span class="line">	producer_once.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		producer = <span class="built_in">new</span>(Producer)</span><br><span class="line">		producer._exited = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">		producer._ctx, producer._cancel = context.WithCancel(context.Background())</span><br><span class="line">		producer.StartWork()</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ProducerInst</span><span class="params">()</span></span> *Producer &#123;</span><br><span class="line">	<span class="keyword">return</span> producer</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Producer <span class="keyword">struct</span> &#123;</span><br><span class="line">	_exited <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	_ctx    context.Context</span><br><span class="line">	_cancel context.CancelFunc</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(producer *Producer)</span></span> Join() &#123;</span><br><span class="line">	&lt;-producer._exited</span><br><span class="line">	fmt.Println(<span class="string">&quot;producer exited&quot;</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(producer *Producer)</span></span> Exit() &#123;</span><br><span class="line">	producer._cancel()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(producer *Producer)</span></span> StartWork() &#123;</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		i := <span class="number">0</span></span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			i++</span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="keyword">case</span> &lt;-producer._ctx.Done():</span><br><span class="line">				&#123;</span><br><span class="line">					<span class="built_in">close</span>(producer._exited)</span><br><span class="line">					<span class="keyword">return</span></span><br><span class="line">				&#125;</span><br><span class="line">			<span class="keyword">case</span> msgChan &lt;- i:</span><br><span class="line">				fmt.Println(<span class="string">&quot;producer produce number is &quot;</span>, i)</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			time.Sleep(<span class="number">50</span> * time.Millisecond)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>我们通过init函数中只调用一次的方式初始化了producer，之后生成了一个名为_exited的channel，用来通知Join返回。<br>同样我们还初始化了一个可以取消的context，主要是在Exit函数内调用cancel取消上下文，会触发<code>StartWork</code>中<code>producer._ctx.Done()</code>进而终止生产工作，再发出退出信号，达到优雅退出的效果。</p>
+<p>类似的消费者也是相似逻辑</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> message</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;context&quot;</span></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;sync&quot;</span></span><br><span class="line">	<span class="string">&quot;time&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> consumer *Consumer = <span class="literal">nil</span></span><br><span class="line"><span class="keyword">var</span> consumer_once sync.Once</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// Consumer1 = new(Consumer)</span></span><br><span class="line">	<span class="comment">//类似于C++ std::call_once</span></span><br><span class="line">	consumer_once.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		consumer = <span class="built_in">new</span>(Consumer)</span><br><span class="line">		consumer._exited = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">		consumer._ctx, consumer._cancel = context.WithCancel(context.Background())</span><br><span class="line">		consumer.StartWork()</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ConsumerInst</span><span class="params">()</span></span> *Consumer &#123;</span><br><span class="line">	<span class="keyword">return</span> consumer</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Consumer <span class="keyword">struct</span> &#123;</span><br><span class="line">	_exited <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	_ctx    context.Context</span><br><span class="line">	_cancel context.CancelFunc</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(consumer *Consumer)</span></span> Join() &#123;</span><br><span class="line">	&lt;-consumer._exited</span><br><span class="line">	fmt.Println(<span class="string">&quot;consumer exited&quot;</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(consumer *Consumer)</span></span> Exit() &#123;</span><br><span class="line">	consumer._cancel()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(consumer *Consumer)</span></span> StartWork() &#123;</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		i := <span class="number">0</span></span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="keyword">case</span> &lt;-consumer._ctx.Done():</span><br><span class="line">				&#123;</span><br><span class="line">					<span class="built_in">close</span>(consumer._exited)</span><br><span class="line">					<span class="keyword">return</span></span><br><span class="line">				&#125;</span><br><span class="line">			<span class="keyword">case</span> i = &lt;-msgChan:</span><br><span class="line">				fmt.Println(<span class="string">&quot;consumer consum number is &quot;</span>, i)</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			time.Sleep(<span class="number">100</span> * time.Millisecond)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="C-风格的csp"><a href="#C-风格的csp" class="headerlink" title="C++ 风格的csp"></a>C++ 风格的csp</h2><p>C++是万能的，我们可以用C++实现一个类似于go的channel，采用csp模式解耦合，实现类似的生产者和消费者问题</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;queue&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;mutex&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;condition_variable&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Channel</span> &#123;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	std::queue&lt;T&gt; queue_;</span><br><span class="line">	std::mutex mtx_;</span><br><span class="line">	std::condition_variable cv_producer_;</span><br><span class="line">	std::condition_variable cv_consumer_;</span><br><span class="line">	<span class="type">size_t</span> capacity_;</span><br><span class="line">	<span class="type">bool</span> closed_ = <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">Channel</span>(<span class="type">size_t</span> capacity = <span class="number">0</span>) : <span class="built_in">capacity_</span>(capacity) &#123;&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">bool</span> <span class="title">send</span><span class="params">(T value)</span> </span>&#123;</span><br><span class="line">		<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx_)</span></span>;</span><br><span class="line">		cv_producer_.<span class="built_in">wait</span>(lock, [<span class="keyword">this</span>]() &#123;</span><br><span class="line">			<span class="comment">// 对于无缓冲的channel，我们应该等待直到有消费者准备好</span></span><br><span class="line">			<span class="built_in">return</span> (capacity_ == <span class="number">0</span> &amp;&amp; queue_.<span class="built_in">empty</span>()) || queue_.<span class="built_in">size</span>() &lt; capacity_ || closed_;</span><br><span class="line">			&#125;);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (closed_) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		queue_.<span class="built_in">push</span>(value);</span><br><span class="line">		cv_consumer_.<span class="built_in">notify_one</span>();</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">bool</span> <span class="title">receive</span><span class="params">(T&amp; value)</span> </span>&#123;</span><br><span class="line">		<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx_)</span></span>;</span><br><span class="line">		cv_consumer_.<span class="built_in">wait</span>(lock, [<span class="keyword">this</span>]() &#123; <span class="keyword">return</span> !queue_.<span class="built_in">empty</span>() || closed_; &#125;);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (closed_ &amp;&amp; queue_.<span class="built_in">empty</span>()) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		value = queue_.<span class="built_in">front</span>();</span><br><span class="line">		queue_.<span class="built_in">pop</span>();</span><br><span class="line">		cv_producer_.<span class="built_in">notify_one</span>();</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">close</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx_)</span></span>;</span><br><span class="line">		closed_ = <span class="literal">true</span>;</span><br><span class="line">		cv_producer_.<span class="built_in">notify_all</span>();</span><br><span class="line">		cv_consumer_.<span class="built_in">notify_all</span>();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 示例使用</span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="function">Channel&lt;<span class="type">int</span>&gt; <span class="title">ch</span><span class="params">(<span class="number">10</span>)</span></span>;  <span class="comment">// 10缓冲的channel</span></span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">producer</span><span class="params">([&amp;]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; ++i) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			ch.send(i);</span></span></span><br><span class="line"><span class="params"><span class="function">			std::cout &lt;&lt; <span class="string">&quot;Sent: &quot;</span> &lt;&lt; i &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">		ch.close();</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">consumer</span><span class="params">([&amp;]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		std::this_thread::sleep_for(std::chrono::milliseconds(<span class="number">500</span>)); <span class="comment">// 故意延迟消费者开始消费</span></span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="type">int</span> val;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">while</span> (ch.receive(val)) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::cout &lt;&lt; <span class="string">&quot;Received: &quot;</span> &lt;&lt; val &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	producer.<span class="built_in">join</span>();</span><br><span class="line">	consumer.<span class="built_in">join</span>();</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>简单来说就是通过条件变量实现通信的阻塞和同步的。</p>
+<h2 id="利用csp思想实现取款逻辑"><a href="#利用csp思想实现取款逻辑" class="headerlink" title="利用csp思想实现取款逻辑"></a>利用csp思想实现取款逻辑</h2><p>《C++并发编程实战》一书中提及了用csp思想实现atm机取款逻辑，我根据书中思想，整理了通信的示意图，书中部分代码存在问题，也一并修复了。</p>
+<p><img src="https://cdn.llfc.club/1696562243686.jpg" alt="https://cdn.llfc.club/1696562243686.jpg"></p>
+<p>主函数实现</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Actor.cpp : 此文件包含 &quot;main&quot; 函数。程序执行将在此处开始并结束。</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;message.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;withdraw_msg.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;atm.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;dispatcher.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;bank_matchine.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;interface_matchine.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	bank_machine bank;</span><br><span class="line">	interface_machine interface_hardware;</span><br><span class="line">	<span class="function">atm <span class="title">machine</span><span class="params">(bank.get_sender(), interface_hardware.get_sender())</span></span>;</span><br><span class="line">	<span class="function">std::thread <span class="title">bank_thread</span><span class="params">(&amp;bank_machine::run, &amp;bank)</span></span>;</span><br><span class="line">	<span class="function">std::thread <span class="title">if_thread</span><span class="params">(&amp;interface_machine::run, &amp;interface_hardware)</span></span>;</span><br><span class="line">	<span class="function">std::thread <span class="title">atm_thread</span><span class="params">(&amp;atm::run, &amp;machine)</span></span>;</span><br><span class="line">	<span class="function">messaging::sender <span class="title">atmqueue</span><span class="params">(machine.get_sender())</span></span>;</span><br><span class="line">	<span class="type">bool</span> quit_pressed = <span class="literal">false</span>;</span><br><span class="line">	<span class="keyword">while</span> (!quit_pressed)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="type">char</span> c = <span class="built_in">getchar</span>();</span><br><span class="line">		<span class="keyword">switch</span> (c)</span><br><span class="line">		&#123;</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;0&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;1&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;2&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;3&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;4&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;5&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;6&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;7&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;8&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;9&#x27;</span>:</span><br><span class="line">			atmqueue.<span class="built_in">send</span>(<span class="built_in">digit_pressed</span>(c));</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;b&#x27;</span>:</span><br><span class="line">			atmqueue.<span class="built_in">send</span>(<span class="built_in">balance_pressed</span>());</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;w&#x27;</span>:</span><br><span class="line">			atmqueue.<span class="built_in">send</span>(<span class="built_in">withdraw_pressed</span>(<span class="number">50</span>));</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;c&#x27;</span>:</span><br><span class="line">			atmqueue.<span class="built_in">send</span>(<span class="built_in">cancel_pressed</span>());</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;q&#x27;</span>:</span><br><span class="line">			quit_pressed = <span class="literal">true</span>;</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;i&#x27;</span>:</span><br><span class="line">			atmqueue.<span class="built_in">send</span>(<span class="built_in">card_inserted</span>(<span class="string">&quot;acc1234&quot;</span>));</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	bank.<span class="built_in">done</span>();</span><br><span class="line">	machine.<span class="built_in">done</span>();</span><br><span class="line">	interface_hardware.<span class="built_in">done</span>();</span><br><span class="line">	atm_thread.<span class="built_in">join</span>();</span><br><span class="line">	bank_thread.<span class="built_in">join</span>();</span><br><span class="line">	if_thread.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>主函数中启动了三个线程，分别处理bank，machine以及interface的操作。<br>由于代码复杂解析来只列举atm类的实现</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">pragma</span> once</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;dispatcher.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;functional&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">atm</span></span><br><span class="line">&#123;</span><br><span class="line">	messaging::receiver incoming;</span><br><span class="line">	messaging::sender bank;</span><br><span class="line">	messaging::sender interface_hardware;</span><br><span class="line">	<span class="built_in">void</span> (atm::* state)();</span><br><span class="line">	std::string account;</span><br><span class="line">	<span class="type">unsigned</span> withdrawal_amount;</span><br><span class="line">	std::string pin;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">process_withdrawal</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		incoming.<span class="built_in">wait</span>().handle&lt;withdraw_ok, std::function&lt;<span class="type">void</span>(withdraw_ok <span class="type">const</span>&amp; msg)&gt;,</span><br><span class="line">			messaging::dispatcher &gt;(</span><br><span class="line">				[&amp;](withdraw_ok <span class="type">const</span>&amp; msg)</span><br><span class="line">				&#123;</span><br><span class="line">					interface_hardware.<span class="built_in">send</span>(</span><br><span class="line">						<span class="built_in">issue_money</span>(withdrawal_amount));</span><br><span class="line">					bank.<span class="built_in">send</span>(</span><br><span class="line">						<span class="built_in">withdrawal_processed</span>(account, withdrawal_amount));</span><br><span class="line">					state = &amp;atm::done_processing;</span><br><span class="line">				&#125;, <span class="string">&quot;withdraw_ok&quot;</span>).handle&lt;withdraw_denied, std::function&lt;<span class="type">void</span>(withdraw_denied <span class="type">const</span>&amp; msg)&gt;&gt;(</span><br><span class="line">						[&amp;](withdraw_denied <span class="type">const</span>&amp; msg)</span><br><span class="line">						&#123;</span><br><span class="line">							interface_hardware.<span class="built_in">send</span>(<span class="built_in">display_insufficient_funds</span>());</span><br><span class="line">							state = &amp;atm::done_processing;</span><br><span class="line">					&#125;, <span class="string">&quot;withdraw_denied&quot;</span>).handle&lt;cancel_pressed, std::function&lt;<span class="type">void</span>(cancel_pressed <span class="type">const</span>&amp; msg)&gt;&gt;(</span><br><span class="line">						[&amp;](cancel_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">						&#123;</span><br><span class="line">							bank.<span class="built_in">send</span>(</span><br><span class="line">								<span class="built_in">cancel_withdrawal</span>(account, withdrawal_amount));</span><br><span class="line">							interface_hardware.<span class="built_in">send</span>(</span><br><span class="line">								<span class="built_in">display_withdrawal_cancelled</span>());</span><br><span class="line">							state = &amp;atm::done_processing;</span><br><span class="line">						&#125;, <span class="string">&quot;cancel_pressed&quot;</span></span><br><span class="line">					);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">process_balance</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		incoming.<span class="built_in">wait</span>()</span><br><span class="line">			.handle&lt;balance, std::function&lt;<span class="type">void</span>(balance <span class="type">const</span>&amp; msg)&gt;,</span><br><span class="line">			messaging::dispatcher&gt;(</span><br><span class="line">				[&amp;](balance <span class="type">const</span>&amp; msg)</span><br><span class="line">				&#123;</span><br><span class="line">					interface_hardware.<span class="built_in">send</span>(<span class="built_in">display_balance</span>(msg.amount));</span><br><span class="line">					state = &amp;atm::wait_for_action;</span><br><span class="line">				&#125;,<span class="string">&quot;balance&quot;</span></span><br><span class="line">				).handle &lt; cancel_pressed, std::function&lt;<span class="type">void</span>(cancel_pressed <span class="type">const</span>&amp; msg) &gt;&gt;(</span><br><span class="line">					[&amp;](cancel_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">					&#123;</span><br><span class="line">						state = &amp;atm::done_processing;</span><br><span class="line">					&#125;, <span class="string">&quot;cancel_pressed&quot;</span></span><br><span class="line">				);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">wait_for_action</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		interface_hardware.<span class="built_in">send</span>(<span class="built_in">display_withdrawal_options</span>());</span><br><span class="line">		incoming.<span class="built_in">wait</span>()</span><br><span class="line">			.handle&lt;withdraw_pressed, std::function&lt;<span class="type">void</span>(withdraw_pressed <span class="type">const</span>&amp; msg)&gt;,</span><br><span class="line">			messaging::dispatcher&gt;(</span><br><span class="line">				[&amp;](withdraw_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">				&#123;</span><br><span class="line">					withdrawal_amount = msg.amount;</span><br><span class="line">					bank.<span class="built_in">send</span>(<span class="built_in">withdraw</span>(account, msg.amount, incoming));</span><br><span class="line">					state = &amp;atm::process_withdrawal;</span><br><span class="line">				&#125;, <span class="string">&quot;withdraw_pressed&quot;</span></span><br><span class="line">		).handle &lt; balance_pressed, std::function&lt;<span class="type">void</span>(balance_pressed <span class="type">const</span>&amp; msg) &gt;&gt;(</span><br><span class="line">					[&amp;](balance_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">					&#123;</span><br><span class="line">						bank.<span class="built_in">send</span>(<span class="built_in">get_balance</span>(account, incoming));</span><br><span class="line">						state = &amp;atm::process_balance;</span><br><span class="line">					&#125;, <span class="string">&quot;balance_pressed&quot;</span></span><br><span class="line">					).handle&lt;cancel_pressed, std::function&lt;<span class="type">void</span>(cancel_pressed <span class="type">const</span>&amp; msg) &gt;&gt;(</span><br><span class="line">						[&amp;](cancel_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">						&#123;</span><br><span class="line">							state = &amp;atm::done_processing;</span><br><span class="line">						&#125;, <span class="string">&quot;cancel_pressed&quot;</span></span><br><span class="line">					);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">verifying_pin</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		incoming.<span class="built_in">wait</span>()</span><br><span class="line">			.handle&lt;pin_verified, std::function&lt;<span class="type">void</span>(pin_verified <span class="type">const</span>&amp; msg)&gt;,</span><br><span class="line">			messaging::dispatcher&gt;(</span><br><span class="line">				[&amp;](pin_verified <span class="type">const</span>&amp; msg)</span><br><span class="line">				&#123;</span><br><span class="line">					state = &amp;atm::wait_for_action;</span><br><span class="line">				&#125;, <span class="string">&quot;pin_verified&quot;</span></span><br><span class="line">				).handle&lt;pin_incorrect, std::function&lt;<span class="type">void</span>(pin_incorrect <span class="type">const</span>&amp; msg)&gt;&gt;(</span><br><span class="line">				[&amp;](pin_incorrect <span class="type">const</span>&amp; msg)</span><br><span class="line">				&#123;</span><br><span class="line">					interface_hardware.<span class="built_in">send</span>(</span><br><span class="line">						<span class="built_in">display_pin_incorrect_message</span>());</span><br><span class="line">					state = &amp;atm::done_processing;</span><br><span class="line">				&#125;, <span class="string">&quot;pin_incorrect&quot;</span></span><br><span class="line">				).handle&lt;cancel_pressed, std::function&lt;<span class="type">void</span>(cancel_pressed <span class="type">const</span>&amp; msg)&gt;&gt;(</span><br><span class="line">						[&amp;](cancel_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">						&#123;</span><br><span class="line">							state = &amp;atm::done_processing;</span><br><span class="line">						&#125;, <span class="string">&quot;cancel_pressed&quot;</span></span><br><span class="line">				);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">getting_pin</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		incoming.<span class="built_in">wait</span>().handle&lt;digit_pressed, std::function&lt;<span class="type">void</span>(digit_pressed <span class="type">const</span>&amp; msg)&gt;,</span><br><span class="line">			messaging::dispatcher&gt;(</span><br><span class="line">				[&amp;](digit_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">				&#123;</span><br><span class="line">					<span class="type">unsigned</span> <span class="type">const</span> pin_length = <span class="number">6</span>;</span><br><span class="line">					pin += msg.digit;</span><br><span class="line">					<span class="keyword">if</span> (pin.<span class="built_in">length</span>() == pin_length)</span><br><span class="line">					&#123;</span><br><span class="line">						bank.<span class="built_in">send</span>(<span class="built_in">verify_pin</span>(account, pin, incoming));</span><br><span class="line">						state = &amp;atm::verifying_pin;</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;, <span class="string">&quot;digit_pressed&quot;</span></span><br><span class="line">				).handle&lt;clear_last_pressed, std::function&lt;<span class="type">void</span>(clear_last_pressed <span class="type">const</span>&amp; msg)&gt;&gt;(</span><br><span class="line">				[&amp;](clear_last_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">				&#123;</span><br><span class="line">					<span class="keyword">if</span> (!pin.<span class="built_in">empty</span>())</span><br><span class="line">					&#123;</span><br><span class="line">						pin.<span class="built_in">pop_back</span>();</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;, <span class="string">&quot;clear_last_pressed&quot;</span></span><br><span class="line">				).handle&lt;cancel_pressed, std::function&lt;<span class="type">void</span>(cancel_pressed <span class="type">const</span>&amp; msg)&gt;&gt;(</span><br><span class="line">						[&amp;](cancel_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">						&#123;</span><br><span class="line">							state = &amp;atm::done_processing;</span><br><span class="line">						&#125;, <span class="string">&quot;cancel_pressed&quot;</span></span><br><span class="line">				);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">waiting_for_card</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		interface_hardware.<span class="built_in">send</span>(<span class="built_in">display_enter_card</span>());</span><br><span class="line">		incoming.<span class="built_in">wait</span>().handle&lt;card_inserted, std::function&lt;<span class="type">void</span>(card_inserted <span class="type">const</span>&amp; msg)&gt;,</span><br><span class="line">			messaging::dispatcher&gt;(</span><br><span class="line">				[&amp;](card_inserted <span class="type">const</span>&amp; msg)</span><br><span class="line">				&#123;</span><br><span class="line">					account = msg.account;</span><br><span class="line">					pin = <span class="string">&quot;&quot;</span>;</span><br><span class="line">					interface_hardware.<span class="built_in">send</span>(<span class="built_in">display_enter_pin</span>());</span><br><span class="line">					state = &amp;atm::getting_pin;</span><br><span class="line">				&#125;, <span class="string">&quot;card_inserted&quot;</span></span><br><span class="line">		);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">done_processing</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		interface_hardware.<span class="built_in">send</span>(<span class="built_in">eject_card</span>());</span><br><span class="line">		state = &amp;atm::waiting_for_card;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">atm</span>(atm <span class="type">const</span>&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	atm&amp; <span class="keyword">operator</span>=(atm <span class="type">const</span>&amp;) = <span class="keyword">delete</span>;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">atm</span>(messaging::sender bank_,</span><br><span class="line">		messaging::sender interface_hardware_) :</span><br><span class="line">		<span class="built_in">bank</span>(bank_), <span class="built_in">interface_hardware</span>(interface_hardware_)</span><br><span class="line">	&#123;&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">done</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		<span class="built_in">get_sender</span>().<span class="built_in">send</span>(messaging::<span class="built_in">close_queue</span>());</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">run</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		state = &amp;atm::waiting_for_card;</span><br><span class="line">		<span class="keyword">try</span></span><br><span class="line">		&#123;</span><br><span class="line">			<span class="keyword">for</span> (;;)</span><br><span class="line">			&#123;</span><br><span class="line">				(<span class="keyword">this</span>-&gt;*state)();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="built_in">catch</span> (messaging::close_queue <span class="type">const</span>&amp;)</span><br><span class="line">		&#123;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function">messaging::sender <span class="title">get_sender</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		<span class="keyword">return</span> incoming;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>atm 主要功能就是通过状态机不断地切换状态监听想要处理的函数。</p>
+<p>详细源码可参考<a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day08-actor/Actor">https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day08-actor/Actor</a></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文讲述了Actor设计模式和CSP设计模式，并通过go和C++等语言给大家展示了csp并发设计的demo，最后通过讲解《C++并发编程实战》中取款的案例，展示了csp的用法。</p>
+<p>详细源码</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day08-actor/Actor">https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day08-actor/Actor</a></p>
+<p>视频链接</p>
+<p><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290">https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/09/24/concpp08/" rel="next" title="利用并行和函数式编程提高运算效率">
+                <i class="fa fa-chevron-left"></i> 利用并行和函数式编程提高运算效率
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">285</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Actor%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F"><span class="nav-number">2.</span> <span class="nav-text">Actor设计模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CSP%E6%A8%A1%E5%BC%8F"><span class="nav-number">3.</span> <span class="nav-text">CSP模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#go%E9%A3%8E%E6%A0%BC%E7%9A%84csp"><span class="nav-number">4.</span> <span class="nav-text">go风格的csp</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#C-%E9%A3%8E%E6%A0%BC%E7%9A%84csp"><span class="nav-number">5.</span> <span class="nav-text">C++ 风格的csp</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%A9%E7%94%A8csp%E6%80%9D%E6%83%B3%E5%AE%9E%E7%8E%B0%E5%8F%96%E6%AC%BE%E9%80%BB%E8%BE%91"><span class="nav-number">6.</span> <span class="nav-text">利用csp思想实现取款逻辑</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">7.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

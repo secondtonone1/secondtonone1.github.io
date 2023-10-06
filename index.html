@@ -286,6 +286,379 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/10/06/concpp09/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2023/10/06/concpp09/" itemprop="url">Actor和CSP设计模式</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-10-06T09:17:35+08:00">
+                2023-10-06
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文介绍两种并发设计中常用的设计模式，包括Actor和CSP模式。传统的并发设计经常都是通过共享内存加锁保证逻辑安全，这种模式有几个缺点，包括1 频繁加锁影响性能，2 耦合度高。后来大家提出了Actor和CSP设计模式。</p>
+<h2 id="Actor设计模式"><a href="#Actor设计模式" class="headerlink" title="Actor设计模式"></a>Actor设计模式</h2><p>简单点说，actor通过消息传递的方式与外界通信。消息传递是异步的。每个actor都有一个邮箱，该邮箱接收并缓存其他actor发过来的消息，actor一次只能同步处理一个消息，处理消息过程中，除了可以接收消息，不能做任何其他操作。<br>每一个类独立在一个线程里称作Actor，Actor之间通过队列通信，比如Actor1 发消息给Actor2， Actor2 发消息给Actor1都是投递到对方的队列中。好像给对方发邮件，对方从邮箱中取出一样。如下图</p>
+<p><img src="https://cdn.llfc.club/1696556496577.jpg" alt="https://cdn.llfc.club/1696556496577.jpg"></p>
+<p>Actor模型的另一个好处就是可以消除共享状态，因为它每次只能处理一条消息，所以actor内部可以安全的处理状态，而不用考虑锁机制。</p>
+<p><img src="https://cdn.llfc.club/img_2f50c511653189037c3ac1a36c7962a2.png" alt="https://cdn.llfc.club/img_2f50c511653189037c3ac1a36c7962a2.png"></p>
+<p>我们在网络编程中对于逻辑层的处理就采用了将要处理的逻辑消息封装成包投递给逻辑队列，逻辑类从队列中消费的思想，其实就是一种Actor设计模式。Erlang是天然支持Actor的语言。</p>
+<h2 id="CSP模式"><a href="#CSP模式" class="headerlink" title="CSP模式"></a>CSP模式</h2><p>CSP 是 Communicating Sequential Process 的简称，中文可以叫做通信顺序进程，是一种并发编程模型，是一个很强大的并发数据模型，是上个世纪七十年代提出的，用于描述两个独立的并发实体通过共享的通讯 channel(管道)进行通信的并发模型。相对于Actor模型，CSP中channel是第一类对象，它不关注发送消息的实体，而关注与发送消息时使用的channel。go是天然支持csp模式的语言。</p>
+<p>CSP和Actor类似，只不过CSP将消息投递给channel，至于谁从channel中取数据，发送的一方是不关注的。简单的说Actor在发送消息前是直到接收方是谁，而接受方收到消息后也知道发送方是谁，更像是邮件的通信模式。而csp是完全解耦合的。</p>
+<p><img src="https://cdn.llfc.club/csp.png" alt="https://cdn.llfc.club/csp.png"></p>
+<p>无论Actor还是CSP，他们都有一个共同的特性”Do not communicate by sharing memory; instead, share memory by communicating”</p>
+<h2 id="go风格的csp"><a href="#go风格的csp" class="headerlink" title="go风格的csp"></a>go风格的csp</h2><p>我们通过生产者和消费者模型给大家演示csp模式的使用方式，用go来做示例</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;cspdemo/message&quot;</span></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;os&quot;</span></span><br><span class="line">	<span class="string">&quot;os/signal&quot;</span></span><br><span class="line">	<span class="string">&quot;syscall&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> closeChan <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"><span class="keyword">var</span> sigs <span class="keyword">chan</span> os.Signal</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">//类似于auto</span></span><br><span class="line">	sigs = <span class="built_in">make</span>(<span class="keyword">chan</span> os.Signal)</span><br><span class="line">	<span class="comment">//具体类型初始化</span></span><br><span class="line">	closeChan = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)</span><br><span class="line">	<span class="comment">//可以理解为C++ 的匿名函数，或者js的匿名函数，此处通过go原语启动一个协程并行执行</span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		sig := &lt;-sigs</span><br><span class="line">		fmt.Println(<span class="string">&quot;receive signal is &quot;</span>, sig)</span><br><span class="line">		<span class="built_in">close</span>(closeChan)</span><br><span class="line">		message.ConsumerInst().Exit()</span><br><span class="line">		message.ProducerInst().Exit()</span><br><span class="line">	&#125;()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="string">&quot;Main Process begin!&quot;</span>)</span><br><span class="line">	&lt;-closeChan</span><br><span class="line">	message.ConsumerInst().Join()</span><br><span class="line">	message.ProducerInst().Join()</span><br><span class="line">	fmt.Println(<span class="string">&quot;Main Process exit!&quot;</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>在上面的代码中我们启动了一个协程监听Ctrl+C等退出操作，当收到Ctrl+C的信号后，会关闭closeChan这个channel。这样主函数中<code>&lt;-closeChan</code>就会从channel中取出数据。然后等待消费者和生产者退出。</p>
+<p>接下来我们将生产者和消费者的实现放入message包，先看下message公共数据的定义</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> message</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> MAX_COUNT = <span class="number">200</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> msgChan = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>, MAX_COUNT)</span><br></pre></td></tr></table></figure>
+<p>上面的代码中我们定义了一个channel，大小为200，大家可以理解为仓库的大小为200，生产者向仓库中投递数据如果达到200就会阻塞。直到有消费者从中消费数据，如果消费者发现channel中数据为0，则阻塞。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> message</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;context&quot;</span></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;sync&quot;</span></span><br><span class="line">	<span class="string">&quot;time&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> producer *Producer = <span class="literal">nil</span></span><br><span class="line"><span class="keyword">var</span> producer_once sync.Once</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// Consumer1 = new(Consumer)</span></span><br><span class="line">	<span class="comment">//类似于C++ std::call_once</span></span><br><span class="line">	producer_once.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		producer = <span class="built_in">new</span>(Producer)</span><br><span class="line">		producer._exited = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">		producer._ctx, producer._cancel = context.WithCancel(context.Background())</span><br><span class="line">		producer.StartWork()</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ProducerInst</span><span class="params">()</span></span> *Producer &#123;</span><br><span class="line">	<span class="keyword">return</span> producer</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Producer <span class="keyword">struct</span> &#123;</span><br><span class="line">	_exited <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	_ctx    context.Context</span><br><span class="line">	_cancel context.CancelFunc</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(producer *Producer)</span></span> Join() &#123;</span><br><span class="line">	&lt;-producer._exited</span><br><span class="line">	fmt.Println(<span class="string">&quot;producer exited&quot;</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(producer *Producer)</span></span> Exit() &#123;</span><br><span class="line">	producer._cancel()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(producer *Producer)</span></span> StartWork() &#123;</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		i := <span class="number">0</span></span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			i++</span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="keyword">case</span> &lt;-producer._ctx.Done():</span><br><span class="line">				&#123;</span><br><span class="line">					<span class="built_in">close</span>(producer._exited)</span><br><span class="line">					<span class="keyword">return</span></span><br><span class="line">				&#125;</span><br><span class="line">			<span class="keyword">case</span> msgChan &lt;- i:</span><br><span class="line">				fmt.Println(<span class="string">&quot;producer produce number is &quot;</span>, i)</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			time.Sleep(<span class="number">50</span> * time.Millisecond)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>我们通过init函数中只调用一次的方式初始化了producer，之后生成了一个名为_exited的channel，用来通知Join返回。<br>同样我们还初始化了一个可以取消的context，主要是在Exit函数内调用cancel取消上下文，会触发<code>StartWork</code>中<code>producer._ctx.Done()</code>进而终止生产工作，再发出退出信号，达到优雅退出的效果。</p>
+<p>类似的消费者也是相似逻辑</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> message</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;context&quot;</span></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;sync&quot;</span></span><br><span class="line">	<span class="string">&quot;time&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> consumer *Consumer = <span class="literal">nil</span></span><br><span class="line"><span class="keyword">var</span> consumer_once sync.Once</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// Consumer1 = new(Consumer)</span></span><br><span class="line">	<span class="comment">//类似于C++ std::call_once</span></span><br><span class="line">	consumer_once.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		consumer = <span class="built_in">new</span>(Consumer)</span><br><span class="line">		consumer._exited = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">		consumer._ctx, consumer._cancel = context.WithCancel(context.Background())</span><br><span class="line">		consumer.StartWork()</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ConsumerInst</span><span class="params">()</span></span> *Consumer &#123;</span><br><span class="line">	<span class="keyword">return</span> consumer</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Consumer <span class="keyword">struct</span> &#123;</span><br><span class="line">	_exited <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	_ctx    context.Context</span><br><span class="line">	_cancel context.CancelFunc</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(consumer *Consumer)</span></span> Join() &#123;</span><br><span class="line">	&lt;-consumer._exited</span><br><span class="line">	fmt.Println(<span class="string">&quot;consumer exited&quot;</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(consumer *Consumer)</span></span> Exit() &#123;</span><br><span class="line">	consumer._cancel()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(consumer *Consumer)</span></span> StartWork() &#123;</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		i := <span class="number">0</span></span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="keyword">case</span> &lt;-consumer._ctx.Done():</span><br><span class="line">				&#123;</span><br><span class="line">					<span class="built_in">close</span>(consumer._exited)</span><br><span class="line">					<span class="keyword">return</span></span><br><span class="line">				&#125;</span><br><span class="line">			<span class="keyword">case</span> i = &lt;-msgChan:</span><br><span class="line">				fmt.Println(<span class="string">&quot;consumer consum number is &quot;</span>, i)</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			time.Sleep(<span class="number">100</span> * time.Millisecond)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="C-风格的csp"><a href="#C-风格的csp" class="headerlink" title="C++ 风格的csp"></a>C++ 风格的csp</h2><p>C++是万能的，我们可以用C++实现一个类似于go的channel，采用csp模式解耦合，实现类似的生产者和消费者问题</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;queue&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;mutex&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;condition_variable&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Channel</span> &#123;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	std::queue&lt;T&gt; queue_;</span><br><span class="line">	std::mutex mtx_;</span><br><span class="line">	std::condition_variable cv_producer_;</span><br><span class="line">	std::condition_variable cv_consumer_;</span><br><span class="line">	<span class="type">size_t</span> capacity_;</span><br><span class="line">	<span class="type">bool</span> closed_ = <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">Channel</span>(<span class="type">size_t</span> capacity = <span class="number">0</span>) : <span class="built_in">capacity_</span>(capacity) &#123;&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">bool</span> <span class="title">send</span><span class="params">(T value)</span> </span>&#123;</span><br><span class="line">		<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx_)</span></span>;</span><br><span class="line">		cv_producer_.<span class="built_in">wait</span>(lock, [<span class="keyword">this</span>]() &#123;</span><br><span class="line">			<span class="comment">// 对于无缓冲的channel，我们应该等待直到有消费者准备好</span></span><br><span class="line">			<span class="built_in">return</span> (capacity_ == <span class="number">0</span> &amp;&amp; queue_.<span class="built_in">empty</span>()) || queue_.<span class="built_in">size</span>() &lt; capacity_ || closed_;</span><br><span class="line">			&#125;);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (closed_) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		queue_.<span class="built_in">push</span>(value);</span><br><span class="line">		cv_consumer_.<span class="built_in">notify_one</span>();</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">bool</span> <span class="title">receive</span><span class="params">(T&amp; value)</span> </span>&#123;</span><br><span class="line">		<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx_)</span></span>;</span><br><span class="line">		cv_consumer_.<span class="built_in">wait</span>(lock, [<span class="keyword">this</span>]() &#123; <span class="keyword">return</span> !queue_.<span class="built_in">empty</span>() || closed_; &#125;);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (closed_ &amp;&amp; queue_.<span class="built_in">empty</span>()) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		value = queue_.<span class="built_in">front</span>();</span><br><span class="line">		queue_.<span class="built_in">pop</span>();</span><br><span class="line">		cv_producer_.<span class="built_in">notify_one</span>();</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">close</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx_)</span></span>;</span><br><span class="line">		closed_ = <span class="literal">true</span>;</span><br><span class="line">		cv_producer_.<span class="built_in">notify_all</span>();</span><br><span class="line">		cv_consumer_.<span class="built_in">notify_all</span>();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 示例使用</span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="function">Channel&lt;<span class="type">int</span>&gt; <span class="title">ch</span><span class="params">(<span class="number">10</span>)</span></span>;  <span class="comment">// 10缓冲的channel</span></span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">producer</span><span class="params">([&amp;]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; ++i) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			ch.send(i);</span></span></span><br><span class="line"><span class="params"><span class="function">			std::cout &lt;&lt; <span class="string">&quot;Sent: &quot;</span> &lt;&lt; i &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">		ch.close();</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">consumer</span><span class="params">([&amp;]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		std::this_thread::sleep_for(std::chrono::milliseconds(<span class="number">500</span>)); <span class="comment">// 故意延迟消费者开始消费</span></span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="type">int</span> val;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">while</span> (ch.receive(val)) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::cout &lt;&lt; <span class="string">&quot;Received: &quot;</span> &lt;&lt; val &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	producer.<span class="built_in">join</span>();</span><br><span class="line">	consumer.<span class="built_in">join</span>();</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>简单来说就是通过条件变量实现通信的阻塞和同步的。</p>
+<h2 id="利用csp思想实现取款逻辑"><a href="#利用csp思想实现取款逻辑" class="headerlink" title="利用csp思想实现取款逻辑"></a>利用csp思想实现取款逻辑</h2><p>《C++并发编程实战》一书中提及了用csp思想实现atm机取款逻辑，我根据书中思想，整理了通信的示意图，书中部分代码存在问题，也一并修复了。</p>
+<p><img src="https://cdn.llfc.club/1696562243686.jpg" alt="https://cdn.llfc.club/1696562243686.jpg"></p>
+<p>主函数实现</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Actor.cpp : 此文件包含 &quot;main&quot; 函数。程序执行将在此处开始并结束。</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;message.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;withdraw_msg.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;atm.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;dispatcher.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;bank_matchine.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;interface_matchine.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	bank_machine bank;</span><br><span class="line">	interface_machine interface_hardware;</span><br><span class="line">	<span class="function">atm <span class="title">machine</span><span class="params">(bank.get_sender(), interface_hardware.get_sender())</span></span>;</span><br><span class="line">	<span class="function">std::thread <span class="title">bank_thread</span><span class="params">(&amp;bank_machine::run, &amp;bank)</span></span>;</span><br><span class="line">	<span class="function">std::thread <span class="title">if_thread</span><span class="params">(&amp;interface_machine::run, &amp;interface_hardware)</span></span>;</span><br><span class="line">	<span class="function">std::thread <span class="title">atm_thread</span><span class="params">(&amp;atm::run, &amp;machine)</span></span>;</span><br><span class="line">	<span class="function">messaging::sender <span class="title">atmqueue</span><span class="params">(machine.get_sender())</span></span>;</span><br><span class="line">	<span class="type">bool</span> quit_pressed = <span class="literal">false</span>;</span><br><span class="line">	<span class="keyword">while</span> (!quit_pressed)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="type">char</span> c = <span class="built_in">getchar</span>();</span><br><span class="line">		<span class="keyword">switch</span> (c)</span><br><span class="line">		&#123;</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;0&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;1&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;2&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;3&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;4&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;5&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;6&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;7&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;8&#x27;</span>:</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;9&#x27;</span>:</span><br><span class="line">			atmqueue.<span class="built_in">send</span>(<span class="built_in">digit_pressed</span>(c));</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;b&#x27;</span>:</span><br><span class="line">			atmqueue.<span class="built_in">send</span>(<span class="built_in">balance_pressed</span>());</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;w&#x27;</span>:</span><br><span class="line">			atmqueue.<span class="built_in">send</span>(<span class="built_in">withdraw_pressed</span>(<span class="number">50</span>));</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;c&#x27;</span>:</span><br><span class="line">			atmqueue.<span class="built_in">send</span>(<span class="built_in">cancel_pressed</span>());</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;q&#x27;</span>:</span><br><span class="line">			quit_pressed = <span class="literal">true</span>;</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="keyword">case</span> <span class="string">&#x27;i&#x27;</span>:</span><br><span class="line">			atmqueue.<span class="built_in">send</span>(<span class="built_in">card_inserted</span>(<span class="string">&quot;acc1234&quot;</span>));</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	bank.<span class="built_in">done</span>();</span><br><span class="line">	machine.<span class="built_in">done</span>();</span><br><span class="line">	interface_hardware.<span class="built_in">done</span>();</span><br><span class="line">	atm_thread.<span class="built_in">join</span>();</span><br><span class="line">	bank_thread.<span class="built_in">join</span>();</span><br><span class="line">	if_thread.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>主函数中启动了三个线程，分别处理bank，machine以及interface的操作。<br>由于代码复杂解析来只列举atm类的实现</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">pragma</span> once</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;dispatcher.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;functional&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">atm</span></span><br><span class="line">&#123;</span><br><span class="line">	messaging::receiver incoming;</span><br><span class="line">	messaging::sender bank;</span><br><span class="line">	messaging::sender interface_hardware;</span><br><span class="line">	<span class="built_in">void</span> (atm::* state)();</span><br><span class="line">	std::string account;</span><br><span class="line">	<span class="type">unsigned</span> withdrawal_amount;</span><br><span class="line">	std::string pin;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">process_withdrawal</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		incoming.<span class="built_in">wait</span>().handle&lt;withdraw_ok, std::function&lt;<span class="type">void</span>(withdraw_ok <span class="type">const</span>&amp; msg)&gt;,</span><br><span class="line">			messaging::dispatcher &gt;(</span><br><span class="line">				[&amp;](withdraw_ok <span class="type">const</span>&amp; msg)</span><br><span class="line">				&#123;</span><br><span class="line">					interface_hardware.<span class="built_in">send</span>(</span><br><span class="line">						<span class="built_in">issue_money</span>(withdrawal_amount));</span><br><span class="line">					bank.<span class="built_in">send</span>(</span><br><span class="line">						<span class="built_in">withdrawal_processed</span>(account, withdrawal_amount));</span><br><span class="line">					state = &amp;atm::done_processing;</span><br><span class="line">				&#125;, <span class="string">&quot;withdraw_ok&quot;</span>).handle&lt;withdraw_denied, std::function&lt;<span class="type">void</span>(withdraw_denied <span class="type">const</span>&amp; msg)&gt;&gt;(</span><br><span class="line">						[&amp;](withdraw_denied <span class="type">const</span>&amp; msg)</span><br><span class="line">						&#123;</span><br><span class="line">							interface_hardware.<span class="built_in">send</span>(<span class="built_in">display_insufficient_funds</span>());</span><br><span class="line">							state = &amp;atm::done_processing;</span><br><span class="line">					&#125;, <span class="string">&quot;withdraw_denied&quot;</span>).handle&lt;cancel_pressed, std::function&lt;<span class="type">void</span>(cancel_pressed <span class="type">const</span>&amp; msg)&gt;&gt;(</span><br><span class="line">						[&amp;](cancel_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">						&#123;</span><br><span class="line">							bank.<span class="built_in">send</span>(</span><br><span class="line">								<span class="built_in">cancel_withdrawal</span>(account, withdrawal_amount));</span><br><span class="line">							interface_hardware.<span class="built_in">send</span>(</span><br><span class="line">								<span class="built_in">display_withdrawal_cancelled</span>());</span><br><span class="line">							state = &amp;atm::done_processing;</span><br><span class="line">						&#125;, <span class="string">&quot;cancel_pressed&quot;</span></span><br><span class="line">					);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">process_balance</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		incoming.<span class="built_in">wait</span>()</span><br><span class="line">			.handle&lt;balance, std::function&lt;<span class="type">void</span>(balance <span class="type">const</span>&amp; msg)&gt;,</span><br><span class="line">			messaging::dispatcher&gt;(</span><br><span class="line">				[&amp;](balance <span class="type">const</span>&amp; msg)</span><br><span class="line">				&#123;</span><br><span class="line">					interface_hardware.<span class="built_in">send</span>(<span class="built_in">display_balance</span>(msg.amount));</span><br><span class="line">					state = &amp;atm::wait_for_action;</span><br><span class="line">				&#125;,<span class="string">&quot;balance&quot;</span></span><br><span class="line">				).handle &lt; cancel_pressed, std::function&lt;<span class="type">void</span>(cancel_pressed <span class="type">const</span>&amp; msg) &gt;&gt;(</span><br><span class="line">					[&amp;](cancel_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">					&#123;</span><br><span class="line">						state = &amp;atm::done_processing;</span><br><span class="line">					&#125;, <span class="string">&quot;cancel_pressed&quot;</span></span><br><span class="line">				);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">wait_for_action</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		interface_hardware.<span class="built_in">send</span>(<span class="built_in">display_withdrawal_options</span>());</span><br><span class="line">		incoming.<span class="built_in">wait</span>()</span><br><span class="line">			.handle&lt;withdraw_pressed, std::function&lt;<span class="type">void</span>(withdraw_pressed <span class="type">const</span>&amp; msg)&gt;,</span><br><span class="line">			messaging::dispatcher&gt;(</span><br><span class="line">				[&amp;](withdraw_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">				&#123;</span><br><span class="line">					withdrawal_amount = msg.amount;</span><br><span class="line">					bank.<span class="built_in">send</span>(<span class="built_in">withdraw</span>(account, msg.amount, incoming));</span><br><span class="line">					state = &amp;atm::process_withdrawal;</span><br><span class="line">				&#125;, <span class="string">&quot;withdraw_pressed&quot;</span></span><br><span class="line">		).handle &lt; balance_pressed, std::function&lt;<span class="type">void</span>(balance_pressed <span class="type">const</span>&amp; msg) &gt;&gt;(</span><br><span class="line">					[&amp;](balance_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">					&#123;</span><br><span class="line">						bank.<span class="built_in">send</span>(<span class="built_in">get_balance</span>(account, incoming));</span><br><span class="line">						state = &amp;atm::process_balance;</span><br><span class="line">					&#125;, <span class="string">&quot;balance_pressed&quot;</span></span><br><span class="line">					).handle&lt;cancel_pressed, std::function&lt;<span class="type">void</span>(cancel_pressed <span class="type">const</span>&amp; msg) &gt;&gt;(</span><br><span class="line">						[&amp;](cancel_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">						&#123;</span><br><span class="line">							state = &amp;atm::done_processing;</span><br><span class="line">						&#125;, <span class="string">&quot;cancel_pressed&quot;</span></span><br><span class="line">					);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">verifying_pin</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		incoming.<span class="built_in">wait</span>()</span><br><span class="line">			.handle&lt;pin_verified, std::function&lt;<span class="type">void</span>(pin_verified <span class="type">const</span>&amp; msg)&gt;,</span><br><span class="line">			messaging::dispatcher&gt;(</span><br><span class="line">				[&amp;](pin_verified <span class="type">const</span>&amp; msg)</span><br><span class="line">				&#123;</span><br><span class="line">					state = &amp;atm::wait_for_action;</span><br><span class="line">				&#125;, <span class="string">&quot;pin_verified&quot;</span></span><br><span class="line">				).handle&lt;pin_incorrect, std::function&lt;<span class="type">void</span>(pin_incorrect <span class="type">const</span>&amp; msg)&gt;&gt;(</span><br><span class="line">				[&amp;](pin_incorrect <span class="type">const</span>&amp; msg)</span><br><span class="line">				&#123;</span><br><span class="line">					interface_hardware.<span class="built_in">send</span>(</span><br><span class="line">						<span class="built_in">display_pin_incorrect_message</span>());</span><br><span class="line">					state = &amp;atm::done_processing;</span><br><span class="line">				&#125;, <span class="string">&quot;pin_incorrect&quot;</span></span><br><span class="line">				).handle&lt;cancel_pressed, std::function&lt;<span class="type">void</span>(cancel_pressed <span class="type">const</span>&amp; msg)&gt;&gt;(</span><br><span class="line">						[&amp;](cancel_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">						&#123;</span><br><span class="line">							state = &amp;atm::done_processing;</span><br><span class="line">						&#125;, <span class="string">&quot;cancel_pressed&quot;</span></span><br><span class="line">				);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">getting_pin</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		incoming.<span class="built_in">wait</span>().handle&lt;digit_pressed, std::function&lt;<span class="type">void</span>(digit_pressed <span class="type">const</span>&amp; msg)&gt;,</span><br><span class="line">			messaging::dispatcher&gt;(</span><br><span class="line">				[&amp;](digit_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">				&#123;</span><br><span class="line">					<span class="type">unsigned</span> <span class="type">const</span> pin_length = <span class="number">6</span>;</span><br><span class="line">					pin += msg.digit;</span><br><span class="line">					<span class="keyword">if</span> (pin.<span class="built_in">length</span>() == pin_length)</span><br><span class="line">					&#123;</span><br><span class="line">						bank.<span class="built_in">send</span>(<span class="built_in">verify_pin</span>(account, pin, incoming));</span><br><span class="line">						state = &amp;atm::verifying_pin;</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;, <span class="string">&quot;digit_pressed&quot;</span></span><br><span class="line">				).handle&lt;clear_last_pressed, std::function&lt;<span class="type">void</span>(clear_last_pressed <span class="type">const</span>&amp; msg)&gt;&gt;(</span><br><span class="line">				[&amp;](clear_last_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">				&#123;</span><br><span class="line">					<span class="keyword">if</span> (!pin.<span class="built_in">empty</span>())</span><br><span class="line">					&#123;</span><br><span class="line">						pin.<span class="built_in">pop_back</span>();</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;, <span class="string">&quot;clear_last_pressed&quot;</span></span><br><span class="line">				).handle&lt;cancel_pressed, std::function&lt;<span class="type">void</span>(cancel_pressed <span class="type">const</span>&amp; msg)&gt;&gt;(</span><br><span class="line">						[&amp;](cancel_pressed <span class="type">const</span>&amp; msg)</span><br><span class="line">						&#123;</span><br><span class="line">							state = &amp;atm::done_processing;</span><br><span class="line">						&#125;, <span class="string">&quot;cancel_pressed&quot;</span></span><br><span class="line">				);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">waiting_for_card</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		interface_hardware.<span class="built_in">send</span>(<span class="built_in">display_enter_card</span>());</span><br><span class="line">		incoming.<span class="built_in">wait</span>().handle&lt;card_inserted, std::function&lt;<span class="type">void</span>(card_inserted <span class="type">const</span>&amp; msg)&gt;,</span><br><span class="line">			messaging::dispatcher&gt;(</span><br><span class="line">				[&amp;](card_inserted <span class="type">const</span>&amp; msg)</span><br><span class="line">				&#123;</span><br><span class="line">					account = msg.account;</span><br><span class="line">					pin = <span class="string">&quot;&quot;</span>;</span><br><span class="line">					interface_hardware.<span class="built_in">send</span>(<span class="built_in">display_enter_pin</span>());</span><br><span class="line">					state = &amp;atm::getting_pin;</span><br><span class="line">				&#125;, <span class="string">&quot;card_inserted&quot;</span></span><br><span class="line">		);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">done_processing</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		interface_hardware.<span class="built_in">send</span>(<span class="built_in">eject_card</span>());</span><br><span class="line">		state = &amp;atm::waiting_for_card;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">atm</span>(atm <span class="type">const</span>&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	atm&amp; <span class="keyword">operator</span>=(atm <span class="type">const</span>&amp;) = <span class="keyword">delete</span>;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">atm</span>(messaging::sender bank_,</span><br><span class="line">		messaging::sender interface_hardware_) :</span><br><span class="line">		<span class="built_in">bank</span>(bank_), <span class="built_in">interface_hardware</span>(interface_hardware_)</span><br><span class="line">	&#123;&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">done</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		<span class="built_in">get_sender</span>().<span class="built_in">send</span>(messaging::<span class="built_in">close_queue</span>());</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">run</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		state = &amp;atm::waiting_for_card;</span><br><span class="line">		<span class="keyword">try</span></span><br><span class="line">		&#123;</span><br><span class="line">			<span class="keyword">for</span> (;;)</span><br><span class="line">			&#123;</span><br><span class="line">				(<span class="keyword">this</span>-&gt;*state)();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="built_in">catch</span> (messaging::close_queue <span class="type">const</span>&amp;)</span><br><span class="line">		&#123;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function">messaging::sender <span class="title">get_sender</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		<span class="keyword">return</span> incoming;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>atm 主要功能就是通过状态机不断地切换状态监听想要处理的函数。</p>
+<p>详细源码可参考<a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day08-actor/Actor">https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day08-actor/Actor</a></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文讲述了Actor设计模式和CSP设计模式，并通过go和C++等语言给大家展示了csp并发设计的demo，最后通过讲解《C++并发编程实战》中取款的案例，展示了csp的用法。</p>
+<p>详细源码</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day08-actor/Actor">https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day08-actor/Actor</a></p>
+<p>视频链接</p>
+<p><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290">https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/09/24/concpp08/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2023/09/24/concpp08/" itemprop="url">利用并行和函数式编程提高运算效率</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-09-24T17:12:55+08:00">
+                2023-09-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前文介绍了<code>async</code>用法，很多朋友说用的不多，我对<code>async</code>的理解就是开辟一个一次性的线程执行并行任务，主线程可以通过<code>future</code>在合适的时机执行等待汇总结果。本文通过并行和函数式编程，演示快速排序提升效率的一种方式。</p>
+<h2 id="快速排序"><a href="#快速排序" class="headerlink" title="快速排序"></a>快速排序</h2><p>快速排序（Quick Sort）是一种高效的排序算法，采用分治法的思想进行排序。以下是快速排序的基本步骤：</p>
+<ol>
+<li>选择一个基准元素（pivot）：从数组中选择一个元素作为基准元素。选择基准元素的方式有很多种，常见的是选择数组的第一个元素或最后一个元素。</li>
+<li>分区（partitioning）：重新排列数组，把比基准元素小的元素放在它的左边，把比基准元素大的元素放在它的右边。在这个过程结束时，基准元素就处于数组的最终位置。</li>
+<li>递归排序子数组：递归地对基准元素左边和右边的两个子数组进行快速排序。</li>
+</ol>
+<p>以下是一个基本的快速排序的C++实现：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//c++ 版本的快速排序算法</span></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">quick_sort_recursive</span><span class="params">(T arr[], <span class="type">int</span> start, <span class="type">int</span> end)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (start &gt;= end) <span class="keyword">return</span>;</span><br><span class="line">	T key = arr[start];</span><br><span class="line">	<span class="type">int</span> left = start, right = end;</span><br><span class="line">	<span class="keyword">while</span>(left &lt; right) &#123;</span><br><span class="line">		<span class="keyword">while</span> (arr[right] &gt;= key &amp;&amp; left &lt; right) right--;</span><br><span class="line">		<span class="keyword">while</span> (arr[left] &lt;= key &amp;&amp; left &lt; right) left++;</span><br><span class="line">		std::<span class="built_in">swap</span>(arr[left], arr[right]);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (arr[left] &lt; key) &#123;</span><br><span class="line">		std::<span class="built_in">swap</span>(arr[left], arr[start]);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	<span class="built_in">quick_sort_recursive</span>(arr, start, left - <span class="number">1</span>);</span><br><span class="line">	<span class="built_in">quick_sort_recursive</span>(arr, left + <span class="number">1</span>, end);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">quick_sort</span><span class="params">(T arr[], <span class="type">int</span> len)</span> </span>&#123;</span><br><span class="line">	<span class="built_in">quick_sort_recursive</span>(arr, <span class="number">0</span>, len - <span class="number">1</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>排序演示</p>
+<p>假设一开始序列{xi}是：5，3，7，6，4，1，0，2，9，10，8。</p>
+<p>此时，ref=5，i=1，j=11，从后往前找，第一个比5小的数是x8=2，因此序列为：2，3，7，6，4，1，0，5，9，10，8。</p>
+<p>此时i=1，j=8，从前往后找，第一个比5大的数是x3=7，因此序列为：2，3，5，6，4，1，0，7，9，10，8。</p>
+<p>此时，i=3，j=8，从第8位往前找，第一个比5小的数是x7=0，因此：2，3，0，6，4，1，5，7，9，10，8。</p>
+<p>此时，i=3，j=7，从第3位往后找，第一个比5大的数是x4=6，因此：2，3，0，5，4，1，6，7，9，10，8。</p>
+<p>此时，i=4，j=7，从第7位往前找，第一个比5小的数是x6=1，因此：2，3，0，1，4，5，6，7，9，10，8。</p>
+<p>此时，i=4，j=6，从第4位往后找，直到第6位才有比5大的数，这时，i=j=6，ref成为一条分界线，它之前的数都比它小，之后的数都比它大，对于前后两部分数，可以采用同样的方法来排序。 </p>
+<p>调用比较简单</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_quick_sort</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="type">int</span> num_arr[] = &#123; <span class="number">5</span>，<span class="number">3</span>，<span class="number">7</span>，<span class="number">6</span>，<span class="number">4</span>，<span class="number">1</span>，<span class="number">0</span>，<span class="number">2</span>，<span class="number">9</span>，<span class="number">10</span>，<span class="number">8</span> &#125;;</span><br><span class="line">	<span class="type">int</span> length = <span class="built_in">sizeof</span>(num_arr) / <span class="built_in">sizeof</span>(<span class="type">int</span>);</span><br><span class="line">	 <span class="built_in">quick_sort</span>(num_arr, length );</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;sorted result is &quot;</span>;</span><br><span class="line">	<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; length; i++) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot; &quot;</span> &lt;&lt; num_arr[i];</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	std::cout &lt;&lt; std::endl;	</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种实现方式比较依赖存储数据的数据结构，比如上面是通过数组存储的，那如果我想实现<code>list</code>容器中元素的排序怎么办？我既不想关注存储的容器，也不想关注存储的类型，想实现一套通用的比较规则？那就需要函数式编程来解决</p>
+<h2 id="函数式编程"><a href="#函数式编程" class="headerlink" title="函数式编程"></a>函数式编程</h2><p>C++函数式编程是一种编程范式，它将计算视为数学上的函数求值，并避免改变状态和使用可变数据。在函数式编程中，程序是由一系列函数组成的，每个函数都接受输入并产生输出，而且没有任何副作用。</p>
+<p>在C++中，函数式编程可以使用函数指针、函数对象（functor）和lambda表达式等机制来实现。这些机制允许您编写可以像普通函数一样调用的代码块，并将它们作为参数传递给其他函数或作为返回值返回。</p>
+<p>C++11引入了一些新功能，如constexpr函数和表达式模板，这些功能使得在C++中进行函数式编程更加容易和直观。</p>
+<p>我们用函数式编程修改上面的快速排序</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function">std::list&lt;T&gt; <span class="title">sequential_quick_sort</span><span class="params">(std::list&lt;T&gt; input)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (input.<span class="built_in">empty</span>())</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">return</span> input;</span><br><span class="line">	&#125;</span><br><span class="line">	std::list&lt;T&gt; result;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//  ① 将input中的第一个元素放入result中，并且将这第一个元素从input中删除</span></span><br><span class="line">	result.<span class="built_in">splice</span>(result.<span class="built_in">begin</span>(), input, input.<span class="built_in">begin</span>());  </span><br><span class="line"></span><br><span class="line">	<span class="comment">//  ② 取result的第一个元素，将来用这个元素做切割，切割input中的列表。</span></span><br><span class="line">	T <span class="type">const</span>&amp; pivot = *result.<span class="built_in">begin</span>();    </span><br><span class="line"></span><br><span class="line">	<span class="comment">//  ③std::partition 是一个标准库函数，用于将容器或数组中的元素按照指定的条件进行分区，</span></span><br><span class="line">	<span class="comment">// 使得满足条件的元素排在不满足条件的元素之前。</span></span><br><span class="line">	<span class="comment">// 所以经过计算divide_point指向的是input中第一个大于等于pivot的元素</span></span><br><span class="line">		<span class="keyword">auto</span> divide_point = std::<span class="built_in">partition</span>(input.<span class="built_in">begin</span>(), input.<span class="built_in">end</span>(),</span><br><span class="line">			[&amp;](T <span class="type">const</span>&amp; t) &#123;<span class="keyword">return</span> t &lt; pivot; &#125;);    </span><br><span class="line">	</span><br><span class="line">	<span class="comment">// ④ 我们将小于pivot的元素放入lower_part中</span></span><br><span class="line">	std::list&lt;T&gt; lower_part;</span><br><span class="line">	lower_part.<span class="built_in">splice</span>(lower_part.<span class="built_in">end</span>(), input, input.<span class="built_in">begin</span>(),</span><br><span class="line">		divide_point);  </span><br><span class="line"></span><br><span class="line">	<span class="comment">// ⑤我们将lower_part传递给sequential_quick_sort 返回一个新的有序的从小到大的序列</span></span><br><span class="line">	<span class="comment">//lower_part 中都是小于divide_point的值</span></span><br><span class="line">		<span class="function"><span class="keyword">auto</span> <span class="title">new_lower</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">			sequential_quick_sort(std::move(lower_part)))</span></span>;    </span><br><span class="line">	<span class="comment">// ⑥我们剩余的input列表传递给sequential_quick_sort递归调用，input中都是大于divide_point的值。</span></span><br><span class="line">		<span class="function"><span class="keyword">auto</span> <span class="title">new_higher</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">			sequential_quick_sort(std::move(input)))</span></span>;    </span><br><span class="line">		<span class="comment">//⑦到此时new_higher和new_lower都是从小到大排序好的列表</span></span><br><span class="line">		<span class="comment">//将new_higher 拼接到result的尾部</span></span><br><span class="line">		result.<span class="built_in">splice</span>(result.<span class="built_in">end</span>(), new_higher);    </span><br><span class="line">		<span class="comment">//将new_lower 拼接到result的头部</span></span><br><span class="line">		result.<span class="built_in">splice</span>(result.<span class="built_in">begin</span>(), new_lower);   </span><br><span class="line">		<span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>用如下方式调用</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_sequential_quick</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::list&lt;<span class="type">int</span>&gt; numlists = &#123; <span class="number">6</span>,<span class="number">1</span>,<span class="number">0</span>,<span class="number">7</span>,<span class="number">5</span>,<span class="number">2</span>,<span class="number">9</span>,<span class="number">-1</span> &#125;;</span><br><span class="line">	<span class="keyword">auto</span> sort_result = <span class="built_in">sequential_quick_sort</span>(numlists);</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;sorted result is &quot;</span>;</span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">auto</span> iter = sort_result.<span class="built_in">begin</span>(); iter != sort_result.<span class="built_in">end</span>(); iter++) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot; &quot;</span> &lt;&lt; (*iter);</span><br><span class="line">	&#125;</span><br><span class="line">	std::cout &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个函数是一个使用快速排序算法对链表进行排序的实现。快速排序是一种常用的排序算法，它的基本思想是选择一个基准元素，然后将数组分为两部分，一部分是小于基准元素的元素，另一部分是大于基准元素的元素。然后对这两部分再分别进行快速排序。这个函数使用了C++的模板，可以处理任何数据类型的链表。函数的主要步骤包括：</p>
+<ol>
+<li><p>将链表的第一个元素作为基准元素，并将其从链表中删除。</p>
+</li>
+<li><p>使用std::partition函数将链表分为两部分，一部分是小于基准元素的元素，另一部分是大于或等于基准元素的元素。</p>
+</li>
+<li><p>对这两部分分别进行递归排序。\n4. 将排序后的两部分和基准元素合并，返回排序后的链表。</p>
+</li>
+</ol>
+<h2 id="并行方式"><a href="#并行方式" class="headerlink" title="并行方式"></a>并行方式</h2><p>我们提供并行方式的函数式编程，可以极大的利用cpu多核的优势，这在并行计算中很常见。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//并行版本</span></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function">std::list&lt;T&gt; <span class="title">parallel_quick_sort</span><span class="params">(std::list&lt;T&gt; input)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (input.<span class="built_in">empty</span>())</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">return</span> input;</span><br><span class="line">	&#125;</span><br><span class="line">	std::list&lt;T&gt; result;</span><br><span class="line">	result.<span class="built_in">splice</span>(result.<span class="built_in">begin</span>(), input, input.<span class="built_in">begin</span>());</span><br><span class="line">	T <span class="type">const</span>&amp; pivot = *result.<span class="built_in">begin</span>();</span><br><span class="line">	<span class="keyword">auto</span> divide_point = std::<span class="built_in">partition</span>(input.<span class="built_in">begin</span>(), input.<span class="built_in">end</span>(),</span><br><span class="line">		[&amp;](T <span class="type">const</span>&amp; t) &#123;<span class="keyword">return</span> t &lt; pivot; &#125;);</span><br><span class="line">	std::list&lt;T&gt; lower_part;</span><br><span class="line">	lower_part.<span class="built_in">splice</span>(lower_part.<span class="built_in">end</span>(), input, input.<span class="built_in">begin</span>(),</span><br><span class="line">		divide_point);</span><br><span class="line">	<span class="comment">// ①因为lower_part是副本，所以并行操作不会引发逻辑错误，这里可以启动future做排序</span></span><br><span class="line">	std::future&lt;std::list&lt;T&gt;&gt; <span class="built_in">new_lower</span>(</span><br><span class="line">		std::<span class="built_in">async</span>(&amp;parallel_quick_sort&lt;T&gt;, std::<span class="built_in">move</span>(lower_part)));</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// ②</span></span><br><span class="line">	<span class="function"><span class="keyword">auto</span> <span class="title">new_higher</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">		parallel_quick_sort(std::move(input)))</span></span>;    </span><br><span class="line">		result.<span class="built_in">splice</span>(result.<span class="built_in">end</span>(), new_higher);    </span><br><span class="line">		result.<span class="built_in">splice</span>(result.<span class="built_in">begin</span>(), new_lower.<span class="built_in">get</span>());    </span><br><span class="line">		<span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>测试调用如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_sequential_quick</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::list&lt;<span class="type">int</span>&gt; numlists = &#123; <span class="number">6</span>,<span class="number">1</span>,<span class="number">0</span>,<span class="number">7</span>,<span class="number">5</span>,<span class="number">2</span>,<span class="number">9</span>,<span class="number">-1</span> &#125;;</span><br><span class="line">	<span class="keyword">auto</span> sort_result = <span class="built_in">sequential_quick_sort</span>(numlists);</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;sorted result is &quot;</span>;</span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">auto</span> iter = sort_result.<span class="built_in">begin</span>(); iter != sort_result.<span class="built_in">end</span>(); iter++) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot; &quot;</span> &lt;&lt; (*iter);</span><br><span class="line">	&#125;</span><br><span class="line">	std::cout &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们对<code>lower_part</code>的排序调用了<code>std::async</code>并行处理。而<code>higher_part</code>则是串行执行的。这么做提高了计算的并行能力，但有人会问如果数组的大小为1024，那么就是2的10次方，需要启动10个线程执行，这仅是对一个1024大小的数组的排序，如果有多个数组排序，开辟线程会不会很多？其实不用担心这个，因为<code>async</code>的实现方式在上一节中已经提及了，是通过<code>std::launch::async</code>或者<code>std::launch::deffered</code>完成的。编译器会计算当前能否开辟线程，如果能则使用<code>std::launch::async</code>模式开辟线程，如果不能则采用<code>std::launch::deffered</code>串行执行。当然，我们也可以通过我们上文提及的线程池方式实现并行计算</p>
+<h2 id="ThreadPool方式的并行排序"><a href="#ThreadPool方式的并行排序" class="headerlink" title="ThreadPool方式的并行排序"></a>ThreadPool方式的并行排序</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//线程池版本</span></span><br><span class="line"><span class="comment">//并行版本</span></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function">std::list&lt;T&gt; <span class="title">thread_pool_quick_sort</span><span class="params">(std::list&lt;T&gt; input)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (input.<span class="built_in">empty</span>())</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">return</span> input;</span><br><span class="line">	&#125;</span><br><span class="line">	std::list&lt;T&gt; result;</span><br><span class="line">	result.<span class="built_in">splice</span>(result.<span class="built_in">begin</span>(), input, input.<span class="built_in">begin</span>());</span><br><span class="line">	T <span class="type">const</span>&amp; pivot = *result.<span class="built_in">begin</span>();</span><br><span class="line">	<span class="keyword">auto</span> divide_point = std::<span class="built_in">partition</span>(input.<span class="built_in">begin</span>(), input.<span class="built_in">end</span>(),</span><br><span class="line">		[&amp;](T <span class="type">const</span>&amp; t) &#123;<span class="keyword">return</span> t &lt; pivot; &#125;);</span><br><span class="line">	std::list&lt;T&gt; lower_part;</span><br><span class="line">	lower_part.<span class="built_in">splice</span>(lower_part.<span class="built_in">end</span>(), input, input.<span class="built_in">begin</span>(),</span><br><span class="line">		divide_point);</span><br><span class="line">	<span class="comment">// ①因为lower_part是副本，所以并行操作不会引发逻辑错误，这里投递给线程池处理</span></span><br><span class="line">	<span class="keyword">auto</span> new_lower = ThreadPool::<span class="built_in">commit</span>(&amp;parallel_quick_sort&lt;T&gt;, std::<span class="built_in">move</span>(lower_part));</span><br><span class="line">	<span class="comment">// ②</span></span><br><span class="line">	<span class="function"><span class="keyword">auto</span> <span class="title">new_higher</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">		parallel_quick_sort(std::move(input)))</span></span>;</span><br><span class="line">	result.<span class="built_in">splice</span>(result.<span class="built_in">end</span>(), new_higher);</span><br><span class="line">	result.<span class="built_in">splice</span>(result.<span class="built_in">begin</span>(), new_lower.<span class="built_in">get</span>());</span><br><span class="line">	<span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过如下方式测试</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_thread_pool_sort</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::list&lt;<span class="type">int</span>&gt; numlists = &#123; <span class="number">6</span>,<span class="number">1</span>,<span class="number">0</span>,<span class="number">7</span>,<span class="number">5</span>,<span class="number">2</span>,<span class="number">9</span>,<span class="number">-1</span> &#125;;</span><br><span class="line">	<span class="keyword">auto</span> sort_result = <span class="built_in">thread_pool_quick_sort</span>(numlists);</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;sorted result is &quot;</span>;</span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">auto</span> iter = sort_result.<span class="built_in">begin</span>(); iter != sort_result.<span class="built_in">end</span>(); iter++) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot; &quot;</span> &lt;&lt; (*iter);</span><br><span class="line">	&#125;</span><br><span class="line">	std::cout &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>到此我们实现了多种版本的快速排序，并不是鼓励读者造轮子，而是提供一种并行处理的思想，相信读者在后续的工作中在合适的时机采用并行处理的方式，可以极大的提高程序处理问题的效率。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了如何使用future, promise以及async用法</p>
+<p>视频链接</p>
+<p><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290">https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290</a></p>
+<p>源码链接</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn">https://gitee.com/secondtonone1/boostasio-learn</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/09/17/concpp07/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1850,298 +2223,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/07/23/cpp43/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2023/07/23/cpp43/" itemprop="url">可变参数模板+异步队列实现异步打印功能</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-07-23T15:51:35+08:00">
-                2023-07-23
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/cpp/" itemprop="url" rel="index">
-                    <span itemprop="name">C++</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="场景"><a href="#场景" class="headerlink" title="场景"></a>场景</h2><p>公司有成熟的日志库，但是打印日志的功能是在调用线程里触发的，简而言之就是哪个线程调用了日志库的打印功能，就在哪个线程里输出，如果打印功能频繁，可能会影响该线程的逻辑处理。目前公司的软件界面显示和计算等逻辑很频繁，考虑用异步的方式实现打印。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2023/07/23/cpp43/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/07/21/asio26/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2023/07/21/asio26/" itemprop="url">利用Docker搭建Linux C++ Boost开发环境</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-07-21T10:15:46+08:00">
-                2023-07-21
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/cpp/" itemprop="url" rel="index">
-                    <span itemprop="name">C++</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文介绍如何使用Docker搭建Linux环境下C++的开发环境。众所周知C++的开发环境分为Windows和Linux两种，在windows配置C++开发环境并实现了Asio服务器的开发，我们也做过QT的配置和使用，前面的教程已经很完善了，接下来介绍如何在Linux系统部署C++开发环境。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2023/07/21/asio26/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2192,7 +2273,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">283</span>
+                  <span class="site-state-item-count">285</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>

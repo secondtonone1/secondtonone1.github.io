@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="简介前文介绍了如何通过内存顺序实现内存模型，本文基于前文的基础，利用内存顺序和内存模型的知识，带着大家探索无锁并发的应用，主要是通过无锁队列的实现来让大家熟悉无锁并发的实现方式。 环形队列我们要实现无锁并发，经常会用到一种结构无锁队列，而无锁队列和我们经常使用的队列颇有不同，它采用的是环状的队列结构，为什么成环呢？主要有两个好处，一个是成环的队列大小是固定的，另外一个我们通过移动头和尾就能实现数据">
+<meta property="og:type" content="article">
+<meta property="og:title" content="无锁并发的应用(无锁队列)">
+<meta property="og:url" content="http://www.limerence2017.com/2023/11/02/concpp13/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="简介前文介绍了如何通过内存顺序实现内存模型，本文基于前文的基础，利用内存顺序和内存模型的知识，带着大家探索无锁并发的应用，主要是通过无锁队列的实现来让大家熟悉无锁并发的实现方式。 环形队列我们要实现无锁并发，经常会用到一种结构无锁队列，而无锁队列和我们经常使用的队列颇有不同，它采用的是环状的队列结构，为什么成环呢？主要有两个好处，一个是成环的队列大小是固定的，另外一个我们通过移动头和尾就能实现数据">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.llfc.club/4a6ee05475ca071cc608c9eb35920af.png">
+<meta property="og:image" content="https://cdn.llfc.club/1698926107471.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1699154222424.jpg">
+<meta property="article:published_time" content="2023-11-02T10:43:15.000Z">
+<meta property="article:modified_time" content="2023-11-11T23:28:54.293Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.llfc.club/4a6ee05475ca071cc608c9eb35920af.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2023/11/02/concpp13/"/>
+
+
+
+
+
+  <title>无锁并发的应用(无锁队列) | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/11/02/concpp13/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">无锁并发的应用(无锁队列)</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-11-02T18:43:15+08:00">
+                2023-11-02
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前文介绍了如何通过内存顺序实现内存模型，本文基于前文的基础，利用内存顺序和内存模型的知识，带着大家探索无锁并发的应用，主要是通过无锁队列的实现来让大家熟悉无锁并发的实现方式。</p>
+<h2 id="环形队列"><a href="#环形队列" class="headerlink" title="环形队列"></a>环形队列</h2><p>我们要实现无锁并发，经常会用到一种结构无锁队列，而无锁队列和我们经常使用的队列颇有不同，它采用的是环状的队列结构，为什么成环呢？主要有两个好处，一个是成环的队列大小是固定的，另外一个我们通过移动头和尾就能实现数据的插入和取出。</p>
+<p>我们看下图是一个环形队列的基本结构</p>
+<p><img src="https://cdn.llfc.club/4a6ee05475ca071cc608c9eb35920af.png" alt="https://cdn.llfc.club/4a6ee05475ca071cc608c9eb35920af.png"></p>
+<p>图1表示队列为空的时候，头节点和尾节点交会在一起，指向同一个扇区。</p>
+<p>图2表示当我们你插入一个数字1后，队列大小为1，此时tail指针移动到下一个扇区，head指向头部，1被存储在头部了。</p>
+<p>图3表示当我们将数字1出队后，head指针向后移动一个扇区，此时head和tail指向同一个扇区，表示队列又为空了。那有人会问队列中数字1为什么不清空呢？其实不用清空，因为当我们插入新数据时就可以覆盖掉1这个无效的数据。</p>
+<p>比如我们继续3图，连续插入几个数字，将队列填满。</p>
+<p><img src="https://cdn.llfc.club/1698926107471.jpg" alt="https://cdn.llfc.club/1698926107471.jpg"></p>
+<p>图4说明的就是当我们连续插入了几个数字，插入数据9的时候将原来1的数据覆盖了，所以环形队列删除数据的时候我们不用让数据出队，只要移动head指针即可。</p>
+<p>另外我们从图4也能看出，此时tail指向的位置正好是head的前一个位置，这种情况表示队列满了。</p>
+<h2 id="用锁实现环形队列"><a href="#用锁实现环形队列" class="headerlink" title="用锁实现环形队列"></a>用锁实现环形队列</h2><p>我们可以用锁实现上述环形队列，在push和pop时分别加锁，并通过head和tail计算队列是否为满或者空。</p>
+<p>代码比较简单，可以看看下面的写法</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;mutex&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;memory&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T, <span class="type">size_t</span> Cap&gt;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">CircularQueLk</span> :<span class="keyword">private</span> std::allocator&lt;T&gt; &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">CircularQueLk</span>() :_max_size(Cap + <span class="number">1</span>),_data(std::allocator&lt;T&gt;::<span class="built_in">allocate</span>(_max_size)), _head(<span class="number">0</span>), _tail(<span class="number">0</span>) &#123;&#125;</span><br><span class="line">    <span class="built_in">CircularQueLk</span>(<span class="type">const</span> CircularQueLk&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">    CircularQueLk&amp; <span class="keyword">operator</span> = (<span class="type">const</span> CircularQueLk&amp;) <span class="keyword">volatile</span> = <span class="keyword">delete</span>;</span><br><span class="line">    CircularQueLk&amp; <span class="keyword">operator</span> = (<span class="type">const</span> CircularQueLk&amp;) = <span class="keyword">delete</span>;</span><br><span class="line"></span><br><span class="line">    ~<span class="built_in">CircularQueLk</span>() &#123;</span><br><span class="line">        <span class="comment">//循环销毁</span></span><br><span class="line">        <span class="function">std::lock_guard&lt;std::mutex&gt;  <span class="title">lock</span><span class="params">(_mtx)</span></span>;</span><br><span class="line">        <span class="comment">//调用内部元素的析构函数</span></span><br><span class="line">        <span class="keyword">while</span> (_head != _tail) &#123;</span><br><span class="line">            std::allocator&lt;T&gt;::<span class="built_in">destroy</span>(_data + _head);</span><br><span class="line">            _head = （_head+<span class="number">1</span>）% _max_size;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//调用回收操作</span></span><br><span class="line">        std::allocator&lt;T&gt;::<span class="built_in">deallocate</span>(_data, _max_size);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//先实现一个可变参数列表版本的插入函数最为基准函数</span></span><br><span class="line">    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> ...Args&gt;</span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">emplace</span><span class="params">(Args &amp;&amp; ... args)</span> </span>&#123;</span><br><span class="line">        <span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(_mtx)</span></span>;</span><br><span class="line">        <span class="comment">//判断队列是否满了</span></span><br><span class="line">        <span class="keyword">if</span> ((_tail + <span class="number">1</span>) % _max_size == _head) &#123;</span><br><span class="line">            std::cout &lt;&lt; <span class="string">&quot;circular que full ! &quot;</span> &lt;&lt; std::endl;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//在尾部位置构造一个T类型的对象，构造参数为args...</span></span><br><span class="line">        std::allocator&lt;T&gt;::<span class="built_in">construct</span>(_data + _tail, std::forward&lt;Args&gt;(args)...);</span><br><span class="line">        <span class="comment">//更新尾部元素位置</span></span><br><span class="line">        _tail = (_tail + <span class="number">1</span>) % _max_size;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//push 实现两个版本，一个接受左值引用，一个接受右值引用</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">//接受左值引用版本</span></span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">push</span><span class="params">(<span class="type">const</span> T&amp; val)</span> </span>&#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;called push const T&amp; version&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">emplace</span>(val);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//接受右值引用版本，当然也可以接受左值引用，T&amp;&amp;为万能引用</span></span><br><span class="line">    <span class="comment">// 但是因为我们实现了const T&amp;</span></span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">push</span><span class="params">(T&amp;&amp; val)</span> </span>&#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;called push T&amp;&amp; version&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">emplace</span>(std::<span class="built_in">move</span>(val));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//出队函数</span></span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">pop</span><span class="params">(T&amp; val)</span> </span>&#123;</span><br><span class="line">        <span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(_mtx)</span></span>;</span><br><span class="line">        <span class="comment">//判断头部和尾部指针是否重合，如果重合则队列为空</span></span><br><span class="line">        <span class="keyword">if</span> (_head == _tail) &#123;</span><br><span class="line">            std::cout &lt;&lt; <span class="string">&quot;circular que empty ! &quot;</span> &lt;&lt; std::endl;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//取出头部指针指向的数据</span></span><br><span class="line">        val = std::<span class="built_in">move</span>(_data[_head]);</span><br><span class="line">        <span class="comment">//更新头部指针</span></span><br><span class="line">        _head = (_head + <span class="number">1</span>) % _max_size;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="type">size_t</span> _max_size;</span><br><span class="line">    T* _data;</span><br><span class="line">    std::mutex _mtx;</span><br><span class="line">    <span class="type">size_t</span> _head = <span class="number">0</span>;</span><br><span class="line">    <span class="type">size_t</span> _tail = <span class="number">0</span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>测试也比较简单，我们写一个函数，初始化队列大小为5，测试队列push满的情况和pop直到为空的情况</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">TestCircularQue</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">//最大容量为10</span></span><br><span class="line">    CircularQueLk&lt;MyClass, <span class="number">5</span>&gt; cq_lk;</span><br><span class="line">    <span class="function">MyClass <span class="title">mc1</span><span class="params">(<span class="number">1</span>)</span></span>;</span><br><span class="line">    <span class="function">MyClass <span class="title">mc2</span><span class="params">(<span class="number">2</span>)</span></span>;</span><br><span class="line">    cq_lk.<span class="built_in">push</span>(mc1);</span><br><span class="line">    cq_lk.<span class="built_in">push</span>(std::<span class="built_in">move</span>(mc2));</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">3</span>; i &lt;= <span class="number">5</span>; i++) &#123;</span><br><span class="line">        <span class="function">MyClass <span class="title">mc</span><span class="params">(i)</span></span>;</span><br><span class="line">        <span class="keyword">auto</span> res = cq_lk.<span class="built_in">push</span>(mc);</span><br><span class="line">        <span class="keyword">if</span> (res == <span class="literal">false</span>) &#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    cq_lk.<span class="built_in">push</span>(mc2);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++) &#123;</span><br><span class="line">        MyClass mc1;</span><br><span class="line">        <span class="keyword">auto</span> res = cq_lk.<span class="built_in">pop</span>(mc1);</span><br><span class="line">        <span class="keyword">if</span> (!res) &#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;pop success, &quot;</span> &lt;&lt; mc1 &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> res = cq_lk.<span class="built_in">pop</span>(mc1);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>结果如下</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">called push const T&amp; version</span><br><span class="line">called push T&amp;&amp; version</span><br><span class="line">called push const T&amp; version</span><br><span class="line">called push const T&amp; version</span><br><span class="line">called push const T&amp; version</span><br><span class="line">called push const T&amp; version</span><br><span class="line">circular que full !</span><br><span class="line"></span><br><span class="line">pop success, MyClass Data is 1</span><br><span class="line">pop success, MyClass Data is 2</span><br><span class="line">pop success, MyClass Data is 3</span><br><span class="line">pop success, MyClass Data is 4</span><br><span class="line">pop success, MyClass Data is 5</span><br><span class="line">circular que empty !</span><br></pre></td></tr></table></figure>
+
+<h2 id="无锁队列"><a href="#无锁队列" class="headerlink" title="无锁队列"></a>无锁队列</h2><p>那如果我们用原子变量而不是用锁实现环形队列，那就是无锁并发的队列了。还记得我们之前提到的原子变量的读改写操作吗？</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">bool</span> std::atomic&lt;T&gt;::<span class="built_in">compare_exchange_weak</span>(T &amp;expected, T desired);</span><br><span class="line"><span class="type">bool</span> std::atomic&lt;T&gt;::<span class="built_in">compare_exchange_strong</span>(T &amp;expected, T desired);</span><br></pre></td></tr></table></figure>
+
+<p><code>compare_exchange_strong</code>会比较原子变量<code>atomic&lt;T&gt;</code>的值和<code>expected</code>的值是否相等，如果相等则执行交换操作，将<code>atomic&lt;T&gt;</code>的值换为<code>desired</code>并且返回true,否则将expected的值修改为bool变量的值，并且返回false.</p>
+<p>其伪代码可以这么理解</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="type">bool</span> atomic&lt;T&gt;::<span class="built_in">compare_exchange_strong</span>(T &amp;expected, T desired) &#123;</span><br><span class="line">    <span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">guard</span><span class="params">(m_lock)</span></span>;</span><br><span class="line">    <span class="keyword">if</span> (m_val == expected)</span><br><span class="line">        <span class="keyword">return</span> m_val = desired, <span class="literal">true</span>;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="keyword">return</span> expected = m_val, <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>compare_exchange_weak</code>功能比<code>compare_exchange_strong</code>弱一些，他不能保证<code>atomic&lt;T&gt;</code>的值和<code>expected</code>的值相等时也会做交换，很可能原子变量和预期值相等也会返回false，所以使用要多次循环使用。</p>
+<p>我们们定义一个类CircularQueSeq, 其内容和之前我们定义的类CircularQueLk差不多，只不过将类的成员变量mutex换成atomic类型的原子变量, 我们可以利用自旋锁的思路将锁替换为原子变量循环检测的方式，进而达到锁住互斥逻辑的效果。</p>
+<p>大家可以先看一下全部的代码感受一下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T, <span class="type">size_t</span> Cap&gt;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">CircularQueSeq</span> :<span class="keyword">private</span> std::allocator&lt;T&gt; &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">CircularQueSeq</span>() :_max_size(Cap + <span class="number">1</span>), _data(std::allocator&lt;T&gt;::<span class="built_in">allocate</span>(_max_size)), _atomic_using(<span class="literal">false</span>),_head(<span class="number">0</span>), _tail(<span class="number">0</span>) &#123;&#125;</span><br><span class="line">    <span class="built_in">CircularQueSeq</span>(<span class="type">const</span> CircularQueSeq&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">    CircularQueSeq&amp; <span class="keyword">operator</span> = (<span class="type">const</span> CircularQueSeq&amp;) <span class="keyword">volatile</span> = <span class="keyword">delete</span>;</span><br><span class="line">    CircularQueSeq&amp; <span class="keyword">operator</span> = (<span class="type">const</span> CircularQueSeq&amp;) = <span class="keyword">delete</span>;</span><br><span class="line"></span><br><span class="line">    ~<span class="built_in">CircularQueSeq</span>() &#123;</span><br><span class="line">        <span class="comment">//循环销毁</span></span><br><span class="line">        <span class="type">bool</span> use_expected = <span class="literal">false</span>;</span><br><span class="line">        <span class="type">bool</span> use_desired = <span class="literal">true</span>;</span><br><span class="line">        <span class="keyword">do</span></span><br><span class="line">        &#123;</span><br><span class="line">            use_expected = <span class="literal">false</span>;</span><br><span class="line">            use_desired = <span class="literal">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">while</span> (!_atomic_using.<span class="built_in">compare_exchange_strong</span>(use_expected, use_desired));</span><br><span class="line">        <span class="comment">//调用内部元素的析构函数</span></span><br><span class="line">        <span class="keyword">while</span> (_head != _tail) &#123;</span><br><span class="line">            std::allocator&lt;T&gt;::<span class="built_in">destroy</span>(_data + _head);</span><br><span class="line">            _head++;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//调用回收操作</span></span><br><span class="line">        std::allocator&lt;T&gt;::<span class="built_in">deallocate</span>(_data, _max_size);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">do</span></span><br><span class="line">        &#123;</span><br><span class="line">            use_expected = <span class="literal">true</span>;</span><br><span class="line">            use_desired = <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">while</span> (!_atomic_using.<span class="built_in">compare_exchange_strong</span>(use_expected, use_desired));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//先实现一个可变参数列表版本的插入函数最为基准函数</span></span><br><span class="line">    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> ...Args&gt;</span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">emplace</span><span class="params">(Args &amp;&amp; ... args)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    	<span class="type">bool</span> use_expected = <span class="literal">false</span>;</span><br><span class="line">        <span class="type">bool</span> use_desired = <span class="literal">true</span>;</span><br><span class="line">        <span class="keyword">do</span></span><br><span class="line">        &#123;</span><br><span class="line">            use_expected = <span class="literal">false</span>;</span><br><span class="line">            use_desired = <span class="literal">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">while</span> (!_atomic_using.<span class="built_in">compare_exchange_strong</span>(use_expected, use_desired));</span><br><span class="line"></span><br><span class="line">        <span class="comment">//判断队列是否满了</span></span><br><span class="line">        <span class="keyword">if</span> ((_tail + <span class="number">1</span>) % _max_size == _head) &#123;</span><br><span class="line">            std::cout &lt;&lt; <span class="string">&quot;circular que full ! &quot;</span> &lt;&lt; std::endl;</span><br><span class="line">            <span class="keyword">do</span></span><br><span class="line">            &#123;</span><br><span class="line">                use_expected = <span class="literal">true</span>;</span><br><span class="line">                use_desired = <span class="literal">false</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">while</span> (!_atomic_using.<span class="built_in">compare_exchange_strong</span>(use_expected, use_desired));</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//在尾部位置构造一个T类型的对象，构造参数为args...</span></span><br><span class="line">        std::allocator&lt;T&gt;::<span class="built_in">construct</span>(_data + _tail, std::forward&lt;Args&gt;(args)...);</span><br><span class="line">        <span class="comment">//更新尾部元素位置</span></span><br><span class="line">        _tail = (_tail + <span class="number">1</span>) % _max_size;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">do</span></span><br><span class="line">        &#123;</span><br><span class="line">            use_expected = <span class="literal">true</span>;</span><br><span class="line">            use_desired = <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">while</span> (!_atomic_using.<span class="built_in">compare_exchange_strong</span>(use_expected, use_desired));</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//push 实现两个版本，一个接受左值引用，一个接受右值引用</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">//接受左值引用版本</span></span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">push</span><span class="params">(<span class="type">const</span> T&amp; val)</span> </span>&#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;called push const T&amp; version&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">emplace</span>(val);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//接受右值引用版本，当然也可以接受左值引用，T&amp;&amp;为万能引用</span></span><br><span class="line">    <span class="comment">// 但是因为我们实现了const T&amp;</span></span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">push</span><span class="params">(T&amp;&amp; val)</span> </span>&#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;called push T&amp;&amp; version&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">emplace</span>(std::<span class="built_in">move</span>(val));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//出队函数</span></span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">pop</span><span class="params">(T&amp; val)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="type">bool</span> use_expected = <span class="literal">false</span>;</span><br><span class="line">        <span class="type">bool</span> use_desired = <span class="literal">true</span>;</span><br><span class="line">        <span class="keyword">do</span></span><br><span class="line">        &#123;</span><br><span class="line">            use_desired = <span class="literal">true</span>;</span><br><span class="line">            use_expected = <span class="literal">false</span>;</span><br><span class="line">        &#125; <span class="keyword">while</span> (!_atomic_using.<span class="built_in">compare_exchange_strong</span>(use_expected, use_desired));</span><br><span class="line">        <span class="comment">//判断头部和尾部指针是否重合，如果重合则队列为空</span></span><br><span class="line">        <span class="keyword">if</span> (_head == _tail) &#123;</span><br><span class="line">            std::cout &lt;&lt; <span class="string">&quot;circular que empty ! &quot;</span> &lt;&lt; std::endl;</span><br><span class="line">            <span class="keyword">do</span></span><br><span class="line">            &#123;</span><br><span class="line">                use_expected = <span class="literal">true</span>;</span><br><span class="line">                use_desired = <span class="literal">false</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        	<span class="keyword">while</span> (!_atomic_using.<span class="built_in">compare_exchange_strong</span>(use_expected, use_desired));</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//取出头部指针指向的数据</span></span><br><span class="line">        val = std::<span class="built_in">move</span>(_data[_head]);</span><br><span class="line">        <span class="comment">//更新头部指针</span></span><br><span class="line">        _head = (_head + <span class="number">1</span>) % _max_size;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">do</span></span><br><span class="line">        &#123;</span><br><span class="line">            use_expected = <span class="literal">true</span>;</span><br><span class="line">            use_desired = <span class="literal">false</span>;</span><br><span class="line">        &#125;<span class="keyword">while</span> (!_atomic_using.<span class="built_in">compare_exchange_strong</span>(use_expected, use_desired));</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="type">size_t</span> _max_size;</span><br><span class="line">    T* _data;</span><br><span class="line">    std::atomic&lt;<span class="type">bool</span>&gt; _atomic_using;</span><br><span class="line">    <span class="type">size_t</span> _head = <span class="number">0</span>;</span><br><span class="line">    <span class="type">size_t</span> _tail = <span class="number">0</span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>我们可以看到<code>emplace</code>函数以及<code>pop</code>函数等将锁替换为原子变量。采用<code>do while</code>的方式就是因为<code>compare_exchange_strong</code>比较原子变量和<code>use_expected</code>的值不同的时候会使<code>use_expected</code>改变，所以我们需要在再次循环之前重置<code>use_expected</code>和<code>use_desired</code>的值。</p>
+<p>我们可以写一个函数在单线程情况下下测试一下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">TestCircularQueSeq</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    CircularQueSeq&lt;MyClass, <span class="number">3</span>&gt; cq_seq;</span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">4</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function">MyClass <span class="title">mc1</span><span class="params">(i)</span></span>;</span><br><span class="line">        <span class="keyword">auto</span> res = cq_seq.<span class="built_in">push</span>(mc1);</span><br><span class="line">        <span class="keyword">if</span>(!res)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">4</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        MyClass mc1;</span><br><span class="line">        <span class="keyword">auto</span> res = cq_seq.<span class="built_in">pop</span>(mc1);</span><br><span class="line">        <span class="keyword">if</span>(!res)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;pop success, &quot;</span> &lt;&lt; mc1 &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">4</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function">MyClass <span class="title">mc1</span><span class="params">(i)</span></span>;</span><br><span class="line">        <span class="keyword">auto</span> res = cq_seq.<span class="built_in">push</span>(mc1);</span><br><span class="line">        <span class="keyword">if</span> (!res)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">4</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        MyClass mc1;</span><br><span class="line">        <span class="keyword">auto</span> res = cq_seq.<span class="built_in">pop</span>(mc1);</span><br><span class="line">        <span class="keyword">if</span> (!res)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;pop success, &quot;</span> &lt;&lt; mc1 &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>运行结果</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">called push const T&amp; version</span><br><span class="line">called push const T&amp; version</span><br><span class="line">called push const T&amp; version</span><br><span class="line">called push const T&amp; version</span><br><span class="line">circular que full !</span><br><span class="line">pop success, MyClass Data is 0</span><br><span class="line">pop success, MyClass Data is 1</span><br><span class="line">pop success, MyClass Data is 2</span><br><span class="line">circular que empty !</span><br><span class="line">called push const T&amp; version</span><br><span class="line">called push const T&amp; version</span><br><span class="line">called push const T&amp; version</span><br><span class="line">called push const T&amp; version</span><br><span class="line">circular que full !</span><br><span class="line">pop success, MyClass Data is 0</span><br><span class="line">pop success, MyClass Data is 1</span><br><span class="line">pop success, MyClass Data is 2</span><br><span class="line">circular que empty !</span><br></pre></td></tr></table></figure>
+
+<p>多线程情况下也能保证安全是因为原子变量循环检测保证有且只有一个线程修改成功。读取也是这样。</p>
+<h2 id="单一原子变量的弊端"><a href="#单一原子变量的弊端" class="headerlink" title="单一原子变量的弊端"></a>单一原子变量的弊端</h2><p>我们考虑上述单一原子变量的弊端</p>
+<p>多个线程push和pop操作耦合读太高，同一时刻仅有一个线程pop或者push，而且互斥逻辑的精度不够。影响效率。</p>
+<p>我们需要考虑将pop和push操作解耦，我们采用的是环形队列，将<code>tail</code>和<code>head</code>作为原子变量可以实现精细控制。</p>
+<p>比如我们做push操作的时候，一个线程更新万<code>tail</code>标签和数据后，其他线程就可以pop或者push了，精细控制的好处就是效率提升。</p>
+<p>我们定义一个新的类CircularQueLight，类的基本数据结构和CircularQueSeq差不多。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T, <span class="type">size_t</span> Cap&gt;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">CircularQueLight</span>: <span class="keyword">private</span> std::allocator&lt;T&gt;</span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">CircularQueLight</span>():_max_size(Cap + <span class="number">1</span>),</span><br><span class="line">	_data(std::allocator&lt;T&gt;::<span class="built_in">allocate</span>(_max_size))</span><br><span class="line">	, _head(<span class="number">0</span>), _tail(<span class="number">0</span>) &#123;&#125;</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">CircularQueLight</span>(<span class="type">const</span> CircularQueLight&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">    CircularQueLight&amp; <span class="keyword">operator</span> = (<span class="type">const</span> CircularQueLight&amp;) <span class="keyword">volatile</span> = <span class="keyword">delete</span>;</span><br><span class="line">    CircularQueLight&amp; <span class="keyword">operator</span> = (<span class="type">const</span> CircularQueLight&amp;) = <span class="keyword">delete</span>;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="type">size_t</span> _max_size;</span><br><span class="line">    T* _data;</span><br><span class="line">    std::atomic&lt;<span class="type">size_t</span>&gt;  _head;</span><br><span class="line">    std::atomic&lt;<span class="type">size_t</span>&gt; _tail;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>我们将<code>_head</code> 和<code>_tail</code> 替换为原子变量。</p>
+<p>接下来我们考虑<code>pop</code>逻辑</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">bool</span> <span class="title">pop</span><span class="params">(T&amp; val)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">       <span class="type">size_t</span> h;</span><br><span class="line">       <span class="keyword">do</span></span><br><span class="line">       &#123;</span><br><span class="line">           h = _head.<span class="built_in">load</span>();  <span class="comment">//1 处</span></span><br><span class="line">           <span class="comment">//判断头部和尾部指针是否重合，如果重合则队列为空</span></span><br><span class="line">           <span class="keyword">if</span>(h == _tail.<span class="built_in">load</span>())</span><br><span class="line">           &#123;</span><br><span class="line">               <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">           &#125;</span><br><span class="line">           val = _data[h]; <span class="comment">// 2处</span></span><br><span class="line"></span><br><span class="line">       &#125; <span class="keyword">while</span> (!_head.<span class="built_in">compare_exchange_strong</span>(h, </span><br><span class="line">           (h+<span class="number">1</span>)% _max_size)); <span class="comment">//3 处</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+
+<p>在pop逻辑里我们在1处load获取头部head的值，在2处采用了复制的方式将头部元素取出赋值给val，而不是通过<code>std::move</code>，因为多个线程同时<code>pop</code>最后只有一个线程成功执行3处代码退出，而失败的则需要继续循环，从更新后的head处<code>pop</code>元素。所以不能用<code>std::move</code>，否则会破坏原有的队列数据。</p>
+<p>接下来我们来做push的函数逻辑</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">   <span class="function"><span class="type">bool</span> <span class="title">push</span><span class="params">(T&amp; val)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       <span class="type">size_t</span> t;</span><br><span class="line">       <span class="keyword">do</span></span><br><span class="line">       &#123;</span><br><span class="line">           t = _tail.<span class="built_in">load</span>(); <span class="comment">//1</span></span><br><span class="line">           <span class="comment">//判断队列是否满</span></span><br><span class="line">           <span class="keyword">if</span>( (t+<span class="number">1</span>)%_max_size == _head.<span class="built_in">load</span>())</span><br><span class="line">           &#123;</span><br><span class="line">               <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">           &#125;</span><br><span class="line"></span><br><span class="line">           _data[t] = val; <span class="comment">//2</span></span><br><span class="line"></span><br><span class="line">       &#125; <span class="keyword">while</span> (!_tail.<span class="built_in">compare_exchange_strong</span>(t,</span><br><span class="line">           (t + <span class="number">1</span>) % _max_size)); <span class="comment">//3</span></span><br><span class="line"></span><br><span class="line">       <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>push函数的逻辑乍一看和pop一样，但是我们会发现多线程push的情况存在线程安全问题。</p>
+<p>比如我们线程1 <code>push(1)</code> 而线程2 <code>push(2)</code>. 很有可能的顺序是</p>
+<p>1.1 -&gt; 1.2 -&gt; 2.1 -&gt; 2.2 -&gt; 1.3</p>
+<p>这样我们看到的效果就是<code>_data[t]</code>被存储为2了，而实际情况应该是被存储为1，因为线程1的原子变量生效，而线程2的原子变量不满足需继续循环。所以<code>_data[t]</code>必须修改为1.</p>
+<p>那我们改进一下<code>push</code>的函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"> <span class="function"><span class="type">bool</span> <span class="title">push</span><span class="params">(T&amp; val)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       <span class="type">size_t</span> t;</span><br><span class="line">       <span class="keyword">do</span></span><br><span class="line">       &#123;</span><br><span class="line">           t = _tail.<span class="built_in">load</span>();  <span class="comment">//1</span></span><br><span class="line">           <span class="comment">//判断队列是否满</span></span><br><span class="line">           <span class="keyword">if</span>( (t+<span class="number">1</span>)%_max_size == _head.<span class="built_in">load</span>())</span><br><span class="line">           &#123;</span><br><span class="line">               <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">           &#125;</span><br><span class="line"></span><br><span class="line">         </span><br><span class="line"></span><br><span class="line">       &#125; <span class="keyword">while</span> (!_tail.<span class="built_in">compare_exchange_strong</span>(t,</span><br><span class="line">           (t + <span class="number">1</span>) % _max_size));  <span class="comment">//3</span></span><br><span class="line"></span><br><span class="line">	_data[t] = val; <span class="comment">//2</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们将2处的代码移动到循环之外，这样能保证多个线程push，仅有一个线程生效时，他写入的数据一定是本线程要写入到tail的数据，而此时tail被缓存在t里，那是一个线程本地变量，所以在这种情况下我们能确定即使多个线程运行到2处，他们的t值也是不同的，并不会产生线程安全问题。</p>
+<p>毕竟多个线程push数据时对资源的竞争仅限tail。</p>
+<p>但是这种push操作仍然会有安全问题</p>
+<p>我们思考这种情况</p>
+<p><img src="https://cdn.llfc.club/1699154222424.jpg" alt="https://cdn.llfc.club/1699154222424.jpg"></p>
+<p>此时head和tail都指向1这个位置，当我们执行<code>push(9)</code>时，按照我们的逻辑会先执行3再执行2.</p>
+<p>也就是会先将tail移动，然后更新1的值为9.</p>
+<p>那如果我们更新了tail之后，还没来的及更新1为9，那么此时如果有其他的线程读取head的值，会读取到1，而不是9.</p>
+<p>从多线程安全角度来讲这是不安全的，我们理想的情况是一个线程写完数据后另一个线程读取的就是之前写入的最新值。</p>
+<p>为了解决这个问题，我们可以增加另一个原子变量<code>_tail_update</code>来标记尾部数据是否修改完成，如果尾部数据没有修改完成，此时其他线程pop时获取的数据就是不安全的，所以pop要返回false。</p>
+<p>先实现push版本</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">   <span class="function"><span class="type">bool</span> <span class="title">push</span><span class="params">(<span class="type">const</span> T&amp; val)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       <span class="type">size_t</span> t;</span><br><span class="line">       <span class="keyword">do</span></span><br><span class="line">       &#123;</span><br><span class="line">           t = _tail.<span class="built_in">load</span>();  <span class="comment">//1</span></span><br><span class="line">           <span class="comment">//判断队列是否满</span></span><br><span class="line">           <span class="keyword">if</span>( (t+<span class="number">1</span>)%_max_size == _head.<span class="built_in">load</span>())</span><br><span class="line">           &#123;</span><br><span class="line">               <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">           &#125;</span><br><span class="line"></span><br><span class="line">         </span><br><span class="line"></span><br><span class="line">       &#125; <span class="keyword">while</span> (!_tail.<span class="built_in">compare_exchange_strong</span>(t,</span><br><span class="line">           (t + <span class="number">1</span>) % _max_size));  <span class="comment">//3</span></span><br><span class="line"></span><br><span class="line">	_data[t] = val; <span class="comment">//2</span></span><br><span class="line">       <span class="type">size_t</span> tailup;</span><br><span class="line">	<span class="keyword">do</span></span><br><span class="line">       &#123;</span><br><span class="line">           tailup = t;</span><br><span class="line"></span><br><span class="line">       &#125; <span class="keyword">while</span> (_tail_update.<span class="built_in">compare_exchange_strong</span>(tailup, </span><br><span class="line">           (tailup + <span class="number">1</span>) % _max_size));</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>再实现pop版本</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">bool</span> <span class="title">pop</span><span class="params">(T&amp; val)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">       <span class="type">size_t</span> h;</span><br><span class="line">       <span class="keyword">do</span></span><br><span class="line">       &#123;</span><br><span class="line">           h = _head.<span class="built_in">load</span>();  <span class="comment">//1 处</span></span><br><span class="line">           <span class="comment">//判断头部和尾部指针是否重合，如果重合则队列为空</span></span><br><span class="line">           <span class="keyword">if</span>(h == _tail.<span class="built_in">load</span>())</span><br><span class="line">           &#123;</span><br><span class="line">               <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">           &#125;</span><br><span class="line"></span><br><span class="line">           <span class="comment">//判断如果此时要读取的数据和tail_update是否一致，如果一致说明尾部数据未更新完</span></span><br><span class="line">           <span class="keyword">if</span>(h == _tail_update.<span class="built_in">load</span>())</span><br><span class="line">           &#123;</span><br><span class="line">               <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">           &#125;</span><br><span class="line">           val = _data[h]; <span class="comment">// 2处</span></span><br><span class="line"></span><br><span class="line">       &#125; <span class="keyword">while</span> (!_head.<span class="built_in">compare_exchange_strong</span>(h, </span><br><span class="line">           (h+<span class="number">1</span>)% _max_size)); <span class="comment">//3 处</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+<p>pop版本也是，先判断队列是否为空，再判断h是否和_tail_update的值相等，如果相等说明有写数据的没更新完，直接返回false或者循环等待也行，为了方便我们直接返回false即可。</p>
+<p>因为我们知道原子操作默认采用的是<code>memory_order_seq_cst</code>内存顺序，性能上不是最优的，我们可以用<code>acquire</code>和<code>release</code>的内存顺序实现同步的效果。</p>
+<h2 id="优化性能"><a href="#优化性能" class="headerlink" title="优化性能"></a>优化性能</h2><p>我们用acquire和release模型优化上述代码，实现同步。<br>最简单的方式就是将load的地方变为<code>memory_order_relaxed</code>，compare_exchange_strong的地方变为<code>memory_order_release</code></p>
+<p>我们先看pop操作</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">bool</span> <span class="title">pop</span><span class="params">(T&amp; val)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="type">size_t</span> h;</span><br><span class="line">    <span class="keyword">do</span></span><br><span class="line">    &#123;</span><br><span class="line">        h = _head.<span class="built_in">load</span>(std::memory_order_relaxed);  <span class="comment">//1 处</span></span><br><span class="line">        <span class="comment">//判断头部和尾部指针是否重合，如果重合则队列为空</span></span><br><span class="line">        <span class="keyword">if</span> (h == _tail.<span class="built_in">load</span>(std::memory_order_acquire)) <span class="comment">//2处</span></span><br><span class="line">        &#123;</span><br><span class="line">            std::cout &lt;&lt; <span class="string">&quot;circular que empty ! &quot;</span> &lt;&lt; std::endl;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//判断如果此时要读取的数据和tail_update是否一致，如果一致说明尾部数据未更新完</span></span><br><span class="line">        <span class="keyword">if</span> (h == _tail_update.<span class="built_in">load</span>(std::memory_order_acquire)) <span class="comment">//3处</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        val = _data[h]; <span class="comment">// 2处</span></span><br><span class="line"></span><br><span class="line">    &#125; <span class="keyword">while</span> (!_head.<span class="built_in">compare_exchange_strong</span>(h,</span><br><span class="line">        (h + <span class="number">1</span>) % _max_size, std::memory_order_release, std::memory_order_relaxed)); <span class="comment">//4 处</span></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;pop data success, data is &quot;</span> &lt;&lt; val &lt;&lt; std::endl;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>1 处为<code>memory_order_relaxed</code>是因为即使多个线程pop，每个线程获取的head可能不及时，这个没关系，因为我们有4处的while来重试。</p>
+<p>2 compare_exchange_strong操作，在期望的条件匹配时采用<code>memory_order_release</code>, 期望的条件不匹配时<code>memory_order_relaxed</code>可以提升效率，毕竟还是要重试的。</p>
+<p>我们再看push 操作</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">bool</span> <span class="title">push</span><span class="params">(<span class="type">const</span> T&amp; val)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">size_t</span> t;</span><br><span class="line">    <span class="keyword">do</span></span><br><span class="line">    &#123;</span><br><span class="line">        t = _tail.<span class="built_in">load</span>(std::memory_order_relaxed);  <span class="comment">//5</span></span><br><span class="line">        <span class="comment">//判断队列是否满</span></span><br><span class="line">        <span class="keyword">if</span> ((t + <span class="number">1</span>) % _max_size == _head.<span class="built_in">load</span>(std::memory_order_acquire))</span><br><span class="line">        &#123;</span><br><span class="line">            std::cout &lt;&lt; <span class="string">&quot;circular que full ! &quot;</span> &lt;&lt; std::endl;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    &#125; <span class="keyword">while</span> (!_tail.<span class="built_in">compare_exchange_strong</span>(t,</span><br><span class="line">        (t + <span class="number">1</span>) % _max_size, std::memory_order_release, std::memory_order_relaxed));  <span class="comment">//6</span></span><br><span class="line"></span><br><span class="line">    _data[t] = val; </span><br><span class="line">    <span class="type">size_t</span> tailup;</span><br><span class="line">    <span class="keyword">do</span></span><br><span class="line">    &#123;</span><br><span class="line">        tailup = t;</span><br><span class="line"></span><br><span class="line">    &#125; <span class="keyword">while</span> (_tail_update.<span class="built_in">compare_exchange_strong</span>(tailup,</span><br><span class="line">        (tailup + <span class="number">1</span>) % _max_size, std::memory_order_release, std::memory_order_relaxed)); <span class="comment">//7</span></span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;called push data success &quot;</span> &lt;&lt; val &lt;&lt; std::endl;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>两个线程协同工作，一个线程先push，另一个线程后pop，那么对于tail部分和_tail_update，我们要保证push的结果<code>_data[t] = val;</code>先于pop的结果<code>val = _data[h];</code></p>
+<p>所以push线程中对于_tail_update的compare_exchange_strong操作采用<code>memory_order_release</code>方式。</p>
+<p>pop线程对于_tail_update的load操作采用<code>memory_order_acquire</code>。</p>
+<p>如果一个线程先pop，另一个线程先push，那么对于head部分，我们要保证pop的结果<code>val = _data[h];</code>先于pop的结果<code>_data[t] = val;</code>。</p>
+<h2 id="思考"><a href="#思考" class="headerlink" title="思考"></a>思考</h2><p>优势</p>
+<p>无锁高并发. 虽然存在循环重试, 但是这只会在相同操作并发的时候出现. push 不会因为与 pop 并发而重试, 反之亦然.</p>
+<p>缺陷</p>
+<p>这样队列只应该存储标量, 如果存储类对象时，多个push线程只有一个线程push成功，而拷贝复制的开销很大，其他线程会循环重试，每次重试都会有开销。</p>
+<p>视频链接</p>
+<p><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290">https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290</a></p>
+<p>源码链接</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day12-circularque">https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day12-circularque</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/10/25/concpp12/" rel="next" title="用内存顺序实现内存模型">
+                <i class="fa fa-chevron-left"></i> 用内存顺序实现内存模型
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/11/12/concpp14/" rel="prev" title="利用栅栏实现同步">
+                利用栅栏实现同步 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">291</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%AF%E5%BD%A2%E9%98%9F%E5%88%97"><span class="nav-number">2.</span> <span class="nav-text">环形队列</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%A8%E9%94%81%E5%AE%9E%E7%8E%B0%E7%8E%AF%E5%BD%A2%E9%98%9F%E5%88%97"><span class="nav-number">3.</span> <span class="nav-text">用锁实现环形队列</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%97%A0%E9%94%81%E9%98%9F%E5%88%97"><span class="nav-number">4.</span> <span class="nav-text">无锁队列</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%95%E4%B8%80%E5%8E%9F%E5%AD%90%E5%8F%98%E9%87%8F%E7%9A%84%E5%BC%8A%E7%AB%AF"><span class="nav-number">5.</span> <span class="nav-text">单一原子变量的弊端</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BC%98%E5%8C%96%E6%80%A7%E8%83%BD"><span class="nav-number">6.</span> <span class="nav-text">优化性能</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%80%83"><span class="nav-number">7.</span> <span class="nav-text">思考</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

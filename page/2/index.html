@@ -286,6 +286,174 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/09/09/concpp06/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2023/09/09/concpp06/" itemprop="url">利用条件变量构造线程安全队列</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-09-09T15:00:01+08:00">
+                2023-09-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文介绍如何使用条件变量控制并发的同步操作，试想有一个线程A一直输出1，另一个线程B一直输出2。我想让两个线程交替输出1，2，1，2…之类的效果，该如何实现？有的同学可能会说不是有互斥量mutex吗？可以用一个全局变量num表示应该哪个线程输出，比如num为1则线程A输出1，num为2则线程B输出2，mutex控制两个线程访问num，如果num和线程不匹配，就让该线程睡一会，这不就实现了吗？比如线程A加锁后发现当前num为2则表示它不能输出1，就解锁，将锁的使用权交给线程A，线程B就sleep一会。</p>
+<h2 id="不良实现"><a href="#不良实现" class="headerlink" title="不良实现"></a>不良实现</h2><p>上面说的方式可以实现我们需要的功能，代码如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">PoorImpleman</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="function">std::thread <span class="title">t1</span><span class="params">([]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">for</span> (;;) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">			&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">				std::lock_guard&lt;std::mutex&gt; lock(mtx_num);</span></span></span><br><span class="line"><span class="params"><span class="function">				<span class="keyword">if</span> (num == <span class="number">1</span>) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">					std::cout &lt;&lt; <span class="string">&quot;thread A print 1.....&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">					num++;</span></span></span><br><span class="line"><span class="params"><span class="function">					<span class="keyword">continue</span>;</span></span></span><br><span class="line"><span class="params"><span class="function">				&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">			&#125;</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">			std::this_thread::sleep_for(std::chrono::milliseconds(<span class="number">500</span>));</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">        &#125;</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">     &#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">t2</span><span class="params">([]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">for</span> (;;) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">			&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">				std::lock_guard&lt;std::mutex&gt; lock(mtx_num);</span></span></span><br><span class="line"><span class="params"><span class="function">				<span class="keyword">if</span> (num == <span class="number">2</span>) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">					std::cout &lt;&lt; <span class="string">&quot;thread B print 2.....&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">					num--;</span></span></span><br><span class="line"><span class="params"><span class="function">					<span class="keyword">continue</span>;</span></span></span><br><span class="line"><span class="params"><span class="function">				&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">			&#125;</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">			std::this_thread::sleep_for(std::chrono::milliseconds(<span class="number">500</span>));</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	t1.<span class="built_in">join</span>();</span><br><span class="line">	t2.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><code>PoorImpleman</code>虽然能实现我们交替打印的功能，会造成消息处理的不及时，因为线程A要循环检测<code>num</code>值，如果<code>num</code>不为1，则线程A就睡眠了，在线程A睡眠这段时间很可能B已经处理完打印了，此时A还在睡眠，是对资源的浪费，也错过了最佳的处理时机。所以我们提出了用条件变量来通知线程的机制，当线程A发现条件不满足时可以挂起，等待线程B通知，线程B通知A后，A被唤醒继续处理。</p>
+<h2 id="条件变量"><a href="#条件变量" class="headerlink" title="条件变量"></a>条件变量</h2><p>我们这里用条件变量实现上面的逻辑</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">ResonableImplemention</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="function">std::thread <span class="title">t1</span><span class="params">([]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">for</span> (;;) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			</span></span></span><br><span class="line"><span class="params"><span class="function">			std::unique_lock&lt;std::mutex&gt; lock(mtx_num);</span></span></span><br><span class="line"><span class="params"><span class="function">			cvA.wait(lock, []() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">				<span class="keyword">return</span> num == <span class="number">1</span>;</span></span></span><br><span class="line"><span class="params"><span class="function">				&#125;);</span></span></span><br><span class="line"><span class="params"><span class="function">			</span></span></span><br><span class="line"><span class="params"><span class="function">			num++;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::cout &lt;&lt; <span class="string">&quot;thread A print 1.....&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">			cvB.notify_one();</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">t2</span><span class="params">([]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">for</span> (;;) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">			std::unique_lock&lt;std::mutex&gt; lock(mtx_num);</span></span></span><br><span class="line"><span class="params"><span class="function">			cvB.wait(lock, []() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">				<span class="keyword">return</span> num == <span class="number">2</span>;</span></span></span><br><span class="line"><span class="params"><span class="function">				&#125;);</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">			num--;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::cout &lt;&lt; <span class="string">&quot;thread B print 2.....&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">			cvA.notify_one();</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	t1.<span class="built_in">join</span>();</span><br><span class="line">	t2.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当条件不满足时(num 不等于1 时)<code>cvA.wait</code>就会挂起，等待线程B通知通知线程A唤醒，线程B采用的是<code>cvA.notifyone</code>。<br>这么做的好处就是线程交替处理非常及时。比起<code>sleep</code>的方式，我们可以从控制台上看出差异效果，<code>sleep</code>的方式看出日志基本是每隔1秒才打印一次，效率不高。</p>
+<h2 id="线程安全队列"><a href="#线程安全队列" class="headerlink" title="线程安全队列"></a>线程安全队列</h2><p>之前我们实现过线程安全的栈，对于pop操作，我们如果在线程中调用empty判断是否为空，如果不为空，则pop，因为empty和pop内部分别加锁，是两个原子操作，导致pop时可能会因为其他线程提前pop导致队列为空，从而引发崩溃。我们当时的处理方式是实现了两个版本的pop，一种是返回智能指针类型，一种通过参数为引用的方式返回。对于智能指针版本我们发现队列为空则返回空指针，对于引用版本，<br>发现队列为空则抛出异常，这么做并不是很友好，所以我们可以通过条件变量完善之前的程序，不过这次我们重新实现一个线程安全队列。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;queue&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;mutex&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;condition_variable&gt;</span></span></span><br><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">threadsafe_queue</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    std::mutex mut;</span><br><span class="line">    std::queue&lt;T&gt; data_queue;</span><br><span class="line">    std::condition_variable data_cond;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">push</span><span class="params">(T new_value)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lk</span><span class="params">(mut)</span></span>;</span><br><span class="line">        data_queue.<span class="built_in">push</span>(new_value);</span><br><span class="line">        data_cond.<span class="built_in">notify_one</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">wait_and_pop</span><span class="params">(T&amp; value)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lk</span><span class="params">(mut)</span></span>;</span><br><span class="line">        data_cond.<span class="built_in">wait</span>(lk,[<span class="keyword">this</span>]&#123;<span class="keyword">return</span> !data_queue.<span class="built_in">empty</span>();&#125;);</span><br><span class="line">        value=data_queue.<span class="built_in">front</span>();</span><br><span class="line">        data_queue.<span class="built_in">pop</span>();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">threadsafe_queue&lt;data_chunk&gt; data_queue;    </span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">data_preparation_thread</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">while</span>(<span class="built_in">more_data_to_prepare</span>())</span><br><span class="line">    &#123;</span><br><span class="line">        data_chunk <span class="type">const</span> data=<span class="built_in">prepare_data</span>();</span><br><span class="line">        data_queue.<span class="built_in">push</span>(data);    ⇽---  ②</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">data_processing_thread</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">while</span>(<span class="literal">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        data_chunk data;</span><br><span class="line">        data_queue.<span class="built_in">wait_and_pop</span>(data);   </span><br><span class="line">        <span class="built_in">process</span>(data);</span><br><span class="line">        <span class="keyword">if</span>(<span class="built_in">is_last_chunk</span>(data))</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以启动三个线程，一个<code>producer</code>线程用来向队列中放入数据。一个<code>consumer1</code>线程用来阻塞等待pop队列中的元素。</p>
+<p>另一个<code>consumer2</code>尝试从队列中pop元素，如果队列为空则直接返回，如果非空则pop元素。</p>
+<p>打印时为了保证线程输出在屏幕上不会乱掉，所以加了锁保证互斥输出</p>
+<p>测试代码如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_safe_que</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	threadsafe_queue&lt;<span class="type">int</span>&gt;  safe_que;</span><br><span class="line">	std::mutex  mtx_print;</span><br><span class="line"> 	<span class="function">std::thread <span class="title">producer</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">		[&amp;]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; ;i++) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">				safe_que.push(i);</span></span></span><br><span class="line"><span class="params"><span class="function">				&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">					std::lock_guard&lt;std::mutex&gt; printlk(mtx_print);</span></span></span><br><span class="line"><span class="params"><span class="function">					std::cout &lt;&lt; <span class="string">&quot;producer push data is &quot;</span> &lt;&lt; i &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">				&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">				</span></span></span><br><span class="line"><span class="params"><span class="function">				std::this_thread::sleep_for(std::chrono::milliseconds(<span class="number">200</span>));</span></span></span><br><span class="line"><span class="params"><span class="function">			&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">	)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">consumer1</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">		[&amp;]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			<span class="keyword">for</span> (;;) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">				<span class="keyword">auto</span> data = safe_que.wait_and_pop();</span></span></span><br><span class="line"><span class="params"><span class="function">				&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">					std::lock_guard&lt;std::mutex&gt; printlk(mtx_print);</span></span></span><br><span class="line"><span class="params"><span class="function">					std::cout &lt;&lt; <span class="string">&quot;consumer1 wait and pop data is &quot;</span> &lt;&lt; *data &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">				&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">				</span></span></span><br><span class="line"><span class="params"><span class="function">				std::this_thread::sleep_for(std::chrono::milliseconds(<span class="number">500</span>));</span></span></span><br><span class="line"><span class="params"><span class="function">			&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;	</span></span></span><br><span class="line"><span class="params"><span class="function">	)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">consumer2</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">		[&amp;]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			<span class="keyword">for</span> (;;) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">				<span class="keyword">auto</span> data = safe_que.try_pop();</span></span></span><br><span class="line"><span class="params"><span class="function">				<span class="keyword">if</span> (data != <span class="literal">nullptr</span>) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">					&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">						std::lock_guard&lt;std::mutex&gt; printlk(mtx_print);</span></span></span><br><span class="line"><span class="params"><span class="function">						std::cout &lt;&lt; <span class="string">&quot;consumer2 try_pop data is &quot;</span> &lt;&lt; *data &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">					&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">					</span></span></span><br><span class="line"><span class="params"><span class="function">				&#125;</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">				std::this_thread::sleep_for(std::chrono::milliseconds(<span class="number">500</span>));</span></span></span><br><span class="line"><span class="params"><span class="function">			&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">	)</span></span>;</span><br><span class="line"></span><br><span class="line">	producer.<span class="built_in">join</span>();</span><br><span class="line">	consumer1.<span class="built_in">join</span>();</span><br><span class="line">	consumer2.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>测试效果如下</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">producer push data is 0</span><br><span class="line">consumer1 <span class="built_in">wait</span> and pop data is 0</span><br><span class="line">producer push data is 1</span><br><span class="line">producer push data is 2</span><br><span class="line">consumer2 try_pop data is 1</span><br><span class="line">consumer1 <span class="built_in">wait</span> and pop data is 2</span><br><span class="line">producer push data is 3</span><br><span class="line">producer push data is 4</span><br><span class="line">consumer2 try_pop data is 3</span><br><span class="line">consumer1 <span class="built_in">wait</span> and pop data is 4</span><br><span class="line">producer push data is 5</span><br><span class="line">producer push data is 6</span><br><span class="line">producer push data is 7</span><br><span class="line">consumer2 try_pop data is 5</span><br><span class="line">consumer1 <span class="built_in">wait</span> and pop data is 6</span><br></pre></td></tr></table></figure>
+
+<p>我们能看到consumer1和consumer2是并发消费的</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了如何通过条件变量实现并发线程的同步处理。</p>
+<p>视频链接</p>
+<p><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290">https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290</a></p>
+<p>源码链接</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn">https://gitee.com/secondtonone1/boostasio-learn</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/09/03/concpp05/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1893,152 +2061,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/25/asio24/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2023/06/25/asio24/" itemprop="url">beast网络库实现websocket服务器</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-25T15:12:48+08:00">
-                2023-06-25
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/cpp/" itemprop="url" rel="index">
-                    <span itemprop="name">C++</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>使用beast网络库实现websocket服务器，一般来说websocket是一个长连接的协议，但是自动包含了解包处理，当我们在浏览器输入一个http请求时如果是以ws开头的如<code>ws://127.0.0.1:9501</code>就是请求本地9501端口的websocket服务器处理。而beast为我们提供了websocket的处理方案，我们可以在http服务器的基础上升级协议为websocket，处理部分websocket请求。如果服务器收到的是普通的http请求则按照http请求处理。我们可以从官方文档中按照示例逐步搭建websocket服务器。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2023/06/25/asio24/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2089,7 +2111,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">291</span>
+                  <span class="site-state-item-count">292</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>

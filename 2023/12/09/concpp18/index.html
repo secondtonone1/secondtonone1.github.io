@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="简介前文我们通过锁的互斥机制实现了并发安全的栈，队列，查找表，以及链表等结构。接下来本文介绍通过无锁的原子变量的方式实现对应的容器，我们这一篇先从无锁的方式实现栈讲起。 栈的设计思路栈容器是一种先进后出的结构，简单来讲，我们将n个元素1，2，3，4依次入栈，那么出栈的顺序是4，3，2，1. 先考虑单线程情况下操作顺序 1 创建新节点 2 将元素入栈，将新节点的next指针指向现在的head节点。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="concpp18">
+<meta property="og:url" content="http://www.limerence2017.com/2023/12/09/concpp18/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="简介前文我们通过锁的互斥机制实现了并发安全的栈，队列，查找表，以及链表等结构。接下来本文介绍通过无锁的原子变量的方式实现对应的容器，我们这一篇先从无锁的方式实现栈讲起。 栈的设计思路栈容器是一种先进后出的结构，简单来讲，我们将n个元素1，2，3，4依次入栈，那么出栈的顺序是4，3，2，1. 先考虑单线程情况下操作顺序 1 创建新节点 2 将元素入栈，将新节点的next指针指向现在的head节点。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.llfc.club/1701670454146.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1701936298395.jpg">
+<meta property="article:published_time" content="2023-12-09T04:58:22.000Z">
+<meta property="article:modified_time" content="2023-12-09T05:00:19.838Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.llfc.club/1701670454146.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2023/12/09/concpp18/"/>
+
+
+
+
+
+  <title>concpp18 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/12/09/concpp18/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">concpp18</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-12-09T12:58:22+08:00">
+                2023-12-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前文我们通过锁的互斥机制实现了并发安全的栈，队列，查找表，以及链表等结构。接下来本文介绍通过无锁的原子变量的方式实现对应的容器，我们这一篇先从无锁的方式实现栈讲起。</p>
+<h2 id="栈的设计思路"><a href="#栈的设计思路" class="headerlink" title="栈的设计思路"></a>栈的设计思路</h2><p>栈容器是一种先进后出的结构，简单来讲，我们将n个元素1，2，3，4依次入栈，那么出栈的顺序是4，3，2，1.</p>
+<p>先考虑单线程情况下操作顺序</p>
+<p>1 创建新节点</p>
+<p>2 将元素入栈，将新节点的next指针指向现在的head节点。</p>
+<p>3 将head节点更新为新节点的值。</p>
+<p>再考虑多线程的情况下</p>
+<p>假设线程1执行到第2步，没来得及更新head节点的值为新节点的值。此时线程2也执行完第2步，将head更新为线程2插入的新节点，之后线程1又将head更新为线程1的新插入节点，那么此时head的位置就是错的。</p>
+<p>如下图</p>
+<p><img src="https://cdn.llfc.club/1701670454146.jpg" alt="https://cdn.llfc.club/1701670454146.jpg"></p>
+<p>我们可以通过原子变量的compare_exchange(比较交换操作)来控制更新head节点，以此来达到线程安全的目的。</p>
+<p>我们先定义节点的结构</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">node</span></span><br><span class="line">&#123;</span><br><span class="line">	T data;</span><br><span class="line">	node* next;</span><br><span class="line">	<span class="built_in">node</span>(T <span class="type">const</span>&amp; data_) : </span><br><span class="line">			<span class="built_in">data</span>(data_)</span><br><span class="line">	&#123;&#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>一个node节点包含两部分内容，一个T类型的数据域，一个<code>node* </code>的next指针，指向下一个节点。</p>
+<p>我们接下来定义一个无锁栈的结构</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">lock_free_stack</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	<span class="built_in">lock_free_stack</span>(<span class="type">const</span> lock_free_stack&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	lock_free_stack&amp; <span class="keyword">operator</span> = (<span class="type">const</span> lock_free_stack&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	</span><br><span class="line">	std::atomic&lt;node*&gt; head;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">lock_free_stack</span>() &#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们同样将拷贝构造和拷贝赋值删除了，将head设置为原子变量，这样我们实现push操作的时候，可以通过比较交换的方式达到安全更新head的效果。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">push</span><span class="params">(<span class="type">const</span> T&amp; value)</span></span>&#123;</span><br><span class="line">    <span class="keyword">auto</span> new_node = <span class="keyword">new</span> <span class="built_in">Node</span>(T)</span><br><span class="line">    <span class="keyword">do</span>&#123;</span><br><span class="line">        new_node-&gt;next = head.<span class="built_in">load</span>();</span><br><span class="line">    &#125;<span class="keyword">while</span>(!head.<span class="built_in">compare_exchange_strong</span>(new_node-&gt;next, new_node));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当然&lt;Concurrency Programing C++&gt;书中的做法更简略一些</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">push</span><span class="params">(<span class="type">const</span> T&amp; value)</span></span>&#123;</span><br><span class="line">    <span class="keyword">auto</span> new_node = <span class="keyword">new</span> <span class="built_in">Node</span>(T)</span><br><span class="line">    <span class="keyword">do</span>&#123;</span><br><span class="line">        new_node-&gt;next = head.<span class="built_in">load</span>();</span><br><span class="line">    &#125;<span class="keyword">while</span>(!head.<span class="built_in">compare_exchange_weak</span>(new_node-&gt;next, new_node));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我还是建议大家用do-while的方式实现，这样我们可以在do-while中增加很多自己的定制逻辑,另外推荐大家用compare_exchange_weak，尽管存在失败的情况，但是他的开销小，所以compare_exchange_weak返回false我们再次重试即可。</p>
+<p>单线程情况下pop操作的顺序</p>
+<p>1 取出头节点元素</p>
+<p>2 更新head为下一个节点。</p>
+<p>3 返回取出头节点元素的数据域。</p>
+<p>多线程情况下，第1，2点同样存在线程安全问题。此外我们返回节点数据域时会进行拷贝赋值，如果出现异常会造成数据丢失，这一点也要考虑。<br>所以我们同样通过head原子变量比较和交换的方式检测并取出头部节点。</p>
+<p>我们先写一个单线程版本</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">pop</span><span class="params">(T&amp; value)</span></span>&#123;</span><br><span class="line">    node* old_head = head.<span class="built_in">load</span>(); <span class="comment">//1</span></span><br><span class="line">    head = head-&gt;next; <span class="comment">//2</span></span><br><span class="line">    value = old_head-&gt;data;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们知道1处和2处在多线程情况下会存在线程安全问题。所以我们用原子变量的比较交换操作改写上面的代码</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">pop</span><span class="params">(T&amp; value)</span></span>&#123;</span><br><span class="line">    <span class="keyword">do</span>&#123;</span><br><span class="line">        node* old_head = head.<span class="built_in">load</span>(); <span class="comment">//1</span></span><br><span class="line">    &#125;<span class="keyword">while</span>(!head.<span class="built_in">compare_exchange_weak</span>(old_head, old_head-&gt;next)); <span class="comment">//2</span></span><br><span class="line">    value = old_head-&gt;data; <span class="comment">//3</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们通过判断head和old_head的值是否相等，如果相等则将head的值设置为old_head的下一个节点，否则返回false，并且将old_head更新为当前head的值(比较交换函数帮我们做的)。</p>
+<p>我们看上面的代码，有三点严重问题</p>
+<p>1 未判断空栈的情况，这一点比较好处理，如果为空栈我们可以令pop返回false，或者抛出异常，当然抛出异常不可取。</p>
+<p>2 将数据域赋值给引用类型的value时存在拷贝赋值(3处)，我们都知道拷贝赋值会存在异常的情况，当异常发生时元素已经从栈定移除了，破坏了栈的结构，这一点和锁处理时不一样，锁处理的时候是先将元素数据域取出赋值再出栈，所以不会有问题，但是无锁的方式就会出现栈被破坏的情况。解决方式也比较简单，数据域不再存储T类型数据，而是存储<code>std::shared_ptr&lt;T&gt;</code>类型的数据。智能指针在赋值的时候不会产生异常。</p>
+<p>3 未释放弹出的节点的内存。</p>
+<p>那我们修改之后的代码就是这样了</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">lock_free_stack</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	<span class="keyword">struct</span> <span class="title class_">node</span></span><br><span class="line">	&#123;</span><br><span class="line">		std::shared_ptr&lt;T&gt; data;</span><br><span class="line">		node* next;</span><br><span class="line">		<span class="built_in">node</span>(T <span class="type">const</span>&amp; data_) : <span class="comment">//⇽-- - 1</span></span><br><span class="line">			<span class="built_in">data</span>(std::<span class="built_in">make_shared</span>&lt;T&gt;(data_))</span><br><span class="line">		&#123;&#125;</span><br><span class="line">	&#125;;</span><br><span class="line">	<span class="built_in">lock_free_stack</span>(<span class="type">const</span> lock_free_stack&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	lock_free_stack&amp; <span class="keyword">operator</span> = (<span class="type">const</span> lock_free_stack&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	std::atomic&lt;node*&gt; head;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">lock_free_stack</span>() &#123;&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">push</span><span class="params">(T <span class="type">const</span>&amp; data)</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		node* <span class="type">const</span> new_node = <span class="keyword">new</span> <span class="built_in">node</span>(data);    <span class="comment">//⇽-- - 2</span></span><br><span class="line">			new_node-&gt;next = head.<span class="built_in">load</span>();    <span class="comment">//⇽-- - 3</span></span><br><span class="line">			<span class="keyword">while</span> (!head.<span class="built_in">compare_exchange_weak</span>(new_node-&gt;next, new_node));    <span class="comment">//⇽-- - 4</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::shared_ptr&lt;T&gt; <span class="title">pop</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		node* old_head = <span class="literal">nullptr</span>; <span class="comment">//1		</span></span><br><span class="line">		<span class="keyword">do</span> &#123;</span><br><span class="line">			old_head = head.<span class="built_in">load</span>(); <span class="comment">//2</span></span><br><span class="line">			<span class="keyword">if</span> (old_head == <span class="literal">nullptr</span>) &#123;</span><br><span class="line">				<span class="keyword">return</span> <span class="literal">nullptr</span>; </span><br><span class="line">			&#125;</span><br><span class="line">		&#125; <span class="keyword">while</span> (!head.<span class="built_in">compare_exchange_weak</span>(old_hejinad, old_head-&gt;next)); <span class="comment">//3		</span></span><br><span class="line">	</span><br><span class="line">		<span class="keyword">return</span> old_head-&gt;data;  <span class="comment">//4	</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>简单描述下pop函数的功能，</p>
+<p>1 处初始化一个临时old_head的变量，  </p>
+<p>2 处加载head节点</p>
+<p>3 处通过比较和交换操作，判断head和old_head是否相等，如相等则将head更新为old_head的next节点。如不相等，将old_head更新为head的值(compare_exchange_weak自动帮我们做了),再次进入循环。尽管2处又加载了一次head的值给old_head有些重复，但是为了代码的可读性和指针判空，我觉得这么写更合适一点。</p>
+<p>资源回收的问题我们还没处理。<br>我们先实现一个简单的回收处理逻辑</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function">std::shared_ptr&lt;T&gt; <span class="title">pop</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	node* old_head = <span class="literal">nullptr</span>; <span class="comment">//1		</span></span><br><span class="line">	<span class="keyword">do</span> &#123;</span><br><span class="line">		old_head = head.<span class="built_in">load</span>();</span><br><span class="line">		<span class="keyword">if</span> (old_head == <span class="literal">nullptr</span>) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nullptr</span>; </span><br><span class="line">		&#125;</span><br><span class="line">	&#125; <span class="keyword">while</span> (!head.<span class="built_in">compare_exchange_weak</span>(old_head, old_head-&gt;next)); <span class="comment">//2		</span></span><br><span class="line">	</span><br><span class="line">	std::shared_ptr&lt;T&gt; res;   <span class="comment">//3</span></span><br><span class="line">	res.<span class="built_in">swap</span>(old_head-&gt;data); <span class="comment">//4</span></span><br><span class="line">	<span class="keyword">delete</span> old_head;  <span class="comment">//5 </span></span><br><span class="line">	<span class="keyword">return</span> res;  <span class="comment">//6	</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面的代码在3处定义了一个T类型的智能指针res用来返回pop的结果，所以在4处将old_head的data值转移给res，这样就相当于清除old_head的data了。</p>
+<p>在5处删除了old_head. 意在回收数据，但这存在很大问题，比如线程1执行到5处删除old_head，而线程2刚好执行到2处用到了和线程1相同的old_head，线程2执行compare_exchange_weak的时候<code>old_head-&gt;next</code>会引发崩溃。</p>
+<p>所以要引入一个机制，延迟删除节点。将本该及时删除的节点放入待珊节点。基本思路如下</p>
+<p>1  如果有多个线程同时pop，而且存在一个线程1已经交换取出head数据并更新了head值，另一个线程2即将基于旧有的head获取next数据，如果线程1删除了旧有head，线程2就有可能产生崩溃。这种情况我们就要将线程1取出的head放入待删除的列表。</p>
+<p>2 同一时刻仅有一个线程1执行pop函数，不存在其他线程。那么线程1可以将旧head删除，并删除待删列表中的其他节点。</p>
+<p>3 如果线程1已经将head节点交换弹出，线程2还未执行pop操作，当线程1准备将head删除时发现此时线程2进入执行pop操作，那么线程1能将旧head删除，因为线程2读取的head和线程1不同(线程2读取的是线程1交换后新的head值)。此情形和情形1略有不同，情形1是两个线程同时pop只有一个线程交换成功的情况，情形3是一个线程已经将head交换出，准备删除之前发现线程2执行pop进入，所以这种情况下线程1可将head删除，但是线程1不能将待删除列表删除，因为有其他线程可能会用到待删除列表中的节点。</p>
+<p>我们思考这种情形</p>
+<p>线程1 执行pop已经将head换出</p>
+<p>线程2 执行pop函数，发现线程1正在pop操作，线程2就将待删除的节点head(此head非线程1head)放入待删列表.</p>
+<p>线程3 和线程2几乎同时执行pop函数但是还未执行head的交换操作，此head和线程2的head相同。</p>
+<p>这种情况下线程1可能读取待删列表为空，因为线程2可能还未更新，也可能读取待删列表不为空(线程2已更新)，但是线程1不能删除这个待删列表，因为线程3可能在用。</p>
+<p>那基于上述三点，我们可以简单理解为</p>
+<p>1 如果head已经被更新，且旧head不会被其他线程引用，那旧head就可以被删除。否则放入待删列表。</p>
+<p>2 如果仅有一个线程执行pop操作，那么待删列表可以被删除，如果有多个线程执行pop操作，那么待删列表不可被删除。</p>
+<p>我们需要用一个原子变量threads_in_pop记录有几个线程执行pop操作。在pop结束后再减少threads_in_pop。<br>我们需要一个原子变量to_be_deleted记录待删列表的首节点。</p>
+<p>那么我们先实现一个改造版本</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::shared_ptr&lt;T&gt; <span class="title">pop</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	 <span class="comment">//1 计数器首先自增，然后才执行其他操作</span></span><br><span class="line">	++threads_in_pop;  </span><br><span class="line">	node* old_head = <span class="literal">nullptr</span>; 	</span><br><span class="line">	<span class="keyword">do</span> &#123;</span><br><span class="line">		<span class="comment">//2 加载head节点给旧head存储</span></span><br><span class="line">		old_head = head.<span class="built_in">load</span>();  </span><br><span class="line">		<span class="keyword">if</span> (old_head == <span class="literal">nullptr</span>) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nullptr</span>; </span><br><span class="line">		&#125;</span><br><span class="line">	&#125; <span class="keyword">while</span> (!head.<span class="built_in">compare_exchange_weak</span>(old_head, old_head-&gt;next)); <span class="comment">// 3	</span></span><br><span class="line">	<span class="comment">//3处 比较更新head为旧head的下一个节点	</span></span><br><span class="line">	</span><br><span class="line">	std::shared_ptr&lt;T&gt; res;</span><br><span class="line">	<span class="keyword">if</span> (old_head)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="comment">// 4 只要有可能，就回收已删除的节点数据</span></span><br><span class="line">		res.<span class="built_in">swap</span>(old_head-&gt;data);    </span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 5 从节点提取数据，而非复制指针</span></span><br><span class="line">	<span class="built_in">try_reclaim</span>(old_head);   </span><br><span class="line">	<span class="keyword">return</span> res;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>1  在1处我们对原子变量threads_in_pop增加以表示线程执行pop函数。</p>
+<p>2  在2处我们将head数据load给old_head。如果old_head为空则直接返回。</p>
+<p>3  3处通过head和old_head作比较，如果相等则交换，否则重新do while循环。这么做的目的是为了防止多线程访问，保证只有一个线程将head更新为old_head的下一个节点。</p>
+<p>4  将old_head的数据data交换给res。</p>
+<p>5  try_reclaim函数就是删除old_head或者将其放入待删列表，以及判断是否删除待删列表。</p>
+<p>接下来我们实现try_reclaim函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">try_reclaim</span><span class="params">(node* old_head)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//1 原子变量判断仅有一个线程进入</span></span><br><span class="line">	<span class="keyword">if</span>(threads_in_pop == <span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="comment">//2 当前线程把待删列表取出</span></span><br><span class="line">        node* nodes_to_delete = to_be_deleted.<span class="built_in">exchange</span>(<span class="literal">nullptr</span>);</span><br><span class="line">        <span class="comment">//3 更新原子变量获取准确状态，判断pop是否仅仅正被当前线程唯一调用</span></span><br><span class="line">        <span class="keyword">if</span>(!--threads_in_pop)</span><br><span class="line">        &#123;</span><br><span class="line">	        <span class="comment">//4 如果唯一调用则将待删列表删除</span></span><br><span class="line">            <span class="built_in">delete_nodes</span>(nodes_to_delete);</span><br><span class="line">        &#125;<span class="keyword">else</span> <span class="keyword">if</span>(nodes_to_delete)</span><br><span class="line">        &#123;</span><br><span class="line">	        <span class="comment">//5 如果pop还有其他线程调用且待删列表不为空，</span></span><br><span class="line">	        <span class="comment">//则将待删列表首节点更新给to_be_deleted</span></span><br><span class="line">            <span class="built_in">chain_pending_nodes</span>(nodes_to_delete);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">delete</span> old_head;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">//多个线程pop竞争head节点，此时不能删除old_head</span></span><br><span class="line">        <span class="comment">//将其放入待删列表</span></span><br><span class="line">        <span class="built_in">chain_pending_node</span>(old_head);</span><br><span class="line">        --threads_in_pop;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>1 1处我们判断pop的线程数是否为1，并没有采用load，也就是即便判断的时候其他线程也可以pop，这样不影响效率，即便模糊判断threads_in_pop为1，同一时刻threads_in_pop可能会增加也没关系，threads_in_pop为1仅表示当前时刻走入1处逻辑之前仅有该线程执行pop，那说明没有其他线程竞争head，head已经被更新为新的值，其他线程之后pop读取的head和我们要删除的old_head不是同一个，就是可以被直接删除的。</p>
+<p>2 处我们将当前待删除的列表交换给本线程的nodes_to_delete临时变量，表示接管待删除列表。但是能否删除还要判断是不是仅有本线程在执行pop。</p>
+<p>3 处更新原子变量获取准确状态，判断pop是否仅仅正被当前线程唯一调用，如果是被唯一调用则删除待删列表，否则将nodes_to_delete临时变量再更新回待删列表。(因为可能有多个线程会用待删列表中的节点)</p>
+<p>接下来我们实现delete_nodes函数, 该函数用来删除以nodes为首节点的链表，该函数写成了static函数，也可以用普通函数。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">static</span> <span class="type">void</span> <span class="title">delete_nodes</span><span class="params">(node* nodes)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">while</span> (nodes)</span><br><span class="line">	&#123;</span><br><span class="line">		node* next = nodes-&gt;next;</span><br><span class="line">		<span class="keyword">delete</span> nodes;</span><br><span class="line">		nodes = next;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>接下来实现chain_pending_node函数，该函数用来将单个节点放入待删列表</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">chain_pending_node</span><span class="params">(node* n)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="built_in">chain_pending_nodes</span>(n, n);   </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>chain_pending_nodes接受两个参数，分别为链表的头和尾。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">chain_pending_nodes</span><span class="params">(node* first, node* last)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">//1 先将last的next节点更新为待删列表的首节点</span></span><br><span class="line">	last-&gt;next = to_be_deleted;    </span><br><span class="line">	<span class="comment">//2  借循环保证 last-&gt;next指向正确</span></span><br><span class="line">	<span class="comment">// 将待删列表的首节点更新为first节点</span></span><br><span class="line">	<span class="keyword">while</span> (!to_be_deleted.<span class="built_in">compare_exchange_weak</span>(</span><br><span class="line">		last-&gt;next, first));     </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>1 处将last-&gt;next的值更新为to_be_deleted, 这么做的一个好处是如果有其他线程修改了to_be_deleted.能保证当前线程的last-&gt;next指向的是最后修改的to_be_deleted，达到链接待删列表的作用。</p>
+<p>2 处可能更新失败，因为其他线程修改了to_be_deleted的值，但是不要紧，我们再次循环直到匹配last-&gt;next的值为to_be_deleted为止，将to_be_deleted更新为first的值。</p>
+<p>接下来我们还要实现将nodes_to_delete为首的链表还原到待删列表中, 函数为chain_pending_nodes接受一个参数为待还原的链表的首节点</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">chain_pending_nodes</span><span class="params">(node* nodes)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	node* last = nodes;</span><br><span class="line">	<span class="comment">//1 沿着next指针前进到链表末端</span></span><br><span class="line">	<span class="keyword">while</span> (node* <span class="type">const</span> next = last-&gt;next)    </span><br><span class="line">	&#123;</span><br><span class="line">		last = next;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//2 将链表放入待删链表中</span></span><br><span class="line">	<span class="built_in">chain_pending_nodes</span>(nodes, last);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h2><p>上面的无锁栈存在一个问题，就是当多个线程pop时将要删除的节点放入待删列表中，如果每次pop都会被多个线程调用，则要删除的节点就会一直往待删除列表中增加，导致待删除列表无法被回收。这个问题我们可以考虑当pop执行结束时最后一个线程回收待删列表。留作下一节分析。</p>
+<p>我们先写一个函数测试以下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">TestLockFreeStack</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    lock_free_stack&lt;<span class="type">int</span>&gt; lk_free_stack;</span><br><span class="line">    std::set&lt;<span class="type">int</span>&gt;  rmv_set;</span><br><span class="line">    std::mutex set_mtx;</span><br><span class="line"></span><br><span class="line">    <span class="function">std::thread <span class="title">t1</span><span class="params">([&amp;]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">        <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">20000</span>; i++) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">            lk_free_stack.push(i);</span></span></span><br><span class="line"><span class="params"><span class="function">            std::cout &lt;&lt; <span class="string">&quot;push data &quot;</span> &lt;&lt; i &lt;&lt; <span class="string">&quot; success!&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">            &#125;</span></span></span><br><span class="line"><span class="params"><span class="function">        &#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="function">std::thread <span class="title">t2</span><span class="params">([&amp;]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10000</span>;) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">            <span class="keyword">auto</span> head = lk_free_stack.pop();</span></span></span><br><span class="line"><span class="params"><span class="function">            <span class="keyword">if</span> (!head) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">				std::this_thread::sleep_for(std::chrono::milliseconds(<span class="number">10</span>));</span></span></span><br><span class="line"><span class="params"><span class="function">				<span class="keyword">continue</span>;</span></span></span><br><span class="line"><span class="params"><span class="function">            &#125;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::lock_guard&lt;std::mutex&gt; lock(set_mtx);</span></span></span><br><span class="line"><span class="params"><span class="function">			rmv_set.insert(*head);</span></span></span><br><span class="line"><span class="params"><span class="function">            std::cout &lt;&lt; <span class="string">&quot;pop data &quot;</span> &lt;&lt; *head &lt;&lt; <span class="string">&quot; success!&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">            i++;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">      &#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">t3</span><span class="params">([&amp;]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10000</span>;) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			<span class="keyword">auto</span> head = lk_free_stack.pop();</span></span></span><br><span class="line"><span class="params"><span class="function">            <span class="keyword">if</span> (!head) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">                std::this_thread::sleep_for(std::chrono::milliseconds(<span class="number">10</span>));</span></span></span><br><span class="line"><span class="params"><span class="function">                <span class="keyword">continue</span>;</span></span></span><br><span class="line"><span class="params"><span class="function">            &#125;</span></span></span><br><span class="line"><span class="params"><span class="function">            std::lock_guard&lt;std::mutex&gt; lock(set_mtx);</span></span></span><br><span class="line"><span class="params"><span class="function">            rmv_set.insert(*head);</span></span></span><br><span class="line"><span class="params"><span class="function">            std::cout &lt;&lt; <span class="string">&quot;pop data &quot;</span> &lt;&lt; *head &lt;&lt; <span class="string">&quot; success!&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">            i++;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">    t1.<span class="built_in">join</span>();</span><br><span class="line">    t2.<span class="built_in">join</span>();</span><br><span class="line">    t3.<span class="built_in">join</span>();</span><br><span class="line"></span><br><span class="line">    <span class="built_in">assert</span>(rmv_set.<span class="built_in">size</span>() == <span class="number">20000</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>1 线程t1将0到20000个数放入集合中。<br>2 线程t2和t3分别出栈10000次。<br>3 最后我们断言集合的大小为20000.</p>
+<p>测试结果如下</p>
+<p><img src="https://cdn.llfc.club/1701936298395.jpg" alt="https://cdn.llfc.club/1701936298395.jpg"></p>
+<p>可以看到我们的集合大小为20000，且数据唯一。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>源码链接:</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day17-LockFreeStack">https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day17-LockFreeStack</a></p>
+<p>视频链接</p>
+<p><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290">https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/12/02/concpp17/" rel="next" title="线程安全的链表">
+                <i class="fa fa-chevron-left"></i> 线程安全的链表
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">294</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%88%E7%9A%84%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF"><span class="nav-number">2.</span> <span class="nav-text">栈的设计思路</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E6%9E%90"><span class="nav-number">3.</span> <span class="nav-text">分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

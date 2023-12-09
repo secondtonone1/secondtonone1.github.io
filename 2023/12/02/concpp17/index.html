@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="简介前文介绍了如何基于锁实现线程安全的栈和队列结构，以及实现线程安全的查找表，但是我们上次的查找表是基于list实现的，对于锁的精度控制的不是很准确，提及了接下来会介绍精细控制的链表，用来替换查找表中的链表。这一节我们就介绍如何通过锁控制链表访问的精度。 链表一个常见的链表应该是如下结构，有一个包含数据的数据域以及一个指向下一个节点的指针。  如果做一个支持多线程并发访问的链表，我们首先想到的是用">
+<meta property="og:type" content="article">
+<meta property="og:title" content="线程安全的链表">
+<meta property="og:url" content="http://www.limerence2017.com/2023/12/02/concpp17/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="简介前文介绍了如何基于锁实现线程安全的栈和队列结构，以及实现线程安全的查找表，但是我们上次的查找表是基于list实现的，对于锁的精度控制的不是很准确，提及了接下来会介绍精细控制的链表，用来替换查找表中的链表。这一节我们就介绍如何通过锁控制链表访问的精度。 链表一个常见的链表应该是如下结构，有一个包含数据的数据域以及一个指向下一个节点的指针。  如果做一个支持多线程并发访问的链表，我们首先想到的是用">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.llfc.club/1701557385171.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1701559209928.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1701569562255%281%29.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1701570406738.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1701570489799.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1701577481423.jpg">
+<meta property="article:published_time" content="2023-12-02T13:25:20.000Z">
+<meta property="article:modified_time" content="2023-12-03T04:53:54.824Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.llfc.club/1701557385171.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2023/12/02/concpp17/"/>
+
+
+
+
+
+  <title>线程安全的链表 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/12/02/concpp17/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">线程安全的链表</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-12-02T21:25:20+08:00">
+                2023-12-02
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前文介绍了如何基于锁实现线程安全的栈和队列结构，以及实现线程安全的查找表，但是我们上次的查找表是基于list实现的，对于锁的精度控制的不是很准确，提及了接下来会介绍精细控制的链表，用来替换查找表中的链表。这一节我们就介绍如何通过锁控制链表访问的精度。</p>
+<h2 id="链表"><a href="#链表" class="headerlink" title="链表"></a>链表</h2><p>一个常见的链表应该是如下结构，有一个包含数据的数据域以及一个指向下一个节点的指针。</p>
+<p><img src="https://cdn.llfc.club/1701557385171.jpg" alt="https://cdn.llfc.club/1701557385171.jpg"></p>
+<p>如果做一个支持多线程并发访问的链表，我们首先想到的是用一个互斥量控制整个链表，达到多线程访问时串行的效果。但是这么做精度不够，需要分化互斥量的功能。我们想到的一个办法就是每个节点都维护一个互斥量，这样能保证多个线程操作不同节点时加不同的锁，减少耦合性。</p>
+<p>另外我们将head独立为一个虚节点，所谓虚节点就是不存储数据，只做头部标记。我们每次从头部插入只需要修将新的节点的next指针指向原来head的next指向的节点，再将head的next指针指向新的节点。</p>
+<p>如下图</p>
+<p><img src="https://cdn.llfc.club/1701559209928.jpg" alt="https://cdn.llfc.club/1701559209928.jpg"></p>
+<h2 id="源码实现"><a href="#源码实现" class="headerlink" title="源码实现"></a>源码实现</h2><p>我们先定义一个基本的链表节点</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span>&lt;typname T&gt;</span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">node</span></span><br><span class="line">&#123;</span><br><span class="line">	std::mutex m;</span><br><span class="line">	std::shared_ptr&lt;T&gt; data;</span><br><span class="line">	std::unique_ptr&lt;node&gt; next;</span><br><span class="line">	<span class="built_in">node</span>() :<span class="built_in">next</span>()&#123;&#125;</span><br><span class="line">	<span class="built_in">node</span>(T <span class="type">const</span>&amp; value) :</span><br><span class="line">        <span class="built_in">data</span>(std::<span class="built_in">make_shared</span>&lt;T&gt;(value))&#123;&#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>1 data为智能指针,存储的是T类型的数据域。<br>2 next为一个unique类型的智能指针，存储的是下一个节点的地址。<br>3 m 为mutex，控制多线程访问的安全性。我们将mutex分别独立到各个节点中保证锁的精度问题。</p>
+<p>接下来我们定义一个链表，初始状态包含一个head的头节点</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">threadsafe_list</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">struct</span> <span class="title class_">node</span></span><br><span class="line">	&#123;</span><br><span class="line">		std::mutex m;</span><br><span class="line">		std::shared_ptr&lt;T&gt; data;</span><br><span class="line">		std::unique_ptr&lt;node&gt; next;</span><br><span class="line">		<span class="built_in">node</span>() :</span><br><span class="line">			<span class="built_in">next</span>()</span><br><span class="line">		&#123;&#125;</span><br><span class="line">		<span class="built_in">node</span>(T <span class="type">const</span>&amp; value) :</span><br><span class="line">			<span class="built_in">data</span>(std::<span class="built_in">make_shared</span>&lt;T&gt;(value))</span><br><span class="line">		&#123;&#125;</span><br><span class="line">	&#125;;</span><br><span class="line"></span><br><span class="line">	node head;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">threadsafe_list</span>()</span><br><span class="line">	&#123;&#125;</span><br><span class="line"></span><br><span class="line">	~<span class="built_in">threadsafe_list</span>()</span><br><span class="line">	&#123;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="built_in">threadsafe_list</span>(threadsafe_list <span class="type">const</span>&amp; other) = <span class="keyword">delete</span>;</span><br><span class="line">	threadsafe_list&amp; <span class="keyword">operator</span>=(threadsafe_list <span class="type">const</span>&amp; other) = <span class="keyword">delete</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们将拷贝构造和拷贝赋值函数删除。然后链表中初始状态包含了一个头节点。<br>接下来我们实现析构函数，我们期望析构函数能够从头到尾的删除元素，所以先实现一个删除函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Predicate&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">remove_if</span><span class="params">(Predicate p)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	node* current = &amp;head;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lk</span><span class="params">(head.m)</span></span>;</span><br><span class="line">	<span class="keyword">while</span> (node* <span class="type">const</span> next = current-&gt;next.<span class="built_in">get</span>())</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">next_lk</span><span class="params">(next-&gt;m)</span></span>;</span><br><span class="line">		<span class="keyword">if</span> (<span class="built_in">p</span>(*next-&gt;data))</span><br><span class="line">		&#123;</span><br><span class="line">			std::unique_ptr&lt;node&gt; old_next = std::<span class="built_in">move</span>(current-&gt;next);</span><br><span class="line">				current-&gt;next = std::<span class="built_in">move</span>(next-&gt;next);</span><br><span class="line">				next_lk.<span class="built_in">unlock</span>();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">else</span></span><br><span class="line">		&#123;</span><br><span class="line">			lk.<span class="built_in">unlock</span>();</span><br><span class="line">			current = next;</span><br><span class="line">			lk = std::<span class="built_in">move</span>(next_lk);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面的函数中，我们先取头部节点作为当前节点，然后将将当前节点加锁，只有当前节点加锁了才能访问其next指针。我们在获取next节点后也要对其加锁，这么做的好处就是保证无论是删除还是添加都从当前节点开始依次对其next节点加锁，既能保证互斥也能维护同一顺序防止死锁。</p>
+<p>如果next节点的数据域满足谓词p的规则，则将next节点的移动赋值给old_next，随着局部作用域结束，old_next会被释放，也就达到了析构要删除节点的目的。<br>然后我们将next节点的next值(也就是要删除节点的下一个节点)赋值给当前节点的next指针，达到链接删除节点的下一个节点的目的。</p>
+<p>但是我们要操作接下来的节点就需要继续锁住下一个节点，达到互斥控制的目的，锁住下个节点是通过while循环不断迭代实现的，通过next_lk达到了锁住下一个节点的目的。</p>
+<p>如果下一个节点不满足我们p谓词函数的条件，则需要解锁当前节点，将下一个节点赋值给当前节点，并且将下一个节点的锁移动给当前节点。</p>
+<p>如下图演示了current, next以及next-&gt;next节点之间的关系。</p>
+<p><img src="https://cdn.llfc.club/1701569562255%281%29.jpg" alt="https://cdn.llfc.club/1701569562255%281%29.jpg"></p>
+<p>接下来我们实现析构函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">~<span class="built_in">threadsafe_list</span>()</span><br><span class="line">&#123;</span><br><span class="line">	<span class="built_in">remove_if</span>([](node <span class="type">const</span>&amp;) &#123;<span class="keyword">return</span> <span class="literal">true</span>; &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>析构函数调用remove_if,p谓词就是一个lambda表达式，返回true。</p>
+<p>头节点的插入工作也比较简答，将新节点的next指针赋值成头部节点的next指针指向的数据。然后将新节点赋值给头部节点的next指针即可.</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">push_front</span><span class="params">(T <span class="type">const</span>&amp; value)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="function">std::unique_ptr&lt;node&gt; <span class="title">new_node</span><span class="params">(<span class="keyword">new</span> node(value))</span></span>;</span><br><span class="line">	<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lk</span><span class="params">(head.m)</span></span>;</span><br><span class="line">	new_node-&gt;next = std::<span class="built_in">move</span>(head.next);</span><br><span class="line">	head.next = std::<span class="built_in">move</span>(new_node);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>但是大家要注意，插入和删除加锁的顺序要保持一致，都是从头到尾，这样能防止死锁，也能保持互斥。</p>
+<p>假设原链表是这样的</p>
+<p><img src="https://cdn.llfc.club/1701570406738.jpg" alt="https://cdn.llfc.club/1701570406738.jpg"></p>
+<p>调用push_front之后是这样的</p>
+<p><img src="https://cdn.llfc.club/1701570489799.jpg" alt="https://cdn.llfc.club/1701570489799.jpg"></p>
+<p>接下来是根据谓词p查找对应的节点数据</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Predicate&gt;</span></span><br><span class="line"><span class="function">std::shared_ptr&lt;T&gt; <span class="title">find_first_if</span><span class="params">(Predicate p)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	node* current = &amp;head;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lk</span><span class="params">(head.m)</span></span>;</span><br><span class="line">	<span class="keyword">while</span> (node* <span class="type">const</span> next = current-&gt;next.<span class="built_in">get</span>())</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">next_lk</span><span class="params">(next-&gt;m)</span></span>;</span><br><span class="line">		lk.<span class="built_in">unlock</span>();</span><br><span class="line">		<span class="keyword">if</span> (<span class="built_in">p</span>(*next-&gt;data))</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="keyword">return</span> next-&gt;data;</span><br><span class="line">		&#125;</span><br><span class="line">		current = next;</span><br><span class="line">		lk = std::<span class="built_in">move</span>(next_lk);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> std::<span class="built_in">shared_ptr</span>&lt;T&gt;();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>find_first_if</code>查找到第一个满足条件的节点就返回。查找的步骤也是先对当前节点加锁，判断当前节点的next节点是否为空，不为空则获取下一个节点为next，我们对next加锁，依次锁住当前节点和下一个节点，判断下一个节点是否满足谓词p,如果满足条件则返回next节点的数据即可，更新下一个节点为当前节点，下一个节点的锁next_lk更新给lk，以此锁住新的当前节点，再依次类推遍历直到找到满足条件的节点为止。</p>
+<p>那么便利所有节点的接口就可以根据上述思路实现了</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Function&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">for_each</span><span class="params">(Function f)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	node* current = &amp;head;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lk</span><span class="params">(head.m)</span></span>;</span><br><span class="line">	<span class="keyword">while</span> (node* <span class="type">const</span> next = current-&gt;next.<span class="built_in">get</span>())</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">next_lk</span><span class="params">(next-&gt;m)</span></span>;</span><br><span class="line">		lk.<span class="built_in">unlock</span>();</span><br><span class="line">		<span class="built_in">f</span>(*next-&gt;data);</span><br><span class="line">		current = next;</span><br><span class="line">		lk = std::<span class="built_in">move</span>(next_lk);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果我们按照如下测试函数测试上面的接口，</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">std::set&lt;<span class="type">int</span>&gt; removeSet;</span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">TestThreadSafeList</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	</span><br><span class="line">	threadsafe_list&lt;MyClass&gt; thread_safe_list;</span><br><span class="line">	<span class="function">std::thread <span class="title">t1</span><span class="params">([&amp;]()</span></span></span><br><span class="line"><span class="params"><span class="function">	&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">for</span>(<span class="type">unsigned</span> <span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++)</span></span></span><br><span class="line"><span class="params"><span class="function">		&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			MyClass mc(i);</span></span></span><br><span class="line"><span class="params"><span class="function">			thread_safe_list.push_front(mc);</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">		</span></span></span><br><span class="line"><span class="params"><span class="function">	&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">t2</span><span class="params">([&amp;]()</span></span></span><br><span class="line"><span class="params"><span class="function">	&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">for</span> (<span class="type">unsigned</span> <span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; )</span></span></span><br><span class="line"><span class="params"><span class="function">		&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			</span></span></span><br><span class="line"><span class="params"><span class="function">			<span class="keyword">auto</span> find_res = thread_safe_list.find_first_if([&amp;]( <span class="keyword">auto</span> &amp; mc)</span></span></span><br><span class="line"><span class="params"><span class="function">			&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">					<span class="keyword">return</span> mc.GetData() == i;</span></span></span><br><span class="line"><span class="params"><span class="function">			&#125;);</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">			<span class="keyword">if</span>(find_res == <span class="literal">nullptr</span>)</span></span></span><br><span class="line"><span class="params"><span class="function">			&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">				std::this_thread::sleep_for(std::chrono::milliseconds(<span class="number">10</span>));</span></span></span><br><span class="line"><span class="params"><span class="function">				<span class="keyword">continue</span>;</span></span></span><br><span class="line"><span class="params"><span class="function">			&#125;</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">			removeSet.insert(i);</span></span></span><br><span class="line"><span class="params"><span class="function">			i++;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">	&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	t1.<span class="built_in">join</span>();</span><br><span class="line">	t2.<span class="built_in">join</span>();</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>将删除的数据放入集合set，最后打印set会发现数据全都被删除了。</p>
+<h2 id="尾部插入"><a href="#尾部插入" class="headerlink" title="尾部插入"></a>尾部插入</h2><p>C++ 并发编程中提到了留给读者去实现尾部插入，我们实现尾部插入需要维护一个尾部节点，这个尾部节点我们初始的时候指向head，当插入元素后，尾部节点指向了最后一个节点的地址。</p>
+<p>考虑有多个线程并发进行尾部插入，所以要让这些线程互斥，我们需要一个互斥量last_ptr_mtx保证线程穿行，last_node_ptr表示正在操作尾部节点，以此来让多个线程并发操作尾部节点时达到互斥。比如我们的代码可以实现如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">push_back</span><span class="params">(T <span class="type">const</span>&amp; value)</span> </span>&#123;</span><br><span class="line">	<span class="comment">//防止于push_head同时进行</span></span><br><span class="line">	<span class="comment">//并且保证头部或者删除节点更新last_node_ptr唯一, 所以同时加锁</span></span><br><span class="line">	<span class="function">std::unique_ptr&lt;node_d&gt; <span class="title">new_node</span><span class="params">(<span class="keyword">new</span> node_d(value))</span></span>;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lk</span><span class="params">(last_node_ptr-&gt;m)</span></span>;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">last_lk</span><span class="params">(last_ptr_mtx)</span></span>;</span><br><span class="line">	<span class="comment">//原来的最后节点的下一个节点指向新生成的节点</span></span><br><span class="line">	last_node_ptr-&gt;next = std::<span class="built_in">move</span>(new_node);</span><br><span class="line">	<span class="comment">//将最后一个节点后移</span></span><br><span class="line">	last_node_ptr = last_node_ptr-&gt;next.<span class="built_in">get</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>头部插入我们也作一些修改</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">push_front</span><span class="params">(T <span class="type">const</span>&amp; value)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="function">std::unique_ptr&lt;node_d&gt; <span class="title">new_node</span><span class="params">(<span class="keyword">new</span> node_d(value))</span></span>;</span><br><span class="line">	<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lk</span><span class="params">(head.m)</span></span>;</span><br><span class="line">	new_node-&gt;next = std::<span class="built_in">move</span>(head.next);</span><br><span class="line">	head.next = std::<span class="built_in">move</span>(new_node);</span><br><span class="line">	<span class="comment">//更新最后一个节点</span></span><br><span class="line">	<span class="keyword">if</span> (head.next-&gt;next == <span class="literal">nullptr</span>) &#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">last_lk</span><span class="params">(last_ptr_mtx)</span></span>;</span><br><span class="line">		last_node_ptr = head.next.<span class="built_in">get</span>();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>push_front函数将新节点放入head节点的后边，如果head节点后面没有节点，此时插入新节点后，新的节点就变为尾部节点了。所以判断新插入节点的next为nullptr，那么这个节点就是最后节点，所以要对last_ptr_mtx加锁，更新last_node_ptr值。</p>
+<p>我们考虑一下，如果一个线程push_back和另一个线程push_front是否会出现问题？其实两个线程资源竞争的时候仅在队列为空的时候，这时无论push_back还是push_front都会操作head节点，以及更新_last_node_ptr值，但是我们的顺序是先锁住前一个节点，再将当前节点更新为前一个节点的下一个节点。那么从这个角度来说，push_back和push_front不会有线程安全问题。</p>
+<p>接下来实现删除操作</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Predicate&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">remove_if</span><span class="params">(Predicate p)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	node_d* current = &amp;head;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lk</span><span class="params">(head.m)</span></span>;</span><br><span class="line">	<span class="keyword">while</span> (node_d* <span class="type">const</span> next = current-&gt;next.<span class="built_in">get</span>())</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">next_lk</span><span class="params">(next-&gt;m)</span></span>;</span><br><span class="line">		<span class="keyword">if</span> (<span class="built_in">p</span>(*next-&gt;data))</span><br><span class="line">		&#123;</span><br><span class="line">			std::unique_ptr&lt;node_d&gt; old_next = std::<span class="built_in">move</span>(current-&gt;next);</span><br><span class="line">				current-&gt;next = std::<span class="built_in">move</span>(next-&gt;next);</span><br><span class="line">				<span class="comment">//判断删除的是否为最后一个节点</span></span><br><span class="line">			<span class="keyword">if</span> (current-&gt;next == <span class="literal">nullptr</span>) &#123;</span><br><span class="line">				<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">last_lk</span><span class="params">(last_ptr_mtx)</span></span>;</span><br><span class="line">					last_node_ptr = &amp;head;</span><br><span class="line">			&#125;</span><br><span class="line">			next_lk.<span class="built_in">unlock</span>();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">else</span></span><br><span class="line">		&#123;</span><br><span class="line">			lk.<span class="built_in">unlock</span>();</span><br><span class="line">			current = next;</span><br><span class="line">			lk = std::<span class="built_in">move</span>(next_lk);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Predicate&gt;</span></span><br><span class="line"><span class="function"><span class="type">bool</span> <span class="title">remove_first</span><span class="params">(Predicate p)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	node_d* current = &amp;head;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lk</span><span class="params">(head.m)</span></span>;</span><br><span class="line">	<span class="keyword">while</span> (node_d* <span class="type">const</span> next = current-&gt;next.<span class="built_in">get</span>())</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">next_lk</span><span class="params">(next-&gt;m)</span></span>;</span><br><span class="line">		<span class="keyword">if</span> (<span class="built_in">p</span>(*next-&gt;data))</span><br><span class="line">		&#123;</span><br><span class="line">			std::unique_ptr&lt;node_d&gt; old_next = std::<span class="built_in">move</span>(current-&gt;next);</span><br><span class="line">			current-&gt;next = std::<span class="built_in">move</span>(next-&gt;next);</span><br><span class="line">			<span class="comment">//判断删除的是否为最后一个节点</span></span><br><span class="line">			<span class="keyword">if</span> (current-&gt;next == <span class="literal">nullptr</span>) &#123;</span><br><span class="line">				<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">last_lk</span><span class="params">(last_ptr_mtx)</span></span>;</span><br><span class="line">				last_node_ptr = &amp;head;</span><br><span class="line">			&#125;</span><br><span class="line">			next_lk.<span class="built_in">unlock</span>();</span><br><span class="line"></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		lk.<span class="built_in">unlock</span>();</span><br><span class="line">		current = next;</span><br><span class="line">		lk = std::<span class="built_in">move</span>(next_lk);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>删除的时候，如果将当前节点的下一个节点满足删除条件，则将其移动到old_next节点里。old_next会随着作用域结束析构。</p>
+<p>然后将删除节点的下一个节点赋值给当前节点的next指针，这样就达到了当前节点的next指针指向了删除节点的下一个节点的目的，以此达到了删除效果。</p>
+<p>我们思考删除操作和push_back是否会产生线程竞争，答案是会的，比如下面这种情况</p>
+<p><img src="https://cdn.llfc.club/1701577481423.jpg" alt="https://cdn.llfc.club/1701577481423.jpg"></p>
+<p>线程1想要push_back插入节点，他会用到last_node_ptr，也会更新last_node_ptr。</p>
+<p>而线程2想要删除最后一个节点，会更新last_node_ptr的值。</p>
+<p>尽管我们通过node内部的互斥量可以保证两个线程在同一时刻仅能有一个线程操作最后一个节点，或者删除或者添加。</p>
+<p>但是，假设线程2先执行删除操作，节点更新并且更新last_node_ptr的值，而此时线程1因为之前无法抢占最后一个节点(last_node_ptr)自带的互斥量所以挂起，当线程2执行完后，线程1才开始继续执行，但是此时last_node_ptr已经变化了，而线程1可能还用的是旧的last_node_ptr的值，导致插入数据失败(很可能崩溃或者插入到一个分叉的链表)。</p>
+<p>如果将push_back修改为先对last_ptr_mtx加锁，这样就能保证一个线程修改last_node_ptr会被另一个线程看到。比如下面这样</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">push_back</span><span class="params">(T <span class="type">const</span>&amp; value)</span> </span>&#123;</span><br><span class="line">	<span class="comment">//防止于push_head同时进行</span></span><br><span class="line">	<span class="comment">//并且保证头部或者删除节点更新last_node_ptr唯一, 所以同时加锁</span></span><br><span class="line">	<span class="function">std::unique_ptr&lt;node_d&gt; <span class="title">new_node</span><span class="params">(<span class="keyword">new</span> node_d(value))</span></span>;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">last_lk</span><span class="params">(last_ptr_mtx)</span></span>;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lk</span><span class="params">(last_node_ptr-&gt;m)</span></span>;</span><br><span class="line">	<span class="comment">//原来的最后节点的下一个节点指向新生成的节点</span></span><br><span class="line">	last_node_ptr-&gt;next = std::<span class="built_in">move</span>(new_node);</span><br><span class="line">	<span class="comment">//将最后一个节点后移</span></span><br><span class="line">	last_node_ptr = last_node_ptr-&gt;next.<span class="built_in">get</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>但是我们这样会发现删除的时候先对node加锁，再对last_ptr_mtx加锁，而push_back的时候先对last_ptr_mtx加锁，再对node加锁。会导致死锁！</p>
+<p>所以我们将push_back修改为对node和last_ptr_mtx加锁，那么就能解决上面的问题。因为push_back必须要等到两个互斥量都竞争成功才操作，所以达到了删除和push_back串行的效果。</p>
+<p>改进后的push_back是如下这个样子</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">push_back</span><span class="params">(T <span class="type">const</span>&amp; value)</span> </span>&#123;</span><br><span class="line">	<span class="comment">//防止于push_head同时进行</span></span><br><span class="line">	<span class="comment">//并且保证头部或者删除节点更新last_node_ptr唯一, 所以同时加锁</span></span><br><span class="line">	<span class="function">std::unique_ptr&lt;node_d&gt; <span class="title">new_node</span><span class="params">(<span class="keyword">new</span> node_d(value))</span></span>;</span><br><span class="line">	std::<span class="built_in">lock</span>(last_node_ptr-&gt;m, last_ptr_mtx);</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lk</span><span class="params">(last_node_ptr-&gt;m, std::adopt_lock)</span></span>;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">last_lk</span><span class="params">(last_ptr_mtx, std::adopt_lock)</span></span>;</span><br><span class="line">	<span class="comment">//原来的最后节点的下一个节点指向新生成的节点</span></span><br><span class="line">	last_node_ptr-&gt;next = std::<span class="built_in">move</span>(new_node);</span><br><span class="line">	<span class="comment">//将最后一个节点后移</span></span><br><span class="line">	last_node_ptr = last_node_ptr-&gt;next.<span class="built_in">get</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以实现如下函数测试，启动三个线程，<br>线程1执行push_front将0到20000放入链表。<br>线程2执行push_back将20000到40000的数据放入链表。<br>线程3执行删除操作，将数据从0到40000删除。<br>最后我们打印链表为空，验证准确性。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">MultiThreadPush</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	double_push_list&lt;MyClass&gt; thread_safe_list;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">t1</span><span class="params">([&amp;]()</span></span></span><br><span class="line"><span class="params"><span class="function">	&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">20000</span>; i++)</span></span></span><br><span class="line"><span class="params"><span class="function">			&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">				MyClass mc(i);</span></span></span><br><span class="line"><span class="params"><span class="function">				thread_safe_list.push_front(mc);</span></span></span><br><span class="line"><span class="params"><span class="function">				std::cout &lt;&lt; <span class="string">&quot;push front &quot;</span> &lt;&lt; i &lt;&lt; <span class="string">&quot; success&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">			&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">	&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">t2</span><span class="params">([&amp;]()</span></span></span><br><span class="line"><span class="params"><span class="function">	&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">20000</span>; i &lt; <span class="number">40000</span>; i++)</span></span></span><br><span class="line"><span class="params"><span class="function">			&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">				MyClass mc(i);</span></span></span><br><span class="line"><span class="params"><span class="function">				thread_safe_list.push_back(mc);</span></span></span><br><span class="line"><span class="params"><span class="function">				std::cout &lt;&lt; <span class="string">&quot;push back &quot;</span> &lt;&lt; i &lt;&lt; <span class="string">&quot; success&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">			&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">	&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">t3</span><span class="params">([&amp;]()</span></span></span><br><span class="line"><span class="params"><span class="function">	&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			<span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">40000</span>; )</span></span></span><br><span class="line"><span class="params"><span class="function">			&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">				<span class="type">bool</span> rmv_res = thread_safe_list.remove_first([&amp;](<span class="type">const</span> MyClass&amp; mc)</span></span></span><br><span class="line"><span class="params"><span class="function">					&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">						<span class="keyword">return</span> mc.GetData() == i;</span></span></span><br><span class="line"><span class="params"><span class="function">					&#125;);</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">				<span class="keyword">if</span>(!rmv_res)</span></span></span><br><span class="line"><span class="params"><span class="function">				&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">					std::this_thread::sleep_for(std::chrono::milliseconds(<span class="number">10</span>));</span></span></span><br><span class="line"><span class="params"><span class="function">					<span class="keyword">continue</span>;</span></span></span><br><span class="line"><span class="params"><span class="function">				&#125;</span></span></span><br><span class="line"><span class="params"><span class="function"></span></span></span><br><span class="line"><span class="params"><span class="function">				i++;</span></span></span><br><span class="line"><span class="params"><span class="function">			&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">	&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	t1.<span class="built_in">join</span>();</span><br><span class="line">	t2.<span class="built_in">join</span>();</span><br><span class="line">	t3.<span class="built_in">join</span>();</span><br><span class="line"></span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;begin for each print....&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	thread_safe_list.for_each([](<span class="type">const</span> MyClass&amp; mc)</span><br><span class="line">		&#123;</span><br><span class="line">			std::cout &lt;&lt; <span class="string">&quot;for each print &quot;</span> &lt;&lt; mc &lt;&lt; std::endl;</span><br><span class="line">		&#125;);</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;end for each print....&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>最后程序输出</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">push back <span class="number">39995</span> success</span><br><span class="line">push back <span class="number">39996</span> success</span><br><span class="line">push back <span class="number">39997</span> success</span><br><span class="line">push back <span class="number">39998</span> success</span><br><span class="line">push back <span class="number">39999</span> success</span><br><span class="line">begin <span class="keyword">for</span> each <span class="built_in">print</span>....</span><br><span class="line">end <span class="keyword">for</span> each <span class="built_in">print</span>....</span><br><span class="line">Hello World!</span><br></pre></td></tr></table></figure>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了多线程并发访问情况下线程安全的链表实现方式</p>
+<p>源码链接:</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day16-threadsafelist">https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day16-threadsafelist</a></p>
+<p>视频链接</p>
+<p><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290">https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/11/25/concpp16/" rel="next" title="基于锁实现线程安全的查找表">
+                <i class="fa fa-chevron-left"></i> 基于锁实现线程安全的查找表
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/12/09/concpp18/" rel="prev" title="concpp18">
+                concpp18 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">294</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%93%BE%E8%A1%A8"><span class="nav-number">2.</span> <span class="nav-text">链表</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.</span> <span class="nav-text">源码实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B0%BE%E9%83%A8%E6%8F%92%E5%85%A5"><span class="nav-number">4.</span> <span class="nav-text">尾部插入</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

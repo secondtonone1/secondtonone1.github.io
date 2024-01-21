@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="按数量切分对于大量处理的数据，可以按照任务数量区分，简单来说如果我们要处理n个任务，总计有m个线程，那么我们可以简单的规划每个线程处理n&#x2F;m个任务。 如下图  这种方式用来划分大量相同任务时可以采用，但是有些逻辑并不是完全可以靠数量划分的，比如递归逻辑。 递归划分前文我们提及了快速排序的并行实现，包括利用async和线程池的方式。 快速排序算法含有两大基本步骤： 选定一个元素为比较的基准元素； 将">
+<meta property="og:type" content="article">
+<meta property="og:title" content="线程间切分任务的方法">
+<meta property="og:url" content="http://www.limerence2017.com/2024/01/13/concpp24/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="按数量切分对于大量处理的数据，可以按照任务数量区分，简单来说如果我们要处理n个任务，总计有m个线程，那么我们可以简单的规划每个线程处理n&#x2F;m个任务。 如下图  这种方式用来划分大量相同任务时可以采用，但是有些逻辑并不是完全可以靠数量划分的，比如递归逻辑。 递归划分前文我们提及了快速排序的并行实现，包括利用async和线程池的方式。 快速排序算法含有两大基本步骤： 选定一个元素为比较的基准元素； 将">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.llfc.club/1705459243909.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1705461120545.jpg">
+<meta property="article:published_time" content="2024-01-13T14:45:16.000Z">
+<meta property="article:modified_time" content="2024-01-21T02:40:24.904Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.llfc.club/1705459243909.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2024/01/13/concpp24/"/>
+
+
+
+
+
+  <title>线程间切分任务的方法 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/01/13/concpp24/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">线程间切分任务的方法</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-01-13T22:45:16+08:00">
+                2024-01-13
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="按数量切分"><a href="#按数量切分" class="headerlink" title="按数量切分"></a>按数量切分</h3><p>对于大量处理的数据，可以按照任务数量区分，简单来说如果我们要处理n个任务，总计有m个线程，那么我们可以简单的规划每个线程处理n/m个任务。</p>
+<p>如下图</p>
+<p><img src="https://cdn.llfc.club/1705459243909.jpg" alt="https://cdn.llfc.club/1705459243909.jpg"></p>
+<p>这种方式用来划分大量相同任务时可以采用，但是有些逻辑并不是完全可以靠数量划分的，比如递归逻辑。</p>
+<h3 id="递归划分"><a href="#递归划分" class="headerlink" title="递归划分"></a>递归划分</h3><p>前文我们提及了快速排序的并行实现，包括利用async和线程池的方式。</p>
+<p>快速排序算法含有两大基本步骤：</p>
+<p>选定一个元素为比较的基准元素；</p>
+<p>将数据集按大小划分为前后两部分，重新构成新序列，再针对这两个部分递归排序。</p>
+<p>数据划分无法从一开始就并行化，因为数据只有经过处理后，我们才清楚它会归入哪个部分。</p>
+<p>若我们要并行化这个算法，就需要利用递归操作的固有性质。</p>
+<p>每层递归均会涉及更多的quick_sort()函数调用，因为我们需对基准元素前后两部分都进行排序。</p>
+<p>由于这些递归调用所访问的数据集互不相关，因此它们完全独立，正好吻合并发程序的首选执行方式。</p>
+<p>下图展示了以递归方式划分数据。</p>
+<p><img src="https://cdn.llfc.club/1705461120545.jpg" alt="https://cdn.llfc.club/1705461120545.jpg"></p>
+<p>在早期我们实现并行递归的快速排序，那段代码每深入一层递归，都借std::async()生成新的异步任务处理前半部分数据，而后部分则继续用本线程计算后半部分数据。</p>
+<p>我们通过std::async()让C++线程库自主决定，是另起新线程执行新任务，还是在原线程上同步运行。</p>
+<p>这点相当重要：假设排序操作的数据集非常庞大，若每次递归都生成新线程，则势必令线程数目激增。</p>
+<p>我们将通过后文的性能分析了解到，太多线程反而可能令应用程序变慢。</p>
+<p>如果数据集着实庞大，还有可能消耗殆尽全部线程。按上述递归方式来切分数据是不错的思路，但需约束线程数目的增长，不可任其数目无限膨胀。</p>
+<p>此例比较简单，std::async()足以应付，但它不是唯一选择。</p>
+<p>后来我们觉得开辟过多的线程并不合适，采用了线程池。</p>
+<p>并发编程的作者提出的另一种做法是，根据std::hardware_concurrency()函数的返回值设定线程的数目，实现了accumulate()的并行版本。</p>
+<p>接着，我们采用之前实现的线程安全的栈容器，将尚未排序的数据段压入其中，而不是启动新线程以执行递归调用。</p>
+<p>若某线程无所事事，或因全部数据段均已处理妥当，或因它正等着另一数据段完成排序，若是后者，该线程即从栈容器取出所等的数据段自行排序。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;thread&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;list&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;thread_safe_stack.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;future&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;memory&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">sorter</span>  <span class="comment">//1  </span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">struct</span> <span class="title class_">chunk_to_sort</span></span><br><span class="line">	&#123;</span><br><span class="line">		std::list&lt;T&gt; data;</span><br><span class="line">		std::promise&lt;std::list&lt;T&gt; &gt; promise;</span><br><span class="line">	&#125;;</span><br><span class="line">	thread_safe_stack&lt;chunk_to_sort&gt; chunks;    <span class="comment">//⇽-- - 2</span></span><br><span class="line">	std::vector&lt;std::thread&gt; threads;   <span class="comment">// ⇽-- - 3</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">const</span> max_thread_count;</span><br><span class="line">	std::atomic&lt;<span class="type">bool</span>&gt; end_of_data;</span><br><span class="line">	<span class="built_in">sorter</span>() :</span><br><span class="line">		<span class="built_in">max_thread_count</span>(std::thread::<span class="built_in">hardware_concurrency</span>() - <span class="number">1</span>),</span><br><span class="line">		<span class="built_in">end_of_data</span>(<span class="literal">false</span>)</span><br><span class="line">	&#123;&#125;</span><br><span class="line">	~<span class="built_in">sorter</span>()    <span class="comment">//⇽-- - 4</span></span><br><span class="line">	&#123;</span><br><span class="line">		end_of_data = <span class="literal">true</span>;     <span class="comment">//⇽-- - 5</span></span><br><span class="line">		<span class="keyword">for</span> (<span class="type">unsigned</span> i = <span class="number">0</span>; i &lt; threads.<span class="built_in">size</span>(); ++i)</span><br><span class="line">		&#123;</span><br><span class="line">			threads[i].<span class="built_in">join</span>();    <span class="comment">//⇽-- - 6</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">try_sort_chunk</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		std::shared_ptr&lt;chunk_to_sort&gt; chunk = chunks.<span class="built_in">try_pop</span>();    <span class="comment">//⇽-- - 7</span></span><br><span class="line">		<span class="keyword">if</span> (chunk)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="built_in">sort_chunk</span>(chunk);    <span class="comment">//⇽-- - 8</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function">std::list&lt;T&gt; <span class="title">do_sort</span><span class="params">(std::list&lt;T&gt;&amp; chunk_data)</span>    <span class="comment">//⇽-- - 9</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		<span class="keyword">if</span> (chunk_data.<span class="built_in">empty</span>())</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="keyword">return</span> chunk_data;</span><br><span class="line">		&#125;</span><br><span class="line">		std::list&lt;T&gt; result;</span><br><span class="line">		result.<span class="built_in">splice</span>(result.<span class="built_in">begin</span>(),chunk_data,chunk_data.<span class="built_in">begin</span>());</span><br><span class="line">		T <span class="type">const</span>&amp; partition_val = *result.<span class="built_in">begin</span>();</span><br><span class="line">		<span class="keyword">typename</span> std::list&lt;T&gt;::iterator divide_point =  <span class="comment">//⇽-- - 10</span></span><br><span class="line">			std::<span class="built_in">partition</span>(chunk_data.<span class="built_in">begin</span>(),chunk_data.<span class="built_in">end</span>(),</span><br><span class="line">						   [&amp;](T <span class="type">const</span>&amp; val) &#123;<span class="keyword">return</span> val &lt; partition_val; &#125;);</span><br><span class="line">		chunk_to_sort new_lower_chunk;</span><br><span class="line">		new_lower_chunk.data.<span class="built_in">splice</span>(new_lower_chunk.data.<span class="built_in">end</span>(),</span><br><span class="line">									chunk_data,chunk_data.<span class="built_in">begin</span>(),</span><br><span class="line">									divide_point);</span><br><span class="line">		std::future&lt;std::list&lt;T&gt; &gt; new_lower =</span><br><span class="line">			new_lower_chunk.promise.<span class="built_in">get_future</span>();</span><br><span class="line">		chunks.<span class="built_in">push</span>(std::<span class="built_in">move</span>(new_lower_chunk));   <span class="comment">// ⇽-- - 11</span></span><br><span class="line">		<span class="keyword">if</span> (threads.<span class="built_in">size</span>() &lt; max_thread_count)    <span class="comment">// ⇽-- - 12</span></span><br><span class="line">		&#123;</span><br><span class="line">			threads.<span class="built_in">push_back</span>(std::<span class="built_in">thread</span>(&amp;sorter&lt;T&gt;::sort_thread,<span class="keyword">this</span>));</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="function">std::list&lt;T&gt; <span class="title">new_higher</span><span class="params">(do_sort(chunk_data))</span></span>;</span><br><span class="line">		result.<span class="built_in">splice</span>(result.<span class="built_in">end</span>(),new_higher);</span><br><span class="line">		<span class="keyword">while</span> (new_lower.<span class="built_in">wait_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">0</span>)) !=</span><br><span class="line">			  std::future_status::ready)    <span class="comment">//⇽-- - 13</span></span><br><span class="line">		&#123;</span><br><span class="line">			<span class="built_in">try_sort_chunk</span>();   <span class="comment">// ⇽-- - 14</span></span><br><span class="line">		&#125;</span><br><span class="line">		result.<span class="built_in">splice</span>(result.<span class="built_in">begin</span>(),new_lower.<span class="built_in">get</span>());</span><br><span class="line">		<span class="keyword">return</span> result;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">sort_chunk</span><span class="params">(std::shared_ptr&lt;chunk_to_sort &gt; <span class="type">const</span>&amp; chunk)</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		chunk-&gt;promise.<span class="built_in">set_value</span>(<span class="built_in">do_sort</span>(chunk-&gt;data));    <span class="comment">//⇽-- - 15</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">sort_thread</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		<span class="keyword">while</span> (!end_of_data)    <span class="comment">//⇽-- - 16</span></span><br><span class="line">		&#123;</span><br><span class="line">			<span class="built_in">try_sort_chunk</span>();    <span class="comment">// ⇽-- - 17</span></span><br><span class="line">			<span class="comment">//交出时间片</span></span><br><span class="line">			std::this_thread::<span class="built_in">yield</span>();    <span class="comment">//⇽-- - 18</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>我们实现一个函数调用上面的封装快速排序</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function">std::list&lt;T&gt; <span class="title">parallel_quick_sort</span><span class="params">(std::list&lt;T&gt; input)</span>    <span class="comment">//⇽-- - 19</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (input.<span class="built_in">empty</span>())</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">return</span> input;</span><br><span class="line">	&#125;</span><br><span class="line">	sorter&lt;T&gt; s;</span><br><span class="line">	<span class="keyword">return</span> s.<span class="built_in">do_sort</span>(input);    <span class="comment">//⇽-- - 20</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>本例中，parallel_quick_sort()函数(19处)把绝大部分功能委托给sorter类(1处)，后者通过栈容器管理待排序的数据段(2处)，并集中管控多个线程以并发执行任务(3处)，从而以便捷的操作方式给出了代码实现。</p>
+<p>本例中，主要工作由成员函数do_sort()负责(9处)，它借标准库的std::partition()函数完成数据分段(10处)。</p>
+<p>do_sort()将新划分出来的数据段压入栈容器(11处)，但没有为每个数据段都专门生成新线程，而仅当仍存在空闲的处理器时(12处)才生成新线程。</p>
+<p>因为划分出的前半部分数据可能会由别的线程处理，所以我们需要等待它完成排序而进入就绪状态(13处)。</p>
+<p>如果当前线程是整个程序中仅有的线程，或者其他线程都正忙于别的任务，那么这一等待行为则需妥善处理，在当前线程的等待期间，我们让它试着从栈容器取出数据进行处理(14处)。</p>
+<p>try_sort_chunk()先从栈容器弹出一段数据(7处)并对其进行排序(8处)，再把结果存入附属该段的promise中(15处)，使之准备就绪，以待提取。</p>
+<p>向栈容器压入数据段与取出相关结果相互对应，两项操作均由同一个线程先后执行(11和12处)。</p>
+<p>只要标志end_of_data没有成立（16处），各线程便反复循环，尝试对栈内数据段进行排序17。</p>
+<p>每个线程在两次检测标志之间进行让步（18处），好让别的线程有机会向栈容器添加数据段。这段代码由sorter类的析构函数汇合各个线程（4处）。</p>
+<p>do_sort()将在全部数据段都完成排序后返回（即便许多工作线程仍在运行），主线程进而从parallel_quick_sort()的调用返回20，并销毁sorter对象。其析构函数将设置标志end_of_data成立（5处），然后等待全部线程结束（6处）。标志的成立使得线程函数内的循环终止（16处）。</p>
+<h2 id="按照工作类别划分任务"><a href="#按照工作类别划分任务" class="headerlink" title="按照工作类别划分任务"></a>按照工作类别划分任务</h2><p>单线程应用程序照样需要同时运行多个任务，而某些程序即便正忙于手头的任务，也需随时处理外部输入的事件（譬如用户按键或网络数据包传入）。这些情形都与单一功能的设计原则矛盾，必须妥善处理。若我们按照单线程思维手动编写代码，那最后很可能混成“大杂烩”：先执行一下任务甲，再执行一下任务乙，接着检测按键事件，然后检查传入的网络数据包，又回头继续执行任务甲，如此反复循环。这就要求任务甲保存状态，好让控制流程按周期返回主循环，结果令相关的代码复杂化。如果向循环加入太多任务，处理速度便可能严重放缓，让用户感觉按键的响应时间过长。相信读者肯定见过这种操作方式的极端表现：我们让某个应用程序处理一些任务，其用户界面却陷入僵滞，到任务完成后才恢复。</p>
+<p>只要把每个任务都放在独立的线程上运行，操作系统便会替我们“包办”切换动作。因此，任务甲的代码可专注于执行任务，我们无须再考虑保存状态和返回主循环，也不必纠结间隔多久就得这样操作。</p>
+<p>假定每项任务都相互独立，且各线程无须彼此通信，那么该构想即可轻而易举地实现。可惜往往事与愿违。即便经过良好的设计，后台任务也常常按用户要求执行操作，它们需在完成时通过某种方式更新界面，好让用户知晓。反之，若用户想取消任务，就要通过界面线程向后台任务发送消息，告知它停止。</p>
+<p>所以各个任务线程中要提供互相通知的接口，这种思想和Actor模式不谋而合。</p>
+<p>当然我们划分任务给不同的线程也要注意精细程度，比如两个线程要做的功能中某个环节是一个共有的功能，那么我们需要将这个功能整合到一个单线程上。我们可以理解在一些高并发的设计中，即便某些模块是高并发，但是耦合度很高的逻辑处理还是采用单线程方式，我们之前设计网络i服务器是逻辑处理也是单线程，但是我们可以根据功能做区分再分化为不同的线程，这就类似于Actor设计模式了。</p>
+<p>假设有这样一个情形，我们实现一个系统控制机器中各部件的运动，A部件运动结束后通知B部件运动，B部件结束后通知C部件继续运动等，C运动结束后再通知A部件继续运动。</p>
+<p>按照任务划分的模式，A，B，C分别运行在不同的线程中处理不同的任务，而任务又要以流水线A-&gt;B-&gt;C的方式运作。</p>
+<p>我们可以这样抽象出一个Actor类，它包含消息的投递，消息的处理，以及消息队列的管理，并且它是一个单例类，全局唯一。</p>
+<p>先实现这个基本的模板单例类, 这期间会用到CRTP技术，CRTP：一个继承 以自己为模板参数的模板类 的类。</p>
+<p>CRTP 奇特递归模板技术， Curiously recurring template pattern。</p>
+<p>模板单例类实现如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;thread&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;ThreadSafeQue.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;atomic&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> ClassType, <span class="keyword">typename</span> QueType&gt;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">ActorSingle</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="function"><span class="type">static</span> ClassType&amp; <span class="title">Inst</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="type">static</span> ClassType as;</span><br><span class="line">		<span class="keyword">return</span> as;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	~ <span class="built_in">ActorSingle</span>()&#123;</span><br><span class="line">		</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">PostMsg</span><span class="params">(<span class="type">const</span> QueType&amp; data)</span> </span>&#123;</span><br><span class="line">		_que.<span class="built_in">push</span>(data);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">protected</span>:</span><br><span class="line">	</span><br><span class="line">	<span class="built_in">ActorSingle</span>():_bstop(<span class="literal">false</span>)&#123;</span><br><span class="line">		</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="built_in">ActorSingle</span>(<span class="type">const</span> ActorSingle&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	<span class="built_in">ActorSingle</span>(ActorSingle&amp;&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	ActorSingle&amp; <span class="keyword">operator</span> = (<span class="type">const</span> ActorSingle&amp;) = <span class="keyword">delete</span>;</span><br><span class="line"></span><br><span class="line">	std::atomic&lt;<span class="type">bool</span>&gt; _bstop;</span><br><span class="line">	ThreadSafeQue&lt;QueType&gt;  _que;</span><br><span class="line">	std::thread _thread;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>模板单例类包含了原子变量_bstop控制线程是否停止</p>
+<p>包含了_que用来存储要处理的信息，这是一个线程安全的队列。</p>
+<p>_thread是要处理任务的线程。</p>
+<p>线程安全队列我们之前有实现过，但是还需要稍微改进下以满足接受外部停止的通知。</p>
+<p>我们给ThreadSafeQue添加一个原子变量_bstop表示线程停止的标记</p>
+<p>在需要停止等待的时候我们调用如下通知函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">NotifyStop</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	_bstop.<span class="built_in">store</span>(<span class="literal">true</span>);</span><br><span class="line">	data_cond.<span class="built_in">notify_one</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>等待消息的函数需要补充根据停止条件去返回的逻辑,目的为防止线程被一直挂起</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">wait_for_data</span><span class="params">()</span>   </span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">head_lock</span><span class="params">(head_mutex)</span></span>;</span><br><span class="line">	data_cond.<span class="built_in">wait</span>(head_lock,[&amp;] &#123;<span class="built_in">return</span> (_bstop.<span class="built_in">load</span>() == <span class="literal">true</span>) || (head.<span class="built_in">get</span>() != <span class="built_in">get_tail</span>()); &#125;);</span><br><span class="line">	<span class="keyword">return</span> std::<span class="built_in">move</span>(head_lock);   </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>修改wait_pop_head，根据停止条件返回空指针</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::unique_ptr&lt;node&gt; <span class="title">wait_pop_head</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">head_lock</span><span class="params">(wait_for_data())</span></span>; </span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (_bstop.<span class="built_in">load</span>()) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nullptr</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="built_in">pop_head</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>等待返回数据的逻辑也稍作修改，因为有可能是接收到停止信号后等待返回，所以此时返回空指针即可</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::shared_ptr&lt;T&gt; <span class="title">WaitAndPop</span><span class="params">()</span> <span class="comment">//  &lt;------3</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	std::unique_ptr&lt;node&gt; <span class="type">const</span> old_head = <span class="built_in">wait_pop_head</span>();</span><br><span class="line">	<span class="keyword">if</span> (old_head == <span class="literal">nullptr</span>) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nullptr</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> old_head-&gt;data;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>比如我们要实现一个ClassA 处理A类任务，可以这么做</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;ActorSingle.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;ClassB.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">MsgClassA</span> &#123;</span><br><span class="line">	std::string name;</span><br><span class="line">	<span class="keyword">friend</span> std::ostream&amp; <span class="keyword">operator</span> &lt;&lt; (std::ostream&amp; os, <span class="type">const</span> MsgClassA&amp; ca) &#123;</span><br><span class="line">		os &lt;&lt; ca.name;</span><br><span class="line">		<span class="keyword">return</span> os;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">ClassA</span> : <span class="keyword">public</span> ActorSingle&lt;ClassA, MsgClassA&gt; &#123;</span><br><span class="line">	<span class="keyword">friend</span> <span class="keyword">class</span> <span class="title class_">ActorSingle</span>&lt;ClassA, MsgClassA&gt;;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	~<span class="built_in">ClassA</span>() &#123;</span><br><span class="line">		_bstop = <span class="literal">true</span>;</span><br><span class="line">		_que.<span class="built_in">NotifyStop</span>();</span><br><span class="line">		_thread.<span class="built_in">join</span>();</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;ClassA destruct &quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">DealMsg</span><span class="params">(std::shared_ptr&lt;MsgClassA&gt; data)</span> </span>&#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;class A deal msg is &quot;</span> &lt;&lt; *data &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">		MsgClassB msga;</span><br><span class="line">		msga.name = <span class="string">&quot;llfc&quot;</span>;</span><br><span class="line">		ClassB::<span class="built_in">Inst</span>().<span class="built_in">PostMsg</span>(msga);</span><br><span class="line">	&#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	<span class="built_in">ClassA</span>()&#123;</span><br><span class="line">		_thread = std::<span class="built_in">thread</span>([<span class="keyword">this</span>]() &#123;</span><br><span class="line">			<span class="keyword">for</span> (; (_bstop.<span class="built_in">load</span>() == <span class="literal">false</span>);) &#123;</span><br><span class="line">				std::shared_ptr&lt;MsgClassA&gt; data = _que.<span class="built_in">WaitAndPop</span>();</span><br><span class="line">				<span class="keyword">if</span> (data == <span class="literal">nullptr</span>) &#123;</span><br><span class="line">					<span class="keyword">continue</span>;</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				<span class="built_in">DealMsg</span>(data);</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			std::cout &lt;&lt; <span class="string">&quot;ClassA thread exit &quot;</span> &lt;&lt; std::endl;</span><br><span class="line">			&#125;);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>我们利用CRTP模式让ClassA继承了以ClassA为类型的模板，然后在DealMsg函数内部调用了 ClassB的投递消息，将任务B交给另一个线程处理。</p>
+<p>关于ClassB的实现方式和ClassA类似，然后我们在ClassB的DealMsg中调用ClassC的PostMsg将消息投递给C的线程处理。</p>
+<p>达到的效果就是</p>
+<p>A-&gt;B-&gt;C</p>
+<p>我们在主函数调用</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;ClassA.h&quot;</span></span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    MsgClassA msga;</span><br><span class="line">    msga.name = <span class="string">&quot;llfc&quot;</span>;</span><br><span class="line">    ClassA::<span class="built_in">Inst</span>().<span class="built_in">PostMsg</span>(msga);</span><br><span class="line"></span><br><span class="line">    std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">2</span>));</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;main process exited!\n&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>程序输出如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">A</span> deal msg is llfc</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">B</span> deal msg is llfc</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">C</span> deal msg is llfc</span><br><span class="line">main process exited!</span><br><span class="line">ClassC thread exit</span><br><span class="line">ClassC destruct</span><br><span class="line">ClassB thread exit</span><br><span class="line">ClassB destruct</span><br><span class="line">ClassA thread exit</span><br><span class="line">ClassA destruct</span><br></pre></td></tr></table></figure>
+<p>可以看到处理的顺序是A-&gt;B-&gt;C，并且每个类都有析构和函数回收，说明我们的程序不存在内存泄漏。</p>
+<p>这里要提示读者一个问题，如果A给B投递消息，而B又要给A投递消息，那么如果在A的头文件包含B的头文件，而B的头文件包含A的头文件势必会造成互引用问题，那么最好的解决方式就是在A和B的头文件中分别声明对方，在cpp文件中再包含即可。</p>
+<p>上面的例子通过模板和继承的方式实现了类似Actor的收发消息的功能。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了线程划分任务的三种方式</p>
+<p>1 按照任务的数量划分</p>
+<p>2 递归划分 </p>
+<p>3 按照任务的种类划分 </p>
+<p>源码链接：</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day20-Actor">https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day20-Actor</a></p>
+<p>视频链接：</p>
+<p><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290">https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2024/01/13/concpp23/" rel="next" title="无锁设计的四条原则">
+                <i class="fa fa-chevron-left"></i> 无锁设计的四条原则
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">300</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8C%89%E6%95%B0%E9%87%8F%E5%88%87%E5%88%86"><span class="nav-number">1.</span> <span class="nav-text">按数量切分</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%92%E5%BD%92%E5%88%92%E5%88%86"><span class="nav-number">2.</span> <span class="nav-text">递归划分</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8C%89%E7%85%A7%E5%B7%A5%E4%BD%9C%E7%B1%BB%E5%88%AB%E5%88%92%E5%88%86%E4%BB%BB%E5%8A%A1"><span class="nav-number"></span> <span class="nav-text">按照工作类别划分任务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number"></span> <span class="nav-text">总结</span></a></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

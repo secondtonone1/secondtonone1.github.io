@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="简介术语“风险指针”是指Maged Michael发明的一种技法， 后来被IBM申请为专利。前文我们设计了无锁并发栈的结构，对于pop操作回收节点采用的是延时删除的策略，即将要删除的节点放入待删除列表中。但是待删列表中的节点可能永远不会被回收，因为每次多个线程pop就不会触发回收待删列表的操作。上一节我们说可以通过执行pop的最后一个线程执行回收，那为了实现这个目的，我们就要换一种思路。就是我们将">
+<meta property="og:type" content="article">
+<meta property="og:title" content="风险指针的巧妙运用">
+<meta property="og:url" content="http://www.limerence2017.com/2023/12/09/concpp19/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="简介术语“风险指针”是指Maged Michael发明的一种技法， 后来被IBM申请为专利。前文我们设计了无锁并发栈的结构，对于pop操作回收节点采用的是延时删除的策略，即将要删除的节点放入待删除列表中。但是待删列表中的节点可能永远不会被回收，因为每次多个线程pop就不会触发回收待删列表的操作。上一节我们说可以通过执行pop的最后一个线程执行回收，那为了实现这个目的，我们就要换一种思路。就是我们将">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-12-09T09:19:53.000Z">
+<meta property="article:modified_time" content="2023-12-16T09:19:40.319Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2023/12/09/concpp19/"/>
+
+
+
+
+
+  <title>风险指针的巧妙运用 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/12/09/concpp19/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">风险指针的巧妙运用</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-12-09T17:19:53+08:00">
+                2023-12-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>术语“风险指针”是指Maged Michael发明的一种技法， 后来被IBM申请为专利。<br>前文我们设计了无锁并发栈的结构，对于pop操作回收节点采用的是延时删除的策略，即将要删除的节点放入待删除列表中。<br>但是待删列表中的节点可能永远不会被回收，因为每次多个线程pop就不会触发回收待删列表的操作。上一节我们说可以通过执行pop的最后一个线程执行回收，那为了实现这个目的，我们就要换一种思路。就是我们将要删除的节点做特殊处理，如果有线程使用它，就将他标记为正在使用，那么这个节点的指针就是风险指针，也就是不能被其他线程删除。</p>
+<h2 id="改进pop"><a href="#改进pop" class="headerlink" title="改进pop"></a>改进pop</h2><p>我们假设有一块全局区域存储的是一个风险数组，数组里放的就是风险指针。<br>我们提供一个函数去设置数组中某个节点为风险指针，没被设置为风险指针的节点就是可用的。<br>然后我们再提供一个函数去查找数组中的节点，返回一个可用的节点。<br>假设查找的函数叫做<code>get_hazard_pointer_for_current_thread</code>。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::shared_ptr&lt;T&gt; <span class="title">pop</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// 1</span></span><br><span class="line">    std::atomic&lt;<span class="type">void</span>*&gt;&amp; hp=<span class="built_in">get_hazard_pointer_for_current_thread</span>(); </span><br><span class="line">    node* old_head=head.<span class="built_in">load</span>();   <span class="comment">// ⇽---  2</span></span><br><span class="line">    node* temp;</span><br><span class="line">    <span class="keyword">do</span></span><br><span class="line">    &#123;</span><br><span class="line">        temp=old_head;</span><br><span class="line">        hp.<span class="built_in">store</span>(old_head);   <span class="comment">// ⇽---  3</span></span><br><span class="line">        old_head=head.<span class="built_in">load</span>();</span><br><span class="line">    &#125; <span class="keyword">while</span>(old_head!=temp);   <span class="comment">//  ⇽---  4</span></span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>1 处获取数组中可用节点指针，用hp存储节点指针的引用。</p>
+<p>2 处加载当前头节点保存到old节点里。</p>
+<p>3 处将old_head的值赋值给hp。</p>
+<p>4 while循环处的作用就是防止多个线程访问pop函数，某一个线程B将head修改，那说明他已经将它的临时变量old节点放入风险数组中，而本线程A的old节点和线程B的old节点指向的是同一个旧有的head，所以线程A就没必要将这个old节点放入风险数组了，需要再次循环获取新的head加载为old节点，再放入风险数组。</p>
+<p>我们实现一个完整意义的pop操作</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::shared_ptr&lt;T&gt; <span class="title">pop</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//1 从风险列表中获取一个节点给当前线程</span></span><br><span class="line">    std::atomic&lt;<span class="type">void</span>*&gt;&amp; hp=<span class="built_in">get_hazard_pointer_for_current_thread</span>(); </span><br><span class="line">    node* old_head=head.<span class="built_in">load</span>();</span><br><span class="line">    <span class="keyword">do</span></span><br><span class="line">    &#123;</span><br><span class="line">        node* temp;</span><br><span class="line">        <span class="keyword">do</span>    </span><br><span class="line">        &#123;</span><br><span class="line">            temp=old_head;</span><br><span class="line">            hp.<span class="built_in">store</span>(old_head);</span><br><span class="line">            old_head=head.<span class="built_in">load</span>();</span><br><span class="line">        &#125;<span class="comment">//2 如果old_head和temp不等说明head被其他线程更新了，需重试</span></span><br><span class="line">        <span class="keyword">while</span>(old_head!=temp); </span><br><span class="line">    &#125;<span class="comment">//3 将当前head更新为old_head-&gt;next，如不满足则重试</span></span><br><span class="line">    <span class="keyword">while</span>(old_head&amp;&amp;</span><br><span class="line">          !head.<span class="built_in">compare_exchange_strong</span>(old_head,old_head-&gt;next)); </span><br><span class="line">    <span class="comment">// 4一旦更新了head指针，便将风险指针清零</span></span><br><span class="line">    hp.<span class="built_in">store</span>(<span class="literal">nullptr</span>);    </span><br><span class="line">    std::shared_ptr&lt;T&gt; res;</span><br><span class="line">    <span class="keyword">if</span>(old_head)</span><br><span class="line">    &#123;</span><br><span class="line">        res.<span class="built_in">swap</span>(old_head-&gt;data);</span><br><span class="line">        <span class="comment">//5 删除旧有的头节点之前，先核查它是否正被风险指针所指涉</span></span><br><span class="line">        <span class="keyword">if</span>(<span class="built_in">outstanding_hazard_pointers_for</span>(old_head))    </span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">//6 延迟删除</span></span><br><span class="line">            <span class="built_in">reclaim_later</span>(old_head);    </span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">//7 删除头部节点</span></span><br><span class="line">            <span class="keyword">delete</span> old_head;    </span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//8 删除没有风险的节点</span></span><br><span class="line">        <span class="built_in">delete_nodes_with_no_hazards</span>();    </span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> res;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>1 我们观察1处代码从全局的风险数组中jiu获取一个可用的节点作为风险节点。这样其他线程在回收节点的时候会从这个数组中看到这个风险节点，进而不会删除该节点。</p>
+<p>2 处代码做循环比较是为了hp存储的节点为当前线程操作的head，如果其它线程更新了head，那么当前线程就要进行重试。以保证每个线程的hp存储的都是自己看到的最新的head。</p>
+<p>3 处将head和old_head做比较，如果相等则更新head为old_head-&gt;next的值。如果不等则再次重复循环，因为有可能有多个线程都满足2处的条件，多个线程的hp和old_head指向相同，所以要重试，保证多线程情况下head的移动唯一。</p>
+<p>4 一旦更新了head指针，就可以将这个风险指针清零了，因为其他线程pop操作的head已经不是我们hp存储的old_head了。所以此种情况下是线程安全的。</p>
+<p>5 删除旧节点之前，先看它是否被风险指针所指涉。</p>
+<p>6 如果要删除的节点被风险指针指涉，则延迟删除，放入待删列表。都则直接删除该节点即可。(7处)</p>
+<p>8  每个线程pop后，都要查一下待删列表，将其中没有风险的节点删除。</p>
+<p>接下来我们实现从全局连表中返回一个可用的节点</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::atomic&lt;<span class="type">void</span>*&gt;&amp; <span class="title">get_hazard_pointer_for_current_thread</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">//每个线程都具有自己的风险指针 线程本地变量</span></span><br><span class="line">	<span class="keyword">thread_local</span> <span class="type">static</span> hp_owner hazzard;  </span><br><span class="line">	<span class="keyword">return</span> hazzard.<span class="built_in">get_pointer</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们通过一个线程本地变量hazzard存储当前线程正在使用的节点，这个节点被称作风险节点。其他线程不能删除。</p>
+<p>接下来我们实现hazard_pointer类，管理风险指针和线程id</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">hazard_pointer</span> &#123;</span><br><span class="line">	std::atomic&lt;std::thread::id&gt; id;</span><br><span class="line">	std::atomic&lt;<span class="type">void</span>*&gt;  pointer;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>id为正在使用该风险指针的id，pointer为指针类型，存储的节点数据地址。<br>当一个线程从风险数组中查找某个闲置节点作为风险节点，则需要将pointer指向节点的数据，并且将id设置为当前的线程id。</p>
+<p>我们定义一个全局的风险节点数组，用来存储风险节点。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hazard_pointer hazard_pointers[max_hazard_pointers];</span><br></pre></td></tr></table></figure>
+<p>然后我们用hp_owner类管理这个风险指针</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">hp_owner</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">hp_owner</span>(hp_owner <span class="type">const</span>&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	hp_owner <span class="keyword">operator</span>=(hp_owner <span class="type">const</span>&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	<span class="built_in">hp_owner</span>():<span class="built_in">hp</span>(<span class="literal">nullptr</span>)&#123;</span><br><span class="line">		<span class="keyword">for</span> (<span class="type">unsigned</span> i = <span class="number">0</span>; i &lt; max_hazard_pointers; ++i) &#123;</span><br><span class="line">			std::thread::id  old_id;</span><br><span class="line">			<span class="keyword">if</span> (hazard_pointers[i].id.<span class="built_in">compare_exchange_strong</span>(old_id, std::this_thread::<span class="built_in">get_id</span>())) &#123;</span><br><span class="line">				hp = &amp;hazard_pointers[i];</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (!hp) &#123;</span><br><span class="line">			<span class="keyword">throw</span> std::<span class="built_in">runtime_error</span>(<span class="string">&quot;No hazard pointers available&quot;</span>);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	~<span class="built_in">hp_owner</span>() &#123;</span><br><span class="line">		hp-&gt;pointer.<span class="built_in">store</span>(<span class="literal">nullptr</span>);</span><br><span class="line">		hp-&gt;id.<span class="built_in">store</span>(std::thread::<span class="built_in">id</span>());</span><br><span class="line">	&#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	hazard_pointer* hp;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>每个线程每次调用get_hazard_pointer_for_current_thread只会在第一次的时候构造hp_owner类型的hazzard，之后该线程再次调用该函数不会构造hp_owner，因为是线程本地变量。</p>
+<p>当一个线程析构的时候会释放其本地变量hazzard，进而执行hp_owner析构函数，从而恢复初值。</p>
+<p>接下来我们要实现hp_owner的get_pointer函数。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::atomic&lt;<span class="type">void</span>*&gt;&amp; <span class="title">get_pointer</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">return</span> hp-&gt;pointer;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>hp_owner 的get_pointer函数返回其成员pointer指向的地址</p>
+<p>接下来我们实现判断该节点是否被风险指针所指涉的函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">bool</span> <span class="title">outstanding_hazard_pointers_for</span><span class="params">(<span class="type">void</span>* p)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">for</span> (<span class="type">unsigned</span> i = <span class="number">0</span>; i &lt; max_hazard_pointers; ++i)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">if</span> (hazard_pointers[i].pointer.<span class="built_in">load</span>() == p)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果当前节点被风险指针所指涉则将该节点放入待删队列延迟删除</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">reclaim_later</span><span class="params">(node* old_head)</span> </span>&#123;</span><br><span class="line">	<span class="built_in">add_to_reclaim_list</span>(<span class="keyword">new</span> <span class="built_in">data_to_reclaim</span>(old_head));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>将节点放入待删列表，我们封装了一个data_to_reclaim类型的节点放入待删列表。</p>
+<p>我们定义待删节点的结构体</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//待删节点</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">data_to_reclaim</span> &#123;</span><br><span class="line">	node* data;</span><br><span class="line">	std::function&lt;<span class="type">void</span>(node*)&gt; deleter;</span><br><span class="line">	data_to_reclaim* next;</span><br><span class="line">	<span class="built_in">data_to_reclaim</span>(node * p):<span class="built_in">data</span>(p), <span class="built_in">next</span>(<span class="literal">nullptr</span>)&#123;&#125;</span><br><span class="line">	~<span class="built_in">data_to_reclaim</span>() &#123;</span><br><span class="line">		<span class="keyword">delete</span> data;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>然后在无锁栈中定义一个节点表示待删列表的首节点，因为栈是被多个线程操作的，待删列表也会被多个线程访问，那么我们需要用原子变量表示这个首节点</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">std::atomic&lt;data_to_reclaim*&gt;  nodes_to_reclaim;</span><br></pre></td></tr></table></figure>
+<p>我们实现将节点放入待删列表的逻辑</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">add_to_reclaim_list</span><span class="params">(data_to_reclaim* reclaim_node)</span> </span>&#123;</span><br><span class="line">	reclaim_node-&gt;next = nodes_to_reclaim.<span class="built_in">load</span>();</span><br><span class="line">	<span class="keyword">while</span> (!nodes_to_reclaim.<span class="built_in">compare_exchange_weak</span>(reclaim_node-&gt;next, reclaim_node));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>因为可能有多个线程同时将节点放入待删列表，所以此处做重试。<br>接下来实现从待删列表中删除无风险的节点</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">delete_nodes_with_no_hazards</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	data_to_reclaim* current = nodes_to_reclaim.<span class="built_in">exchange</span>(<span class="literal">nullptr</span>);</span><br><span class="line">	<span class="keyword">while</span> (current) &#123;</span><br><span class="line">		data_to_reclaim* <span class="type">const</span> next = current-&gt;next;</span><br><span class="line">		<span class="keyword">if</span> (!<span class="built_in">outstanding_hazard_pointers_for</span>(current-&gt;data)) &#123;</span><br><span class="line">			    <span class="keyword">delete</span> current;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="built_in">add_to_reclaim_list</span>(current);</span><br><span class="line">		&#125;</span><br><span class="line">        current = next;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h2><p>我们依然用之前的方式测试，启动三个线程t1用来向栈中放入数据(总计push20000个), t2和t3用来从栈中pop数据。用一个set记录删除的值，最后判断总共删除的数量是否为2000.</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">TestHazardPointer</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    hazard_pointer_stack&lt;<span class="type">int</span>&gt; hazard_stack;</span><br><span class="line">    std::set&lt;<span class="type">int</span>&gt;  rmv_set;</span><br><span class="line">    std::mutex set_mtx;</span><br><span class="line"></span><br><span class="line">    <span class="function">std::thread <span class="title">t1</span><span class="params">([&amp;]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">        <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">20000</span>; i++) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">            hazard_stack.push(i);</span></span></span><br><span class="line"><span class="params"><span class="function">            std::cout &lt;&lt; <span class="string">&quot;push data &quot;</span> &lt;&lt; i &lt;&lt; <span class="string">&quot; success!&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">            std::this_thread::sleep_for(std::chrono::milliseconds(<span class="number">5</span>));</span></span></span><br><span class="line"><span class="params"><span class="function">        &#125;</span></span></span><br><span class="line"><span class="params"><span class="function">        &#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="function">std::thread <span class="title">t2</span><span class="params">([&amp;]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">        <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10000</span>;) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">            <span class="keyword">auto</span> head = hazard_stack.pop();</span></span></span><br><span class="line"><span class="params"><span class="function">            <span class="keyword">if</span> (!head) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">                std::this_thread::sleep_for(std::chrono::milliseconds(<span class="number">10</span>));</span></span></span><br><span class="line"><span class="params"><span class="function">                <span class="keyword">continue</span>;</span></span></span><br><span class="line"><span class="params"><span class="function">            &#125;</span></span></span><br><span class="line"><span class="params"><span class="function">            std::lock_guard&lt;std::mutex&gt; lock(set_mtx);</span></span></span><br><span class="line"><span class="params"><span class="function">            rmv_set.insert(*head);</span></span></span><br><span class="line"><span class="params"><span class="function">            std::cout &lt;&lt; <span class="string">&quot;pop data &quot;</span> &lt;&lt; *head &lt;&lt; <span class="string">&quot; success!&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">            i++;</span></span></span><br><span class="line"><span class="params"><span class="function">        &#125;</span></span></span><br><span class="line"><span class="params"><span class="function">        &#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="function">std::thread <span class="title">t3</span><span class="params">([&amp;]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">        <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10000</span>;) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">            <span class="keyword">auto</span> head = hazard_stack.pop();</span></span></span><br><span class="line"><span class="params"><span class="function">            <span class="keyword">if</span> (!head) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">                std::this_thread::sleep_for(std::chrono::milliseconds(<span class="number">10</span>));</span></span></span><br><span class="line"><span class="params"><span class="function">                <span class="keyword">continue</span>;</span></span></span><br><span class="line"><span class="params"><span class="function">            &#125;</span></span></span><br><span class="line"><span class="params"><span class="function">            std::lock_guard&lt;std::mutex&gt; lock(set_mtx);</span></span></span><br><span class="line"><span class="params"><span class="function">            rmv_set.insert(*head);</span></span></span><br><span class="line"><span class="params"><span class="function">            std::cout &lt;&lt; <span class="string">&quot;pop data &quot;</span> &lt;&lt; *head &lt;&lt; <span class="string">&quot; success!&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">            i++;</span></span></span><br><span class="line"><span class="params"><span class="function">        &#125;</span></span></span><br><span class="line"><span class="params"><span class="function">        &#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">    t1.<span class="built_in">join</span>();</span><br><span class="line">    t2.<span class="built_in">join</span>();</span><br><span class="line">    t3.<span class="built_in">join</span>();</span><br><span class="line"></span><br><span class="line">    <span class="built_in">assert</span>(rmv_set.<span class="built_in">size</span>() == <span class="number">20000</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="优劣分析"><a href="#优劣分析" class="headerlink" title="优劣分析"></a>优劣分析</h2><p>风险指针的机制能保证要删除的节点在合理的时机回收，但是也引发了一些性能问题，比如为了删除某个节点要遍历风险数组判断该节点是否被风险指针所指涉。其次我们对于要删除的节点需要从风险数组中选择一个合适的节点记录其地址，所以也需要便利。<br>C++ 并发编程一书中提出了用空间换取时间和性能的办法，就是开辟2*N个大小的风险数组，只有当使用的节点达到N个时我们才依次判断N个节点是否被风险指针所指涉，这样我i们减少了判断回收的次数。但同样增加内存的开销。<br>另外作者也提及了风险指针为IBM的技术专利，即使我们懂得这种方法也不见得有权利使用，为后文提及了引用计数做了铺垫。</p>
+<p>源码链接:</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day17-LockFreeStack">https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day17-LockFreeStack</a></p>
+<p>视频链接:</p>
+<p><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290">https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/12/09/concpp18/" rel="next" title="无锁栈的实现">
+                <i class="fa fa-chevron-left"></i> 无锁栈的实现
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/12/24/concpp20/" rel="prev" title="利用引用计数实现线程安全的无锁栈">
+                利用引用计数实现线程安全的无锁栈 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">300</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%94%B9%E8%BF%9Bpop"><span class="nav-number">2.</span> <span class="nav-text">改进pop</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95"><span class="nav-number">3.</span> <span class="nav-text">测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BC%98%E5%8A%A3%E5%88%86%E6%9E%90"><span class="nav-number">4.</span> <span class="nav-text">优劣分析</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

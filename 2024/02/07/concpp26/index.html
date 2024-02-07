@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="简介线程池是一种并发编程的技术，用于有效地管理和复用线程资源。它由一组预先创建的线程组成，这些线程可以在需要时执行任务，并在任务完成后返回线程池中等待下一个任务。 线程池的主要目的是避免反复创建和销毁线程的开销，以及有效地控制并发线程的数量。通过使用线程池，可以降低系统的负载，并提高任务执行的效率。 以下是线程池的一些关键特点：  线程池包含一个线程队列和任务队列，任务队列用于存储待执行的任务。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="线程池原理和实现">
+<meta property="og:url" content="http://www.limerence2017.com/2024/02/07/concpp26/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="简介线程池是一种并发编程的技术，用于有效地管理和复用线程资源。它由一组预先创建的线程组成，这些线程可以在需要时执行任务，并在任务完成后返回线程池中等待下一个任务。 线程池的主要目的是避免反复创建和销毁线程的开销，以及有效地控制并发线程的数量。通过使用线程池，可以降低系统的负载，并提高任务执行的效率。 以下是线程池的一些关键特点：  线程池包含一个线程队列和任务队列，任务队列用于存储待执行的任务。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-02-07T08:41:09.000Z">
+<meta property="article:modified_time" content="2024-02-07T08:42:25.746Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2024/02/07/concpp26/"/>
+
+
+
+
+
+  <title>线程池原理和实现 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/02/07/concpp26/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">线程池原理和实现</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-02-07T16:41:09+08:00">
+                2024-02-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>线程池是一种并发编程的技术，用于有效地管理和复用线程资源。它由一组预先创建的线程组成，这些线程可以在需要时执行任务，并在任务完成后返回线程池中等待下一个任务。</p>
+<p>线程池的主要目的是避免反复创建和销毁线程的开销，以及有效地控制并发线程的数量。通过使用线程池，可以降低系统的负载，并提高任务执行的效率。</p>
+<p>以下是线程池的一些关键特点：</p>
+<ol>
+<li>线程池包含一个线程队列和任务队列，任务队列用于存储待执行的任务。</li>
+<li>线程池在启动时会创建一定数量的线程，并将它们放入线程队列中。</li>
+<li>当有任务需要执行时，线程池从任务队列中获取任务，并将其分配给空闲的线程执行。</li>
+<li>执行完任务的线程会继续等待下一个任务的到来，而不是被销毁。</li>
+<li>如果任务队列为空，线程池中的线程可以进入睡眠状态，减少资源占用。</li>
+<li>线程池可以限制同时执行的线程数量，避免过多的并发线程导致系统负载过高。</li>
+</ol>
+<p>使用线程池有以下几个优点：</p>
+<ol>
+<li>提高性能：通过复用线程，避免了线程创建和销毁的开销，提高了任务执行的效率。</li>
+<li>资源控制：线程池可以限制并发线程的数量，避免系统负载过高，保护系统资源。</li>
+<li>提高响应性：线程池可以在任务到来时立即进行处理，减少了任务等待的时间，提高了系统的响应速度。</li>
+<li>简化编程：使用线程池可以将任务的提交和执行分离，简化了并发编程的复杂性。</li>
+</ol>
+<p>需要注意的是，在使用线程池时，需要合理设置线程池的大小，避免线程过多导致资源浪费，或线程过少导致任务等待的时间过长。</p>
+<h2 id="线程池的实现"><a href="#线程池的实现" class="headerlink" title="线程池的实现"></a>线程池的实现</h2><p>首先我不希望线程池被拷贝，我希望它能以单例的形式在需要的地方调用, 那么单例模式就需要删除拷贝构造和拷贝赋值，所以我设计一个基类</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">NoneCopy</span> &#123;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    ~<span class="built_in">NoneCopy</span>()&#123;&#125;</span><br><span class="line"><span class="keyword">protected</span>:</span><br><span class="line">    <span class="built_in">NoneCopy</span>()&#123;&#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="built_in">NoneCopy</span>(<span class="type">const</span> NoneCopy&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">    NoneCopy&amp; <span class="keyword">operator</span>=(<span class="type">const</span> NoneCopy&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>然后让线程池ThreadPool类继承NoneCopy, 这样ThreadPool也就不支持拷贝构造和拷贝赋值了，拷贝构造和拷贝赋值的前提是其基类可以拷贝构造和赋值。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">ThreadPool</span> : <span class="keyword">public</span> NoneCopy &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    ~<span class="built_in">ThreadPool</span>();</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="type">static</span> ThreadPool&amp; <span class="title">instance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="type">static</span> ThreadPool ins;</span><br><span class="line">        <span class="keyword">return</span> ins;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="built_in">ThreadPool</span>();</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>我们先实现了instance函数，该函数是一个静态成员函数，返回局部的静态实例ins. </p>
+<p>我们之前在单例模式中讲过，函数内局部的静态变量，其生命周期和进程同步，但是可见度仅在函数内部。</p>
+<p>局部静态变量只会在第一次调用这个函数时初始化一次。故可以作为单例模式。这种模式在C++ 11之前是不安全的，因为各平台编译器实现规则可能不统一导致多线程会生成多个实例。</p>
+<p>但是C++ 11过后，语言层面对其优化保证了多个线程调用同一个函数只会生成一个实例，所以C++ 11过后我们可以放心使用。</p>
+<p>接下来考虑构造函数，我们说过线程池需要线程队列和任务队列，所以这两个队列要在构造函数中完成构造，线程队列我们可以用一个vector存储，任务队列因为要保证先进先出，所以用queue结构即可。</p>
+<p>因为任务队列要有通用性，所以我们规定任务队列中存储的类型为</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> Task = std::packaged_task&lt;<span class="built_in">void</span>()&gt;;</span><br></pre></td></tr></table></figure>
+<p>我们在ThreadPool中添加如下成员</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">std::atomic_int          thread_num_;</span><br><span class="line">std::queue&lt;Task&gt;         tasks_;</span><br><span class="line">std::vector&lt;std::thread&gt; pool_;</span><br><span class="line">std::atomic_bool         stop_;</span><br></pre></td></tr></table></figure>
+<p>其中 tasks_ 表示任务队列， pool_表示线程队列， thread_num_表示空闲的线程数, stop_表示线程池是否退出。</p>
+<p>那我们可以实现线程池的构造函数了</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ThreadPool</span>(<span class="type">unsigned</span> <span class="type">int</span> num = std::thread::<span class="built_in">hardware_concurrency</span>())</span><br><span class="line">    : <span class="built_in">stop_</span>(<span class="literal">false</span>) &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (num &lt;= <span class="number">1</span>)</span><br><span class="line">        thread_num_ = <span class="number">2</span>;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        thread_num_ = num;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">start</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们在构造函数中初始化停止标记为false，初始化线程数默认为硬件允许的物理并行核数。然后调用了start函数。</p>
+<p>start函数主要的功能为启动线程并且将线程放入vector中管理，线程的回调函数基本功能就是从任务队列中消费数据，如果队列中有任务则pop出任务并执行，否则线程需要挂起。在部分初学者实现的线程池当中会采用循环等待的方式(如果队列为空则继续循环)，这种方式会造成线程忙等，进而引发资源的浪费。</p>
+<p>所以我们现在还需要给ThreadPool添加两个成员</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">std::mutex               cv_mt_;</span><br><span class="line">std::condition_variable  cv_lock_;</span><br></pre></td></tr></table></figure>
+<p>分别表示互斥量和条件变量，用来控制线程的休眠和唤醒。</p>
+<p>那我们实现start函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">start</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; thread_num_; ++i) &#123;</span><br><span class="line">        pool_.<span class="built_in">emplace_back</span>([<span class="keyword">this</span>]() &#123;</span><br><span class="line">            <span class="keyword">while</span> (!<span class="keyword">this</span>-&gt;stop_.<span class="built_in">load</span>()) &#123;</span><br><span class="line">                Task task;</span><br><span class="line">                &#123;</span><br><span class="line">                    std::unique_lock&lt;std::mutex&gt; <span class="built_in">cv_mt</span>(cv_mt_);</span><br><span class="line">                    <span class="keyword">this</span>-&gt;cv_lock_.<span class="built_in">wait</span>(cv_mt, [<span class="keyword">this</span>] &#123;</span><br><span class="line">                        <span class="keyword">return</span> <span class="keyword">this</span>-&gt;stop_.<span class="built_in">load</span>() || !<span class="keyword">this</span>-&gt;tasks_.<span class="built_in">empty</span>();</span><br><span class="line">                            &#125;);</span><br><span class="line">                     <span class="keyword">if</span> (<span class="keyword">this</span>-&gt;tasks_.<span class="built_in">empty</span>())</span><br><span class="line">                        <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">                    task = std::<span class="built_in">move</span>(<span class="keyword">this</span>-&gt;tasks_.<span class="built_in">front</span>());</span><br><span class="line">                    <span class="keyword">this</span>-&gt;tasks_.<span class="built_in">pop</span>();</span><br><span class="line">                &#125;</span><br><span class="line">                    <span class="keyword">this</span>-&gt;thread_num_--;</span><br><span class="line">                    <span class="built_in">task</span>();</span><br><span class="line">                    <span class="keyword">this</span>-&gt;thread_num_++;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>pool_为线程队列，在线程队列中我们采用emplace_back直接调用线程的构造函数，将线程要处理的逻辑写成lambda表达式，从而构造线程并且将线程插入线程队列中。</p>
+<p>lambda表达式内的逻辑先判断是否停止，如果停止则退出循环, 否则继续循环。</p>
+<p>循环的逻辑就是每次从队列中取任务，先调用条件变量等待队列不为空，或者收到退出信号，二者只要满足其一，条件变量的wait就返回，并且继续向下走。否则条件变量wait不会返回，线程将挂起。</p>
+<p>如果条件变量判断条件满足(队列不为空或者发现停止信号)，线程继续向下执行，判断如果任务队列为空则说明是因为收到停止信号所以直接返回退出，否则就说明任务队列有数据，我们取出任务队列头部的task，将空闲线程数减少1，执行task，再将空闲线程数+1.</p>
+<p>接下来我们实现析构函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">~<span class="built_in">ThreadPool</span>() &#123;</span><br><span class="line">    <span class="built_in">stop</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>析构函数中的stop就是要向线程发送停止信号，避免线程一直处于挂起状态(因为任务队列为空会导致线程挂起)</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">stop</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    stop_.<span class="built_in">store</span>(<span class="literal">true</span>);</span><br><span class="line">    cv_lock_.<span class="built_in">notify_all</span>();</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">auto</span>&amp; td : pool_) &#123;</span><br><span class="line">        <span class="keyword">if</span> (td.<span class="built_in">joinable</span>()) &#123;</span><br><span class="line">            std::cout &lt;&lt; <span class="string">&quot;join thread &quot;</span> &lt;&lt; td.<span class="built_in">get_id</span>() &lt;&lt; std::endl;</span><br><span class="line">            td.<span class="built_in">join</span>();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>stop函数中我们将停止标记设置为true，并且调用条件变量的notify_all唤醒所有线程，并且等待所有线程退出后线程池才析构完成。</p>
+<p>我们再实现一个函数提供给外部查询当前空闲的线程数，这个功能可有可无，主要是方便外部根据空闲线程数是否达到阈值派发任务。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">idleThreadCount</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> thread_num_;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们实现了线程池处理任务的逻辑，接下来我们要封装一个接口提供给外部，支持其投递任务给线程池。</p>
+<p>因为我们要投递任务给线程池，任务的功能和参数都不同，而之前我们设置的线程池执行的task类型为void(void)，返回值为void，参数为void的任务。那我们可用用参数绑定的方式将一个函数绑定为void(void)类型, 比如我们用如下操作</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">functionint</span><span class="params">(<span class="type">int</span> param)</span> </span>&#123;</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;param is &quot;</span> &lt;&lt; param &lt;&lt; std::endl;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">bindfunction</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::function&lt;<span class="type">int</span>(<span class="type">void</span>)&gt; functionv = std::<span class="built_in">bind</span>(functionint, <span class="number">3</span>);</span><br><span class="line">	<span class="built_in">functionv</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>假设我们希望任务队列里的任务要调用functionint，以及参数为3，因为在投递任务时我们就知道任务要执行的函数和参数，所以我们可以将执行的函数和参数绑定生成参数为void的函数。</p>
+<p>我们通过bindfunction将functionint绑定为一个返回值为int，参数为void的新函数functionv。而我们的任务队列要放入返回值为void，参数也为void的函数，该怎么办呢？</p>
+<p>其实很简单，我们可以利用lambda表达式生成一个返回值和参数都为void的函数，函数内部调用functionv即可，有点类似于go，python等语言的闭包，但是C++的闭包是一种伪闭包，需要用值的方式捕获用到的变量。</p>
+<p>比如我们将上面的函数functionint和调用的参数3打包放入队列，可以这么写</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">pushtasktoque</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::function&lt;<span class="type">int</span>(<span class="type">void</span>)&gt; functionv = std::<span class="built_in">bind</span>(functionint, <span class="number">3</span>);</span><br><span class="line">	<span class="keyword">using</span> Task = std::packaged_task&lt;<span class="built_in">void</span>()&gt;;</span><br><span class="line">	std::queue&lt;Task&gt; taskque;</span><br><span class="line">	taskque.<span class="built_in">emplace</span>([functionv]() &#123;</span><br><span class="line">		<span class="built_in">functionv</span>();</span><br><span class="line">		&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们先将functionint绑定为functionv，然后定义一个队列存储的类型为<code>std::packaged_task&lt;void()&gt;</code>, 为了防止拷贝构造的开销，我们调用队列的emplace函数，该函数接受lambda表达式直接构造任务放入了队列里。因为lambda表达式捕获了functionv的值，所以可以在内部调用functionv。</p>
+<p>lambda表达式返回值为void参数也为void，所以可以直接放入任务队列。</p>
+<p>接下来要一个问题，一个问题是我们投递任务，有时候投递方需要获取任务是否完成, 那我们可以利用packaged_task返回一个future给调用方，调用方在外部就可以通过future判断任务是否返回了。我们修改上面的函数，实现commit任务的函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::future&lt;<span class="type">int</span>&gt; <span class="title">committask</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::function&lt;<span class="type">int</span>(<span class="type">void</span>)&gt; functionv = std::<span class="built_in">bind</span>(functionint, <span class="number">3</span>);</span><br><span class="line">	<span class="keyword">auto</span> taskf = std::make_shared&lt;std::packaged_task&lt;<span class="built_in">int</span>(<span class="type">void</span>)&gt;&gt;(functionv);</span><br><span class="line">	<span class="keyword">auto</span> res = taskf-&gt;<span class="built_in">get_future</span>();</span><br><span class="line">	<span class="keyword">using</span> Task = std::packaged_task&lt;<span class="built_in">void</span>()&gt;;</span><br><span class="line">	std::queue&lt;Task&gt; taskque;</span><br><span class="line">	taskque.<span class="built_in">emplace</span>([taskf]() &#123;</span><br><span class="line">		(*taskf)();</span><br><span class="line">		&#125;);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> res;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们将functionv传递给packaged_task构造函数，构造了一个packaged_task类型的智能指针，每个人的编程风格不同，大家也可以不用智能指针，直接使用packaged_task对象，比如下面的</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::packaged_task&lt;<span class="title">int</span><span class="params">(<span class="type">void</span>)</span>&gt; <span class="title">taskf</span><span class="params">(functionv)</span></span>;</span><br></pre></td></tr></table></figure>
+<p>我构造的是packaged_task类型的智能指针，所以通过<code>taskf-&gt;get_future()</code>获取future对象res，这个res作为参数返回给外部，外部就可以通过res判断任务是否完成。</p>
+<p>接下来我们定义了一个任务队列，任务队列调用emplace直接构造任务插入队列中，避免拷贝开销。参数为lambda表达式，lamba捕获taskf对象的值，在内部调用<code>(*taskf)()</code>完成任务调用。</p>
+<p>上面只是通过具体的函数和参数实现了投递任务的功能，而实际情况是我们要投递各种类型的任务，以及多种类型和多个参数，该怎么实现committask函数更通用呢？</p>
+<p>对于更通用的设计我们通常采用模板</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> <span class="title class_">F</span>, <span class="keyword">class</span>... Args&gt;</span><br><span class="line"><span class="function">std::future&lt;<span class="type">int</span>&gt; <span class="title">commit</span><span class="params">(F&amp;&amp; f, Args&amp;&amp;... args)</span></span>&#123;</span><br><span class="line">    <span class="comment">//....</span></span><br><span class="line">    <span class="keyword">return</span> std::<span class="built_in">future</span>&lt;<span class="type">int</span>&gt;();</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+<p>上面的模板定义了两个类型，F表示可调用对象类型，可以是lambda表达式，函数，function类等， Args为可变参数模板，可以是任意种类的类型，任意数量。commit函数参数采用F和Args的右值引用，这种模板类型的右值引用也被称作万能引用类型，可以接受左值引用，也可接受右值引用，利用引用折叠技术，可以推断出f和args的最终类型。我在基础课程里讲过，这里再给大家复习一下折叠规则，假设T为模板类型，推到规则如下：</p>
+<p>T&amp; &amp; =&gt; T&amp;</p>
+<p>T&amp; &amp;&amp; =&gt; T&amp;</p>
+<p>T&amp;&amp; &amp; =&gt; T&amp;</p>
+<p>T&amp;&amp; &amp;&amp; =&gt; T&amp;&amp;</p>
+<p>总结一下，就是只要出现了左值引用最后折叠的结果都是左值引用，只有右值应用和右值引用折叠才能变成右值引用。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">Function</span><span class="params">(T&amp;&amp; t)</span></span>&#123;</span><br><span class="line">    <span class="comment">//...</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="type">int</span> a = <span class="number">3</span>;</span><br><span class="line">    <span class="built_in">Function</span>(a);</span><br><span class="line">    <span class="built_in">Function</span>(<span class="number">3</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+
+<p>当我们把一个int类型的左值a传递给 Function的 T&amp;&amp; 参数t时(T为模板类型)， T被推导为int &amp; , 那么参数t整体的类型就变为int &amp; &amp;&amp; =&gt; int &amp;类型，也就是左值引用类型。</p>
+<p>当我们把一个右值3传递给Function的T&amp;&amp; 参数t时，T被推导为int类型。t被推导为int &amp;&amp; 类型，也就是右值引用类型。</p>
+<p>如果大家熟悉boost库，可以用boost库的<code>type_id_with_cvr</code>打印具体类型，比如我们下面的代码</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;boost/type_index.hpp&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> boost::typeindex::type_id_with_cvr;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">functionint</span><span class="params">(<span class="type">int</span> param)</span> </span>&#123;</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;param is &quot;</span> &lt;&lt; param &lt;&lt; std::endl;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> <span class="title class_">F</span>, <span class="keyword">class</span>... Args&gt;</span><br><span class="line"><span class="function">std::future&lt;<span class="type">int</span>&gt; <span class="title">commit</span><span class="params">(F&amp;&amp; f, Args&amp;&amp;... args)</span> </span>&#123;</span><br><span class="line">	<span class="comment">//....</span></span><br><span class="line">		<span class="comment">// 利用Boost库打印模板推导出来的 T 类型</span></span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;F type：&quot;</span> &lt;&lt; <span class="built_in">type_id_with_cvr</span>&lt;F&gt;().<span class="built_in">pretty_name</span>() &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 利用Boost库打印形参的类型</span></span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;f type:&quot;</span> &lt;&lt; <span class="built_in">type_id_with_cvr</span>&lt;<span class="keyword">decltype</span>(f)&gt;().<span class="built_in">pretty_name</span>() &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;Args type：&quot;</span> &lt;&lt; <span class="built_in">type_id_with_cvr</span>&lt;Args...&gt;().<span class="built_in">pretty_name</span>() &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;args type：&quot;</span> &lt;&lt; <span class="built_in">type_id_with_cvr</span>&lt;<span class="keyword">decltype</span>(args)...&gt;().<span class="built_in">pretty_name</span>() &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> std::<span class="built_in">future</span>&lt;<span class="type">int</span>&gt;();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">reference_collapsing</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="type">int</span> a = <span class="number">3</span>;</span><br><span class="line">	<span class="built_in">commit</span>(functionint, a);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>调用reference_collapsing函数输出如下</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">F <span class="built_in">type</span>：int (__cdecl&amp;)(int)</span><br><span class="line">f <span class="built_in">type</span>:int (__cdecl&amp;)(int)</span><br><span class="line">Args <span class="built_in">type</span>：int &amp; __ptr64</span><br><span class="line">args <span class="built_in">type</span>：int &amp; __ptr64</span><br></pre></td></tr></table></figure>
+<p>可以看出F和f的类型都为函数对象的左值引用类型<code>int (__cdecl&amp;)(int)</code>，因为可变参数列表只有一个int左值类型，所以Args被推导为int &amp;类型， 同样的道理args也是int &amp;类型。</p>
+<p>那如果我们换一种方式调用</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">reference_collapsing2</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="built_in">commit</span>(std::<span class="built_in">move</span>(functionint), <span class="number">3</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>调用reference_collapsing2输出如下</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">F <span class="built_in">type</span>：int __cdecl(int)</span><br><span class="line">f <span class="built_in">type</span>:int (__cdecl&amp;&amp;)(int)</span><br><span class="line">Args <span class="built_in">type</span>：int</span><br><span class="line">args <span class="built_in">type</span>：int &amp;&amp; __ptr64</span><br></pre></td></tr></table></figure>
+<p>F为函数对象类型<code>int __cdecl(int)</code>, f被对段位函数对象的右值引用类型<code>int (__cdecl&amp;&amp;)(int)</code></p>
+<p>Args 被推断为int类型， args被推断为int &amp;&amp; 类型。</p>
+<p>所以我们就可以得出之前给大家的结论，对于模板类型参数T &amp;&amp; , 编译器会根据传入的类型为左值还是右值，将T 推断为不同的类型， 如果传入的类型为int类型的左值，则T为int&amp;类型，如果传入的类型为int类型的右值，则T为int类型。</p>
+<p>模板参数介绍完了，还要介绍一下原样转发, 熟悉我视频风格的读者都知道在介绍正确做法前我会先介绍错误示范，我们先看下面的例子</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_rightref</span><span class="params">(<span class="type">int</span> &amp;&amp; rparam)</span> </span>&#123;</span><br><span class="line">	<span class="comment">//....</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_tempref</span><span class="params">(T&amp;&amp; tparam)</span> </span>&#123;</span><br><span class="line">	<span class="built_in">use_rightref</span>(tparam);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_tempref</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="built_in">use_tempref</span>(<span class="number">3</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我先给大家介绍下上面代码的调用流程，我们在<code>test_tempref</code>里调用<code>use_tempref</code>, 参数3是一个右值，所以<code>use_tempref</code>中T被推断为int类型， tparam为int &amp;&amp; 类型。我们接着将tparam传递给<code>use_rightref</code>,tparam是int &amp;&amp; 类型，刚好可以传递给<code>use_rightref</code>，然而上面的代码会报错。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">“void use_rightref(int &amp;&amp;)”: 无法将参数 1 从“T”转换为“int &amp;&amp;”</span><br></pre></td></tr></table></figure>
+
+<p>报错的原因是我们将tparam传递给<code>use_rightref</code>的时候参数类型不匹配。在<code>use_tempref</code>中，tparam为int &amp;&amp; 类型，即int 的右值引用类型。但是将tparam传递给<code>use_rightref</code>时，tparam是作为左值传递的， 他的类型是int &amp;&amp; 类型，但是在函数<code>use_tempref</code>中tparam可以作为左值使用。这么说大家有点难理解</p>
+<p>我们分开理解，左值和右值的区别</p>
+<p>左值（lvalue） 是指表达式结束后依然存在的、可被取地址的数据。通俗地说，左值就是可以放在赋值符号左边的值。</p>
+<p>右值（rvalue） 是指表达式结束后就不再存在的临时数据。通常是不可被取地址的临时值，例如常量、函数返回值、表达式计算结果等。在 C++11 之后，右值引用的引入使得我们可以直接操作右值。</p>
+<p>我们看下面的代码</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_tempref</span><span class="params">(T&amp;&amp; tparam)</span> </span>&#123;</span><br><span class="line">	<span class="type">int</span> a = <span class="number">4</span>;</span><br><span class="line">	tparam = a;</span><br><span class="line">	tparam = std::<span class="built_in">move</span>(a);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_tempref</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="built_in">use_tempref</span>(<span class="number">3</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述代码编译没有问题可以运行，tparam可以作为左值被赋值。所以当它作为参数传递给其他函数的时候，它也是作为左值使用的，那么传递给<code>use_rightref</code>时，就会出现int&amp;&amp; 绑定左值的情况，这在编译阶段是不允许的。</p>
+<p>下面这种tparam也是被作为左值使用</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_tempref</span><span class="params">(<span class="type">int</span> &amp;&amp; tparam)</span> </span>&#123;</span><br><span class="line">	<span class="type">int</span> a = <span class="number">4</span>;</span><br><span class="line">	tparam = a;</span><br><span class="line">	tparam = std::<span class="built_in">move</span>(a);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_tempref</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="built_in">use_tempref</span>(<span class="number">3</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面代码编译也会通过的。</p>
+<p>那么我们接下来要解决tparam作为左值传递给<code>use_rightref</code>报错的问题，C++ 给我们提供了原样转发功能，这个在基础中也给大家介绍过, C++ 源码对于forward的实现有两个版本，分别是将一个左值转化为一个左值或者右值，以及将一个右值转化为一个右值。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> <span class="title class_">_Ty</span>&gt;</span><br><span class="line"><span class="function">_NODISCARD <span class="keyword">constexpr</span> _Ty&amp;&amp; <span class="title">forward</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">remove_reference_t</span>&lt;_Ty&gt;&amp; _Arg)</span> <span class="keyword">noexcept</span> </span>&#123; <span class="comment">// forward an lvalue as either an lvalue or an rvalue</span></span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">static_cast</span>&lt;_Ty&amp;&amp;&gt;(_Arg);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> <span class="title class_">_Ty</span>&gt;</span><br><span class="line"><span class="function">_NODISCARD <span class="keyword">constexpr</span> _Ty&amp;&amp; <span class="title">forward</span><span class="params">(<span class="type">remove_reference_t</span>&lt;_Ty&gt;&amp;&amp; _Arg)</span> <span class="keyword">noexcept</span> </span>&#123; <span class="comment">// forward an rvalue as an rvalue</span></span><br><span class="line">    <span class="built_in">static_assert</span>(!is_lvalue_reference_v&lt;_Ty&gt;, <span class="string">&quot;bad forward call&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">static_cast</span>&lt;_Ty&amp;&amp;&gt;(_Arg);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>因为实现了两个版本，所以forward会根据传递的是左值调用第一个版本，传递的是右值调用第二个版本。</p>
+<p>我们看看<code>remove_reference_t&lt;_Ty&gt;</code>的源码</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> <span class="title class_">_Ty</span>&gt;</span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">remove_reference</span>&lt;_Ty&amp;&gt; &#123;</span><br><span class="line">    <span class="keyword">using</span> type                 = _Ty;</span><br><span class="line">    <span class="keyword">using</span> _Const_thru_ref_type = <span class="type">const</span> _Ty&amp;;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> <span class="title class_">_Ty</span>&gt;</span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">remove_reference</span>&lt;_Ty&amp;&amp;&gt; &#123;</span><br><span class="line">    <span class="keyword">using</span> type                 = _Ty;</span><br><span class="line">    <span class="keyword">using</span> _Const_thru_ref_type = <span class="type">const</span> _Ty&amp;&amp;;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> <span class="title class_">_Ty</span>&gt;</span><br><span class="line"><span class="keyword">using</span> <span class="type">remove_reference_t</span> = <span class="keyword">typename</span> remove_reference&lt;_Ty&gt;::type;</span><br></pre></td></tr></table></figure>
+<p>我们通过观察就会发现<code>remove_reference_t&lt;_Ty&gt;</code>其实是去除了<code>_Ty</code>中的引用返回内部的type.</p>
+<p>所以我们forward<int>(3)时，执行<code>forward(remove_reference_t&lt;_Ty&gt;&amp;&amp; _Arg)</code>, <code>_Ty</code>为int &amp;&amp; 类型，<code>remove_reference_t&lt;_Ty&gt;</code>为int类型. 返回的为<code>static_cast&lt;_Ty&amp;&amp;&gt;(_Arg)</code>类型，即int &amp;&amp; &amp;&amp;类型,折叠一下变为int &amp;&amp;类型。</p>
+<p>同样当我们forward(a)，比如a是一个int类型的左值，则执行<code>_Ty&amp;&amp; forward(remove_reference_t&lt;_Ty&gt;&amp; _Arg)</code>, <code>_Ty</code>为int &amp;类型， <code>remove_reference_t&lt;_Ty&gt;</code>为int类型， 返回值为<code>static_cast&lt;_Ty&amp;&amp;&gt;(_Arg)</code> ,即int &amp; &amp;&amp; 类型折叠为int &amp;类型。</p>
+<p>所以有了这些知识，我们解决上面的编译错误可以这么干</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_rightref</span><span class="params">(<span class="type">int</span> &amp;&amp; rparam)</span> </span>&#123;</span><br><span class="line">	<span class="comment">//....</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_tempref</span><span class="params">(T&amp;&amp; tparam)</span> </span>&#123;</span><br><span class="line">	<span class="built_in">use_rightref</span>(std::forward&lt;T&gt;(tparam));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_tempref</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="built_in">use_tempref</span>(<span class="number">3</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>接下来我们回到线程池的话题，commit函数需要返回future对象，但是我们又无法在函数定义的时候提前写好返回值future的类型，那怎么办呢？</p>
+<p>可以用到C++ 11的一个技术就是尾置推导</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> <span class="title class_">F</span>, <span class="keyword">class</span>... Args&gt;</span><br><span class="line"><span class="function"><span class="keyword">auto</span> <span class="title">commit</span><span class="params">(F&amp;&amp; f, Args&amp;&amp;... args)</span> -&gt; </span></span><br><span class="line"><span class="function">        std::future&lt;<span class="title">decltype</span><span class="params">(std::forward&lt;F&gt;(f)(std::forward&lt;Args&gt;(args)...))</span>&gt; </span>&#123;</span><br><span class="line">        <span class="keyword">using</span> RetType = <span class="keyword">decltype</span>(std::forward&lt;F&gt;(f)(std::forward&lt;Args&gt;(args)...));</span><br><span class="line">      </span><br><span class="line">        <span class="keyword">return</span> std::future&lt;RetType&gt;&#123;&#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们在commit函数返回值写成了auto,告诉编译器具体的返回类型在其后，这样编译器在加载完函数的参数f和args之后，可以推导返回值类型.</p>
+<p>推导也很简单，我们通过<code>decltype(std::forward&lt;F&gt;(f)(std::forward&lt;Args&gt;(args)...))</code>, decltype会根据根据表达式推断表达式的结果类型，我们用future存储这个类型，这个future就是返回值类型。</p>
+<p>decltype中我们用了forward原样转发f和args，其实f不用转发，因为我们调用f是按照左值调用的，至于args原样转发是考虑f接受的参数可能是一个右值，但是这种情况其实不多，所以对于普通情形，我们写成<code>decltype(f(args...))</code>没问题的。</p>
+<p>因为推导的类型我们以后还会用到，所以用了RetType来记录这个类型。</p>
+<p>接下来我们给出commit的完整代码</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> <span class="title class_">F</span>, <span class="keyword">class</span>... Args&gt;</span><br><span class="line"><span class="function"><span class="keyword">auto</span> <span class="title">commit</span><span class="params">(F&amp;&amp; f, Args&amp;&amp;... args)</span> -&gt; </span></span><br><span class="line"><span class="function">std::future&lt;<span class="title">decltype</span><span class="params">(std::forward&lt;F&gt;(f)(std::forward&lt;Args&gt;(args)...))</span>&gt; </span>&#123;</span><br><span class="line">    <span class="keyword">using</span> RetType = <span class="keyword">decltype</span>(std::forward&lt;F&gt;(f)(std::forward&lt;Args&gt;(args)...));</span><br><span class="line">    <span class="keyword">if</span> (stop_.<span class="built_in">load</span>())</span><br><span class="line">        <span class="keyword">return</span> std::future&lt;RetType&gt;&#123;&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> task = std::make_shared&lt;std::packaged_task&lt;<span class="built_in">RetType</span>()&gt;&gt;(</span><br><span class="line">            std::<span class="built_in">bind</span>(std::forward&lt;F&gt;(f), std::forward&lt;Args&gt;(args)...));</span><br><span class="line"></span><br><span class="line">    std::future&lt;RetType&gt; ret = task-&gt;<span class="built_in">get_future</span>();</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">cv_mt</span><span class="params">(cv_mt_)</span></span>;</span><br><span class="line">        tasks_.<span class="built_in">emplace</span>([task] &#123; (*task)(); &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    cv_lock_.<span class="built_in">notify_one</span>();</span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在commit中我们生成一个packaged_task&lt;RetType()&gt;类型的智能指针task，通过task获取future.</p>
+<p>接下来我们加锁并且将task放入队列，但是因为task的返回类型为RetType，所以我们采用了lambda表达式捕获task，内部调用task，将这个lambda表达式放入任务队列。</p>
+<p>然后通知其他线程唤醒，并且返回future。</p>
+<h2 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h2><p>为了测试线程池，我们可以用前文实现的快速排序的方法，将任务分段递归投递给线程池，让线程池排序</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line">std::list&lt;T&gt;<span class="built_in">pool_thread_quick_sort</span>(std::list&lt;T&gt; input) &#123;</span><br><span class="line">	<span class="keyword">if</span> (input.<span class="built_in">empty</span>())</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">return</span> input;</span><br><span class="line">	&#125;</span><br><span class="line">	std::list&lt;T&gt; result;</span><br><span class="line">	result.<span class="built_in">splice</span>(result.<span class="built_in">begin</span>(), input, input.<span class="built_in">begin</span>());</span><br><span class="line">	T <span class="type">const</span>&amp; partition_val = *result.<span class="built_in">begin</span>();</span><br><span class="line">	<span class="keyword">typename</span> std::list&lt;T&gt;::iterator divide_point =</span><br><span class="line">		std::<span class="built_in">partition</span>(input.<span class="built_in">begin</span>(), input.<span class="built_in">end</span>(),</span><br><span class="line">			[&amp;](T <span class="type">const</span>&amp; val) &#123;<span class="keyword">return</span> val &lt; partition_val; &#125;);</span><br><span class="line">	std::list&lt;T&gt; new_lower_chunk;</span><br><span class="line">	new_lower_chunk.<span class="built_in">splice</span>(new_lower_chunk.<span class="built_in">end</span>(),</span><br><span class="line">		input, input.<span class="built_in">begin</span>(),</span><br><span class="line">		divide_point);</span><br><span class="line"></span><br><span class="line">	std::future&lt;std::list&lt;T&gt; &gt; new_lower = ThreadPool::<span class="built_in">instance</span>().<span class="built_in">commit</span>(pool_thread_quick_sort&lt;T&gt;, new_lower_chunk);</span><br><span class="line">	</span><br><span class="line">	<span class="function">std::list&lt;T&gt; <span class="title">new_higher</span><span class="params">(pool_thread_quick_sort(input))</span></span>;</span><br><span class="line">	result.<span class="built_in">splice</span>(result.<span class="built_in">end</span>(), new_higher);</span><br><span class="line">	result.<span class="built_in">splice</span>(result.<span class="built_in">begin</span>(), new_lower.<span class="built_in">get</span>());</span><br><span class="line">	<span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们再写一个测试用例</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">TestThreadPoolSort</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::list&lt;<span class="type">int</span>&gt; nlist = &#123; <span class="number">6</span>,<span class="number">1</span>,<span class="number">0</span>,<span class="number">5</span>,<span class="number">2</span>,<span class="number">9</span>,<span class="number">11</span> &#125;;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">auto</span> sortlist = <span class="built_in">pool_thread_quick_sort</span>&lt;<span class="type">int</span>&gt;(nlist);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">auto</span>&amp; value : sortlist) &#123;</span><br><span class="line">		std::cout &lt;&lt; value &lt;&lt; <span class="string">&quot; &quot;</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	std::cout &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>结果输出</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0 1 2 5 6 9 11</span><br></pre></td></tr></table></figure>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍线程池的原理，并实现了线程池</p>
+<p>源码链接：</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day22-ThreadPool">https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day22-ThreadPool</a></p>
+<p>视频链接：</p>
+<p><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290">https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2024/01/29/concpp25/" rel="next" title="">
+                <i class="fa fa-chevron-left"></i> 
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">302</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BA%BF%E7%A8%8B%E6%B1%A0%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-number">2.</span> <span class="nav-text">线程池的实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95"><span class="nav-number">3.</span> <span class="nav-text">测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

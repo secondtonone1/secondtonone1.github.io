@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="title: 几种简单并行算法的实现(for_each,find以及partial_sum)date: 2024-01-29 19:56:02tags:  C++categories: C++  简介前文介绍了几种数据划分的方式，包括按照线程数量划分，按照递归方式划分，以及按照任务类型划分等。 本文结合之前的划分方式，基于stl的find, for_each以及partial_sum等算法实现并">
+<meta property="og:type" content="article">
+<meta property="og:title" content="恋恋风辰的个人博客">
+<meta property="og:url" content="http://www.limerence2017.com/2024/01/29/concpp25/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="title: 几种简单并行算法的实现(for_each,find以及partial_sum)date: 2024-01-29 19:56:02tags:  C++categories: C++  简介前文介绍了几种数据划分的方式，包括按照线程数量划分，按照递归方式划分，以及按照任务类型划分等。 本文结合之前的划分方式，基于stl的find, for_each以及partial_sum等算法实现并">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-01-29T11:56:02.582Z">
+<meta property="article:modified_time" content="2024-01-30T03:47:21.677Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++ python 大并发网络 逆向">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2024/01/29/concpp25/"/>
+
+
+
+
+
+  <title> | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/01/29/concpp25/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline"></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-01-29T19:56:02+08:00">
+                2024-01-29
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <hr>
+<p>title: 几种简单并行算法的实现(for_each,find以及partial_sum)<br>date: 2024-01-29 19:56:02<br>tags:  C++<br>categories: C++</p>
+<hr>
+<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前文介绍了几种数据划分的方式，包括按照线程数量划分，按照递归方式划分，以及按照任务类型划分等。</p>
+<p>本文结合之前的划分方式，基于stl的find, for_each以及partial_sum等算法实现并行版本。</p>
+<h2 id="并行版本for-each"><a href="#并行版本for-each" class="headerlink" title="并行版本for_each"></a>并行版本for_each</h2><p>实现并行的for_each，最简单的方式就是将数据划分，每个线程分别处理一段连续的数据即可。</p>
+<p>在介绍并行版本之前，我们先实现一个管理线程 的类join_threads，用来管控线程防止线程过早退出</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">join_threads</span></span><br><span class="line">&#123;</span><br><span class="line">    std::vector&lt;std::thread&gt;&amp; threads;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="keyword">explicit</span> <span class="title">join_threads</span><span class="params">(std::vector&lt;std::thread&gt;&amp; threads_)</span> :</span></span><br><span class="line"><span class="function">        threads(threads_)</span></span><br><span class="line"><span class="function">    &#123;</span>&#125;</span><br><span class="line">    ~<span class="built_in">join_threads</span>()</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">unsigned</span> <span class="type">long</span> i = <span class="number">0</span>; i &lt; threads.<span class="built_in">size</span>(); ++i)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (threads[i].<span class="built_in">joinable</span>())</span><br><span class="line">                threads[i].<span class="built_in">join</span>();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>接下来我们实现第一种方式</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Iterator, <span class="keyword">typename</span> Func&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">parallel_for_each</span><span class="params">(Iterator first, Iterator last, Func f)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> length = std::<span class="built_in">distance</span>(first, last);</span><br><span class="line">    <span class="keyword">if</span> (!length)</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> min_per_thread = <span class="number">25</span>;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> max_threads =</span><br><span class="line">        (length + min_per_thread - <span class="number">1</span>) / min_per_thread;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> hardware_threads =</span><br><span class="line">        std::thread::<span class="built_in">hardware_concurrency</span>();</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> num_threads =</span><br><span class="line">        std::<span class="built_in">min</span>(hardware_threads != <span class="number">0</span> ? hardware_threads : <span class="number">2</span>, max_threads);</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> block_size = length / num_threads;</span><br><span class="line">    std::vector&lt;std::future&lt;<span class="type">void</span>&gt;&gt; <span class="built_in">futures</span>(num_threads - <span class="number">1</span>);   <span class="comment">//⇽-- - 1</span></span><br><span class="line">        <span class="function">std::vector&lt;std::thread&gt; <span class="title">threads</span><span class="params">(num_threads - <span class="number">1</span>)</span></span>;</span><br><span class="line">    <span class="function">join_threads <span class="title">joiner</span><span class="params">(threads)</span></span>;</span><br><span class="line">    Iterator block_start = first;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">unsigned</span> <span class="type">long</span> i = <span class="number">0</span>; i &lt; (num_threads - <span class="number">1</span>); ++i)</span><br><span class="line">    &#123;</span><br><span class="line">        Iterator block_end = block_start;</span><br><span class="line">        std::<span class="built_in">advance</span>(block_end, block_size);</span><br><span class="line">        <span class="function">std::packaged_task&lt;<span class="title">void</span><span class="params">(<span class="type">void</span>)</span>&gt; <span class="title">task</span><span class="params">( <span class="comment">// ⇽-- - 2</span></span></span></span><br><span class="line"><span class="params"><span class="function">            [=]()</span></span></span><br><span class="line"><span class="params"><span class="function">        &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">            std::for_each(block_start, block_end, f);</span></span></span><br><span class="line"><span class="params"><span class="function">        &#125;)</span></span>;</span><br><span class="line">        futures[i] = task.<span class="built_in">get_future</span>();</span><br><span class="line">        threads[i] = std::<span class="built_in">thread</span>(std::<span class="built_in">move</span>(task));    <span class="comment">//⇽-- - 3</span></span><br><span class="line">            block_start = block_end;</span><br><span class="line">    &#125;</span><br><span class="line">    std::for_each(block_start, last, f);</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">unsigned</span> <span class="type">long</span> i = <span class="number">0</span>; i &lt; (num_threads - <span class="number">1</span>); ++i)</span><br><span class="line">    &#123;</span><br><span class="line">        futures[i].<span class="built_in">get</span>();   <span class="comment">// ⇽-- - 4</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>1 我们规定如果处理的数量不超过25个则用单线程。否则根据处理的数量划分任务，计算开辟的线程数，如果要开辟的线程数大于内核线程的数量，则以内核线程数为准。</p>
+<p>2 根据实际开辟的线程数num_threads计算每个线程处理的块大小。并且初始化两个vector，分别用来存储处理结果的future和处理任务的线程。</p>
+<p>3 我们在(2处)代码生成了一个任务task，然后获取future赋值给vector对应下标为i的future元素，并且把任务绑定给对应下标为i的thread。</p>
+<p>4 numthreads-1个线程并行处理for_each，剩下的主线程处理余下的for_each，最后通过futures.get汇总</p>
+<p>第二种划分方式是我们采取递归的方式，我们知道采用递归的方式无法提前开辟准确数量的线程，我们采用async帮我们完成这个任务</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Iterator, <span class="keyword">typename</span> Func&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">async_for_each</span><span class="params">(Iterator first, Iterator last, Func f)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> length = std::<span class="built_in">distance</span>(first, last);</span><br><span class="line">    <span class="keyword">if</span> (!length)</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> min_per_thread = <span class="number">25</span>;</span><br><span class="line">    <span class="keyword">if</span> (length &lt; (<span class="number">2</span> * min_per_thread))</span><br><span class="line">    &#123;</span><br><span class="line">        std::for_each(first, last, f);    <span class="comment">//⇽-- - 1</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        Iterator <span class="type">const</span> mid_point = first + length / <span class="number">2</span>;</span><br><span class="line">        <span class="comment">//⇽-- - 2</span></span><br><span class="line">        std::future&lt;<span class="type">void</span>&gt; first_half =   std::<span class="built_in">async</span>(&amp;async_for_each&lt;Iterator, Func&gt;,</span><br><span class="line">                first, mid_point, f);</span><br><span class="line">        <span class="comment">//⇽-- - 3</span></span><br><span class="line">        <span class="built_in">async_for_each</span>(mid_point, last, f); </span><br><span class="line">        <span class="comment">// ⇽-- - 4</span></span><br><span class="line">        first_half.<span class="built_in">get</span>();   </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>async可以帮助我们判断是否需要开启线程还是自动串行执行。每次我们将要处理的数据一分为2，前半部分交给一个async开辟线程处理，后半部分在本线程处理。而所谓的本线程不一定是主线程，因为我们通过async递归执行parallel_for_each，也就相当于在一个线程里独立执行了。</p>
+<h2 id="find的并行实现"><a href="#find的并行实现" class="headerlink" title="find的并行实现"></a>find的并行实现</h2><p>find 的并行查找方式还是分两种，一种是将要查找的区间划分为几个段，每段交给一个线程查找。</p>
+<p>另一种是采用递归的方式每次折半，前半部分交给一个线程查找，后半部分留在本线程查找。</p>
+<p>我们先说第一种</p>
+<p>find比较特殊，我们要防止线程忙等待，也要防止线程在其他线程已经查找到值后做无谓的浪费。可以用一个共享的全局atomic变量表示是否找到目标。</p>
+<p>因为主线程要获取某个线程查找到的迭代器位置，所以我们用promise 设置 value为迭代器</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Iterator, <span class="keyword">typename</span> MatchType&gt;</span></span><br><span class="line"><span class="function">Iterator <span class="title">parallel_find</span><span class="params">(Iterator first, Iterator last, MatchType match)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">find_element</span>    <span class="comment">//⇽-- - 1</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="type">void</span> <span class="title">operator</span><span class="params">()</span><span class="params">(Iterator begin,Iterator end,</span></span></span><br><span class="line"><span class="params"><span class="function">                        MatchType match,</span></span></span><br><span class="line"><span class="params"><span class="function">                        std::promise&lt;Iterator&gt;*result,</span></span></span><br><span class="line"><span class="params"><span class="function">                        std::atomic&lt;<span class="type">bool</span>&gt;*done_flag)</span></span></span><br><span class="line"><span class="function">        </span>&#123;</span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">for</span> (; (begin != end) &amp;&amp; !done_flag-&gt;<span class="built_in">load</span>(); ++begin)    <span class="comment">//⇽-- - 2</span></span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">if</span> (*begin == match)</span><br><span class="line">                    &#123;</span><br><span class="line">                        result-&gt;<span class="built_in">set_value</span>(begin);    <span class="comment">//⇽-- - 3</span></span><br><span class="line">                        done_flag-&gt;<span class="built_in">store</span>(<span class="literal">true</span>);    <span class="comment">//⇽-- - 4</span></span><br><span class="line">                        <span class="keyword">return</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="built_in">catch</span> (...)    <span class="comment">//⇽-- - 5</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">try</span></span><br><span class="line">                &#123;</span><br><span class="line">                    result-&gt;<span class="built_in">set_exception</span>(std::<span class="built_in">current_exception</span>());    <span class="comment">//⇽-- - 6</span></span><br><span class="line">                    done_flag-&gt;<span class="built_in">store</span>(<span class="literal">true</span>);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="built_in">catch</span> (...)    <span class="comment">//⇽-- - 7</span></span><br><span class="line">                &#123;&#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> length = std::<span class="built_in">distance</span>(first, last);</span><br><span class="line">    <span class="keyword">if</span> (!length)</span><br><span class="line">        <span class="keyword">return</span> last;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> min_per_thread = <span class="number">25</span>;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> max_threads = (length + min_per_thread - <span class="number">1</span>) / min_per_thread;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> hardware_threads = std::thread::<span class="built_in">hardware_concurrency</span>();</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> num_threads = std::<span class="built_in">min</span>(hardware_threads != <span class="number">0</span> ? hardware_threads : <span class="number">2</span>, max_threads);</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> block_size = length / num_threads;</span><br><span class="line">    std::promise&lt;Iterator&gt; result;    <span class="comment">//⇽-- - 8</span></span><br><span class="line">    <span class="function">std::atomic&lt;<span class="type">bool</span>&gt; <span class="title">done_flag</span><span class="params">(<span class="literal">false</span>)</span></span>;     <span class="comment">//⇽-- - 9</span></span><br><span class="line">    <span class="function">std::vector&lt;std::thread&gt; <span class="title">threads</span><span class="params">(num_threads - <span class="number">1</span>)</span></span>; <span class="comment">//⇽-- - 10</span></span><br><span class="line">    &#123;    </span><br><span class="line">        <span class="function">join_threads <span class="title">joiner</span><span class="params">(threads)</span></span>;</span><br><span class="line">        Iterator block_start = first;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">unsigned</span> <span class="type">long</span> i = <span class="number">0</span>; i &lt; (num_threads - <span class="number">1</span>); ++i)</span><br><span class="line">        &#123;</span><br><span class="line">            Iterator block_end = block_start;</span><br><span class="line">            std::<span class="built_in">advance</span>(block_end, block_size);</span><br><span class="line">            <span class="comment">// ⇽-- - 11</span></span><br><span class="line">            threads[i] = std::<span class="built_in">thread</span>(<span class="built_in">find_element</span>(),  block_start, block_end, match, &amp;result, &amp;done_flag);</span><br><span class="line">            block_start = block_end;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// ⇽-- - 12</span></span><br><span class="line">        <span class="built_in">find_element</span>()(block_start, last, match, &amp;result, &amp;done_flag);   </span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ⇽-- - 13</span></span><br><span class="line">    <span class="keyword">if</span> (!done_flag.<span class="built_in">load</span>())   </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> last;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//⇽-- - 14</span></span><br><span class="line">    <span class="keyword">return</span> result.<span class="built_in">get_future</span>().<span class="built_in">get</span>();    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>1 find_element重载了()运算符，接受四个参数，分别是迭代器的开始，迭代起的结束，要查找的数值，以及用来通知外部的promise，还有线程之间用来检测是否有某个线程完成查找的原子变量。</p>
+<p>2  find_element重载()的逻辑就是查找这个区间内满足某个值的位置，并将这个位置的迭代起设置到promise中，然后将完成的原子变量标记为true。</p>
+<p>说第二种方式，利用递归折半查找，我们可以用async帮助我们完成并行任务。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Iterator, <span class="keyword">typename</span> MatchType&gt;</span></span><br><span class="line"><span class="function">Iterator <span class="title">parallel_find_impl</span><span class="params">(Iterator first, Iterator last, MatchType match,</span></span></span><br><span class="line"><span class="params"><span class="function">    std::atomic&lt;<span class="type">bool</span>&gt;&amp; done)</span>   <span class="comment">// ⇽-- - 1</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">try</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> length = std::<span class="built_in">distance</span>(first,last);</span><br><span class="line">        <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> min_per_thread = <span class="number">25</span>;   <span class="comment">// ⇽-- - 2</span></span><br><span class="line">        <span class="keyword">if</span> (length &lt; (<span class="number">2</span> * min_per_thread))    <span class="comment">//⇽-- - 3</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">for</span> (; (first != last) &amp;&amp; !done.<span class="built_in">load</span>(); ++first)     <span class="comment">//⇽-- - 4</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">if</span> (*first == match)</span><br><span class="line">                &#123;</span><br><span class="line">                    done = <span class="literal">true</span>;    <span class="comment">//⇽-- - 5</span></span><br><span class="line">                    <span class="keyword">return</span> first;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> last;    <span class="comment">//⇽-- - 6</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">//⇽-- - 7</span></span><br><span class="line">            Iterator <span class="type">const</span> mid_point = first + (length / <span class="number">2</span>);   </span><br><span class="line">            <span class="comment">//⇽-- - 8</span></span><br><span class="line">            std::future&lt;Iterator&gt; async_result = std::<span class="built_in">async</span>(&amp;parallel_find_impl&lt;Iterator,MatchType&gt;,    </span><br><span class="line">                           mid_point,last,match,std::<span class="built_in">ref</span>(done));</span><br><span class="line">            <span class="comment">//⇽-- - 9</span></span><br><span class="line">            Iterator <span class="type">const</span> direct_result = <span class="built_in">parallel_find_impl</span>(first,mid_point,match,done); </span><br><span class="line">            <span class="comment">//⇽-- - 10</span></span><br><span class="line">            <span class="keyword">return</span> (direct_result == mid_point) ?async_result.<span class="built_in">get</span>() : direct_result;    </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">catch</span> (...)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// ⇽-- - 11</span></span><br><span class="line">        done = <span class="literal">true</span>;   </span><br><span class="line">        <span class="keyword">throw</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Iterator, <span class="keyword">typename</span> MatchType&gt;</span></span><br><span class="line"><span class="function">Iterator <span class="title">parallel_find_async</span><span class="params">(Iterator first, Iterator last, MatchType match)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">std::atomic&lt;<span class="type">bool</span>&gt; <span class="title">done</span><span class="params">(<span class="literal">false</span>)</span></span>;</span><br><span class="line">    <span class="comment">//⇽-- - 12</span></span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">parallel_find_impl</span>(first, last, match, done);    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>1 并行查找的方式种我们先根据长度是否小于50决定是否开启并行任务，如果小于50则采取单线程方式。</p>
+<p>2  如果采用并行的方式，我们将长度折半，前半部分交给async，后半部分交给本线程。</p>
+<p>3 最后我们在主线程中汇合，获取结果。</p>
+<h2 id="partial-sum并行版本"><a href="#partial-sum并行版本" class="headerlink" title="partial_sum并行版本"></a>partial_sum并行版本</h2><p>C++ 提供了累计计算求和的功能，比如一个vector中存储的数据为{1,2,3},那么经过计算，第一个元素仍然为1，第二个元素为1+2， 第三个元素为1+2+3，结果为{1,3,6}.</p>
+<p>关于并行版本我们可以这么思考，假设元数组为{1,2,3,4,5,6,7},那我们可以划分为三个部分，第一部分为{1,2,3}交给第一个线程处理, 第二部分{4,5,6}交给第二个线程处理，7交给本线程处理。</p>
+<p>但是我们要考虑的一个问题是线程2要用到线程1最后计算的结果，线程1计算后{1,3,6}，线程2需要用到6做累加，我们可以先让线程1计算出第3个元素值6，再将这个6传递给线程2，剩下的就可以并行计算了。同样的道理本线程要处理最后一个元素的累加结果，他需要等到线程2处理完第6个元素的值。</p>
+<p>所以基本思路是每个线程优先处理分区的最后一个元素，通过promise设置给其他线程，在这个阶段线程之间是串行的，等到所有线程都开始计算其他位置后就是并行了。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Iterator&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">parallel_partial_sum</span><span class="params">(Iterator first, Iterator last)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">typedef</span> <span class="keyword">typename</span> Iterator::value_type value_type;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">process_chunk</span>    <span class="comment">//⇽-- - 1</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="type">void</span> <span class="title">operator</span><span class="params">()</span><span class="params">(Iterator begin, Iterator last,</span></span></span><br><span class="line"><span class="params"><span class="function">            std::future&lt;value_type&gt;* previous_end_value,</span></span></span><br><span class="line"><span class="params"><span class="function">            std::promise&lt;value_type&gt;* end_value)</span></span></span><br><span class="line"><span class="function">        </span>&#123;</span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">            &#123;</span><br><span class="line">                Iterator end = last;</span><br><span class="line">                ++end;</span><br><span class="line">                std::<span class="built_in">partial_sum</span>(begin, end, begin);    <span class="comment">//⇽-- - 2</span></span><br><span class="line">                <span class="keyword">if</span> (previous_end_value)    <span class="comment">//⇽-- - 3</span></span><br><span class="line">                &#123;</span><br><span class="line">                    value_type addend = previous_end_value-&gt;<span class="built_in">get</span>();   <span class="comment">// ⇽-- - 4</span></span><br><span class="line">                    *last += addend;   <span class="comment">// ⇽-- - 5</span></span><br><span class="line">                    <span class="keyword">if</span> (end_value)</span><br><span class="line">                    &#123;</span><br><span class="line">                        end_value-&gt;<span class="built_in">set_value</span>(*last);    <span class="comment">//⇽-- - 6</span></span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="comment">// ⇽-- - 7</span></span><br><span class="line">                    std::for_each(begin, last, [addend](value_type&amp; item)</span><br><span class="line">                        &#123;</span><br><span class="line">                            item += addend;</span><br><span class="line">                        &#125;);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">else</span> <span class="keyword">if</span> (end_value)</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="comment">// ⇽-- - 8</span></span><br><span class="line">                    end_value-&gt;<span class="built_in">set_value</span>(*last);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="built_in">catch</span> (...)  <span class="comment">// ⇽-- - 9</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">if</span> (end_value)</span><br><span class="line">                &#123;</span><br><span class="line">                    end_value-&gt;<span class="built_in">set_exception</span>(std::<span class="built_in">current_exception</span>());   <span class="comment">// ⇽-- - 10</span></span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">else</span></span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">throw</span>;   <span class="comment">// ⇽-- - 11</span></span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">        <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> length = std::<span class="built_in">distance</span>(first, last);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!length) &#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> min_per_thread = <span class="number">25</span>;     <span class="comment">//⇽-- - 12</span></span><br><span class="line">        <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> max_threads = (length + min_per_thread - <span class="number">1</span>) / min_per_thread;</span><br><span class="line">        <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> hardware_threads = std::thread::<span class="built_in">hardware_concurrency</span>();</span><br><span class="line">        <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> num_threads = std::<span class="built_in">min</span>(hardware_threads != <span class="number">0</span> ? hardware_threads : <span class="number">2</span>, max_threads);</span><br><span class="line">        <span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> block_size = length / num_threads;</span><br><span class="line">        <span class="keyword">typedef</span> <span class="keyword">typename</span> Iterator::value_type value_type;</span><br><span class="line">        </span><br><span class="line">        <span class="function">std::vector&lt;std::thread&gt; <span class="title">threads</span><span class="params">(num_threads - <span class="number">1</span>)</span></span>;   <span class="comment">// ⇽-- - 13</span></span><br><span class="line"></span><br><span class="line">        std::vector&lt;std::promise&lt;value_type&gt; &gt; <span class="built_in">end_values</span>(num_threads - <span class="number">1</span>);   <span class="comment">// ⇽-- - 14</span></span><br><span class="line">        </span><br><span class="line">        std::vector&lt;std::future&lt;value_type&gt; &gt; previous_end_values;   <span class="comment">// ⇽-- - 15</span></span><br><span class="line">        previous_end_values.<span class="built_in">reserve</span>(num_threads - <span class="number">1</span>);   <span class="comment">// ⇽-- - 16</span></span><br><span class="line">        <span class="function">join_threads <span class="title">joiner</span><span class="params">(threads)</span></span>;</span><br><span class="line">        Iterator block_start = first;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">unsigned</span> <span class="type">long</span> i = <span class="number">0</span>; i &lt; (num_threads - <span class="number">1</span>); ++i)</span><br><span class="line">        &#123;</span><br><span class="line">            Iterator block_last = block_start;</span><br><span class="line">            std::<span class="built_in">advance</span>(block_last, block_size - <span class="number">1</span>);   <span class="comment">// ⇽-- - 17</span></span><br><span class="line">            <span class="comment">// ⇽-- - 18</span></span><br><span class="line">            threads[i] = std::<span class="built_in">thread</span>(<span class="built_in">process_chunk</span>(), block_start, block_last,</span><br><span class="line">                (i != <span class="number">0</span>) ? &amp;previous_end_values[i - <span class="number">1</span>] : <span class="number">0</span>,</span><br><span class="line">                &amp;end_values[i]);</span><br><span class="line">            block_start = block_last;</span><br><span class="line">            ++block_start;   <span class="comment">// ⇽-- - 19</span></span><br><span class="line">            previous_end_values.<span class="built_in">push_back</span>(end_values[i].<span class="built_in">get_future</span>());   <span class="comment">// ⇽-- - 20</span></span><br><span class="line">        &#125;</span><br><span class="line">        Iterator final_element = block_start;</span><br><span class="line">        std::<span class="built_in">advance</span>(final_element, std::<span class="built_in">distance</span>(block_start, last) - <span class="number">1</span>);   <span class="comment">// ⇽-- - 21</span></span><br><span class="line">        <span class="comment">// ⇽-- - 22</span></span><br><span class="line">        <span class="built_in">process_chunk</span>()(block_start, final_element, (num_threads &gt; <span class="number">1</span>) ? &amp;previous_end_values.<span class="built_in">back</span>() : <span class="number">0</span>,</span><br><span class="line">            <span class="number">0</span>);</span><br><span class="line">    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>1 定义了process_chunk类，重载了()运算符，在重载的逻辑里我们先计算区间内的partial_sum累计求和(2处)</p>
+<p>2 因为我们处理的区间不一定是首个区间，也就是他还需要加上前面区间处理得出的最后一个元素的值，所以我们通过previouse_end_value判断本区间不是首个区间，并且加上前面处理的结果。优先将最后一个值计算出来设置给promise。然后在利用for_each遍历计算其他位置的值。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了如何并行设计stl的相关算法，读者有好的思路可以互相交流一下。</p>
+<p>测试代码和项目代码链接：</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day21-ParallenAlgorithm">https://gitee.com/secondtonone1/boostasio-learn/tree/master/concurrent/day21-ParallenAlgorithm</a></p>
+<p>视频链接</p>
+<p><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290">https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2024/01/13/concpp24/" rel="next" title="线程间切分任务的方法">
+                <i class="fa fa-chevron-left"></i> 线程间切分任务的方法
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2024/02/07/concpp26/" rel="prev" title="线程池原理和实现">
+                线程池原理和实现 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">302</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B9%B6%E8%A1%8C%E7%89%88%E6%9C%ACfor-each"><span class="nav-number">2.</span> <span class="nav-text">并行版本for_each</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#find%E7%9A%84%E5%B9%B6%E8%A1%8C%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.</span> <span class="nav-text">find的并行实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#partial-sum%E5%B9%B6%E8%A1%8C%E7%89%88%E6%9C%AC"><span class="nav-number">4.</span> <span class="nav-text">partial_sum并行版本</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

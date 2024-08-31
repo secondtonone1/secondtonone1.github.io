@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++ cpppro," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="客户端登录功能登录界面新增err_tip，用来提示用户登陆结果。至于密码输入框大家可以根据注册界面的逻辑实现隐藏和显示的功能。这里留给大家自己实现。  点击登录需要发送http 请求到GateServer，GateServer先验证登录密码，再调用grpc请求给StatusServer，获取聊天服务器ip信息和token信息反馈给客户端。 结构图如下  我们先实现客户端登录,为登录按钮添加槽函数响">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C++ 全栈聊天项目(14) 封装Mysql连接池">
+<meta property="og:url" content="http://www.limerence2017.com/2024/08/31/cpppro14/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="客户端登录功能登录界面新增err_tip，用来提示用户登陆结果。至于密码输入框大家可以根据注册界面的逻辑实现隐藏和显示的功能。这里留给大家自己实现。  点击登录需要发送http 请求到GateServer，GateServer先验证登录密码，再调用grpc请求给StatusServer，获取聊天服务器ip信息和token信息反馈给客户端。 结构图如下  我们先实现客户端登录,为登录按钮添加槽函数响">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.llfc.club/1713228480446.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1713230325540.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1713239066360.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1713248019373.jpg">
+<meta property="article:published_time" content="2024-08-31T01:30:35.000Z">
+<meta property="article:modified_time" content="2024-08-31T01:58:34.104Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++ cpppro">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.llfc.club/1713228480446.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2024/08/31/cpppro14/"/>
+
+
+
+
+
+  <title>C++ 全栈聊天项目(14) 封装Mysql连接池 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/08/31/cpppro14/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">C++ 全栈聊天项目(14) 封装Mysql连接池</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-08-31T09:30:35+08:00">
+                2024-08-31
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
+                    <span itemprop="name">C++ cpppro</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="客户端登录功能"><a href="#客户端登录功能" class="headerlink" title="客户端登录功能"></a>客户端登录功能</h2><p>登录界面新增err_tip，用来提示用户登陆结果。至于密码输入框大家可以根据注册界面的逻辑实现隐藏和显示的功能。这里留给大家自己实现。</p>
+<p><img src="https://cdn.llfc.club/1713228480446.jpg" alt="https://cdn.llfc.club/1713228480446.jpg"></p>
+<p>点击登录需要发送http 请求到GateServer，GateServer先验证登录密码，再调用grpc请求给StatusServer，获取聊天服务器ip信息和token信息反馈给客户端。</p>
+<p>结构图如下</p>
+<p><img src="https://cdn.llfc.club/1713230325540.jpg" alt="https://cdn.llfc.club/1713230325540.jpg"></p>
+<p>我们先实现客户端登录,为登录按钮添加槽函数响应</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">LoginDialog::on_login_btn_clicked</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">qDebug</span>()&lt;&lt;<span class="string">&quot;login btn clicked&quot;</span>;</span><br><span class="line">    <span class="keyword">if</span>(<span class="built_in">checkUserValid</span>() == <span class="literal">false</span>)&#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(<span class="built_in">checkPwdValid</span>() == <span class="literal">false</span>)&#123;</span><br><span class="line">        <span class="keyword">return</span> ;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> user = ui-&gt;user_edit-&gt;<span class="built_in">text</span>();</span><br><span class="line">    <span class="keyword">auto</span> pwd = ui-&gt;pass_edit-&gt;<span class="built_in">text</span>();</span><br><span class="line">    <span class="comment">//发送http请求登录</span></span><br><span class="line">    QJsonObject json_obj;</span><br><span class="line">    json_obj[<span class="string">&quot;user&quot;</span>] = user;</span><br><span class="line">    json_obj[<span class="string">&quot;passwd&quot;</span>] = <span class="built_in">xorString</span>(pwd);</span><br><span class="line">    HttpMgr::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">PostHttpReq</span>(<span class="built_in">QUrl</span>(gate_url_prefix+<span class="string">&quot;/user_login&quot;</span>),</span><br><span class="line">                                        json_obj, ReqId::ID_LOGIN_USER,Modules::LOGINMOD);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>增加检测函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">bool</span> <span class="title">LoginDialog::checkUserValid</span><span class="params">()</span></span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> user = ui-&gt;user_edit-&gt;<span class="built_in">text</span>();</span><br><span class="line">    <span class="keyword">if</span>(user.<span class="built_in">isEmpty</span>())&#123;</span><br><span class="line">        <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;User empty &quot;</span> ;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">bool</span> <span class="title">LoginDialog::checkPwdValid</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="keyword">auto</span> pwd = ui-&gt;pass_edit-&gt;<span class="built_in">text</span>();</span><br><span class="line">    <span class="keyword">if</span>(pwd.<span class="built_in">length</span>() &lt; <span class="number">6</span> || pwd.<span class="built_in">length</span>() &gt; <span class="number">15</span>)&#123;</span><br><span class="line">        <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;Pass length invalid&quot;</span>;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在HttpMgr中添加sig_login_mod_finish信号，收到http请求完成回包的槽函数中添加登录模块的响应，将登录模块的消息发送到登录界面</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">HttpMgr::slot_http_finish</span><span class="params">(ReqId id, QString res, ErrorCodes err, Modules mod)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(mod == Modules::REGISTERMOD)&#123;</span><br><span class="line">        <span class="comment">//发送信号通知指定模块http响应结束</span></span><br><span class="line">        <span class="function">emit <span class="title">sig_reg_mod_finish</span><span class="params">(id, res, err)</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(mod == Modules::RESETMOD)&#123;</span><br><span class="line">        <span class="comment">//发送信号通知指定模块http响应结束</span></span><br><span class="line">        <span class="function">emit <span class="title">sig_reset_mod_finish</span><span class="params">(id, res, err)</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(mod == Modules::LOGINMOD)&#123;</span><br><span class="line">        <span class="function">emit <span class="title">sig_login_mod_finish</span><span class="params">(id, res, err)</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在LoginDialog的构造函数中添加消息对应的槽函数连接</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">LoginDialog::<span class="built_in">LoginDialog</span>(QWidget *parent) :</span><br><span class="line">    <span class="built_in">QDialog</span>(parent),</span><br><span class="line">    <span class="built_in">ui</span>(<span class="keyword">new</span> Ui::LoginDialog)</span><br><span class="line">&#123;</span><br><span class="line">    ui-&gt;<span class="built_in">setupUi</span>(<span class="keyword">this</span>);</span><br><span class="line">    <span class="built_in">connect</span>(ui-&gt;reg_btn, &amp;QPushButton::clicked, <span class="keyword">this</span>, &amp;LoginDialog::switchRegister);</span><br><span class="line">    ui-&gt;forget_label-&gt;<span class="built_in">SetState</span>(<span class="string">&quot;normal&quot;</span>,<span class="string">&quot;hover&quot;</span>,<span class="string">&quot;&quot;</span>,<span class="string">&quot;selected&quot;</span>,<span class="string">&quot;selected_hover&quot;</span>,<span class="string">&quot;&quot;</span>);</span><br><span class="line">    ui-&gt;forget_label-&gt;<span class="built_in">setCursor</span>(Qt::PointingHandCursor);</span><br><span class="line">    <span class="built_in">connect</span>(ui-&gt;forget_label, &amp;ClickedLabel::clicked, <span class="keyword">this</span>, &amp;LoginDialog::slot_forget_pwd);</span><br><span class="line">    <span class="built_in">initHttpHandlers</span>();</span><br><span class="line">    <span class="comment">//连接登录回包信号</span></span><br><span class="line">    <span class="built_in">connect</span>(HttpMgr::<span class="built_in">GetInstance</span>().<span class="built_in">get</span>(), &amp;HttpMgr::sig_login_mod_finish, <span class="keyword">this</span>,</span><br><span class="line">            &amp;LoginDialog::slot_login_mod_finish);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>initHttpHandlers为初始化http回调逻辑, 并添加_handlers成员</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">LoginDialog::initHttpHandlers</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//注册获取登录回包逻辑</span></span><br><span class="line">    _handlers.<span class="built_in">insert</span>(ReqId::ID_LOGIN_USER, [<span class="keyword">this</span>](QJsonObject jsonObj)&#123;</span><br><span class="line">        <span class="type">int</span> error = jsonObj[<span class="string">&quot;error&quot;</span>].<span class="built_in">toInt</span>();</span><br><span class="line">        <span class="keyword">if</span>(error != ErrorCodes::SUCCESS)&#123;</span><br><span class="line">            <span class="built_in">showTip</span>(<span class="built_in">tr</span>(<span class="string">&quot;参数错误&quot;</span>),<span class="literal">false</span>);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">auto</span> user = jsonObj[<span class="string">&quot;user&quot;</span>].<span class="built_in">toString</span>();</span><br><span class="line">        <span class="built_in">showTip</span>(<span class="built_in">tr</span>(<span class="string">&quot;登录成功&quot;</span>), <span class="literal">true</span>);</span><br><span class="line">        <span class="built_in">qDebug</span>()&lt;&lt; <span class="string">&quot;user is &quot;</span> &lt;&lt; user ;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在LoginDialog中添加槽函数slot_login_mod_finish</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">LoginDialog::slot_login_mod_finish</span><span class="params">(ReqId id, QString res, ErrorCodes err)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(err != ErrorCodes::SUCCESS)&#123;</span><br><span class="line">        <span class="built_in">showTip</span>(<span class="built_in">tr</span>(<span class="string">&quot;网络请求错误&quot;</span>),<span class="literal">false</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 解析 JSON 字符串,res需转化为QByteArray</span></span><br><span class="line">    QJsonDocument jsonDoc = QJsonDocument::<span class="built_in">fromJson</span>(res.<span class="built_in">toUtf8</span>());</span><br><span class="line">    <span class="comment">//json解析错误</span></span><br><span class="line">    <span class="keyword">if</span>(jsonDoc.<span class="built_in">isNull</span>())&#123;</span><br><span class="line">        <span class="built_in">showTip</span>(<span class="built_in">tr</span>(<span class="string">&quot;json解析错误&quot;</span>),<span class="literal">false</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//json解析错误</span></span><br><span class="line">    <span class="keyword">if</span>(!jsonDoc.<span class="built_in">isObject</span>())&#123;</span><br><span class="line">        <span class="built_in">showTip</span>(<span class="built_in">tr</span>(<span class="string">&quot;json解析错误&quot;</span>),<span class="literal">false</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">//调用对应的逻辑,根据id回调。</span></span><br><span class="line">    _handlers[id](jsonDoc.<span class="built_in">object</span>());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>到此客户端登陆请求发送的模块封装完了</p>
+<h2 id="GateServer完善登陆逻辑"><a href="#GateServer完善登陆逻辑" class="headerlink" title="GateServer完善登陆逻辑"></a>GateServer完善登陆逻辑</h2><p>在LogicSystem的构造函数中添加登陆请求的注册。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//用户登录逻辑</span></span><br><span class="line"><span class="built_in">RegPost</span>(<span class="string">&quot;/user_login&quot;</span>, [](std::shared_ptr&lt;HttpConnection&gt; connection) &#123;</span><br><span class="line">    <span class="keyword">auto</span> body_str = boost::beast::<span class="built_in">buffers_to_string</span>(connection-&gt;_request.<span class="built_in">body</span>().<span class="built_in">data</span>());</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;receive body is &quot;</span> &lt;&lt; body_str &lt;&lt; std::endl;</span><br><span class="line">    connection-&gt;_response.<span class="built_in">set</span>(http::field::content_type, <span class="string">&quot;text/json&quot;</span>);</span><br><span class="line">    Json::Value root;</span><br><span class="line">    Json::Reader reader;</span><br><span class="line">    Json::Value src_root;</span><br><span class="line">    <span class="type">bool</span> parse_success = reader.<span class="built_in">parse</span>(body_str, src_root);</span><br><span class="line">    <span class="keyword">if</span> (!parse_success) &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Failed to parse JSON data!&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">        root[<span class="string">&quot;error&quot;</span>] = ErrorCodes::Error_Json;</span><br><span class="line">        std::string jsonstr = root.<span class="built_in">toStyledString</span>();</span><br><span class="line">        beast::<span class="built_in">ostream</span>(connection-&gt;_response.<span class="built_in">body</span>()) &lt;&lt; jsonstr;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> name = src_root[<span class="string">&quot;user&quot;</span>].<span class="built_in">asString</span>();</span><br><span class="line">    <span class="keyword">auto</span> pwd = src_root[<span class="string">&quot;passwd&quot;</span>].<span class="built_in">asString</span>();</span><br><span class="line">    UserInfo userInfo;</span><br><span class="line">    <span class="comment">//查询数据库判断用户名和密码是否匹配</span></span><br><span class="line">    <span class="type">bool</span> pwd_valid = MysqlMgr::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">CheckPwd</span>(name, pwd, userInfo);</span><br><span class="line">    <span class="keyword">if</span> (!pwd_valid) &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot; user pwd not match&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">        root[<span class="string">&quot;error&quot;</span>] = ErrorCodes::PasswdInvalid;</span><br><span class="line">        std::string jsonstr = root.<span class="built_in">toStyledString</span>();</span><br><span class="line">        beast::<span class="built_in">ostream</span>(connection-&gt;_response.<span class="built_in">body</span>()) &lt;&lt; jsonstr;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//查询StatusServer找到合适的连接</span></span><br><span class="line">    <span class="keyword">auto</span> reply = StatusGrpcClient::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">GetChatServer</span>(userInfo.uid);</span><br><span class="line">    <span class="keyword">if</span> (reply.<span class="built_in">error</span>()) &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot; grpc get chat server failed, error is &quot;</span> &lt;&lt; reply.<span class="built_in">error</span>()&lt;&lt; std::endl;</span><br><span class="line">        root[<span class="string">&quot;error&quot;</span>] = ErrorCodes::RPCGetFailed;</span><br><span class="line">        std::string jsonstr = root.<span class="built_in">toStyledString</span>();</span><br><span class="line">        beast::<span class="built_in">ostream</span>(connection-&gt;_response.<span class="built_in">body</span>()) &lt;&lt; jsonstr;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;succeed to load userinfo uid is &quot;</span> &lt;&lt; userInfo.uid &lt;&lt; std::endl;</span><br><span class="line">    root[<span class="string">&quot;error&quot;</span>] = <span class="number">0</span>;</span><br><span class="line">    root[<span class="string">&quot;user&quot;</span>] = name;</span><br><span class="line">    root[<span class="string">&quot;uid&quot;</span>] = userInfo.uid;</span><br><span class="line">    root[<span class="string">&quot;token&quot;</span>] = reply.<span class="built_in">token</span>();</span><br><span class="line">    root[<span class="string">&quot;host&quot;</span>] = reply.<span class="built_in">host</span>();</span><br><span class="line">    std::string jsonstr = root.<span class="built_in">toStyledString</span>();</span><br><span class="line">    beast::<span class="built_in">ostream</span>(connection-&gt;_response.<span class="built_in">body</span>()) &lt;&lt; jsonstr;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;);</span><br></pre></td></tr></table></figure>
+
+<p>在MysqlMgr中添加CheckPwd函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">bool</span> <span class="title">MysqlMgr::CheckPwd</span><span class="params">(<span class="type">const</span> std::string&amp; name, <span class="type">const</span> std::string&amp; pwd, UserInfo&amp; userInfo)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">return</span> _dao.<span class="built_in">CheckPwd</span>(name, pwd, userInfo);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在DAO层添加根据用户名查询sql逻辑,并且判断pwd是否匹配。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">bool</span> <span class="title">MysqlDao::CheckPwd</span><span class="params">(<span class="type">const</span> std::string&amp; name, <span class="type">const</span> std::string&amp; pwd, UserInfo&amp; userInfo)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">auto</span> con = pool_-&gt;<span class="built_in">getConnection</span>();</span><br><span class="line">	<span class="function">Defer <span class="title">defer</span><span class="params">([<span class="keyword">this</span>, &amp;con]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		pool_-&gt;returnConnection(std::move(con));</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> (con == <span class="literal">nullptr</span>) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 准备SQL语句</span></span><br><span class="line">		<span class="function">std::unique_ptr&lt;sql::PreparedStatement&gt; <span class="title">pstmt</span><span class="params">(con-&gt;prepareStatement(<span class="string">&quot;SELECT * FROM user WHERE name = ?&quot;</span>))</span></span>;</span><br><span class="line">		pstmt-&gt;<span class="built_in">setString</span>(<span class="number">1</span>, name); <span class="comment">// 将username替换为你要查询的用户名</span></span><br><span class="line"></span><br><span class="line">		<span class="comment">// 执行查询</span></span><br><span class="line">		<span class="function">std::unique_ptr&lt;sql::ResultSet&gt; <span class="title">res</span><span class="params">(pstmt-&gt;executeQuery())</span></span>;</span><br><span class="line">		std::string origin_pwd = <span class="string">&quot;&quot;</span>;</span><br><span class="line">		<span class="comment">// 遍历结果集</span></span><br><span class="line">		<span class="keyword">while</span> (res-&gt;<span class="built_in">next</span>()) &#123;</span><br><span class="line">			origin_pwd = res-&gt;<span class="built_in">getString</span>(<span class="string">&quot;pwd&quot;</span>);</span><br><span class="line">			<span class="comment">// 输出查询到的密码</span></span><br><span class="line">			std::cout &lt;&lt; <span class="string">&quot;Password: &quot;</span> &lt;&lt; origin_pwd &lt;&lt; std::endl;</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (pwd != origin_pwd) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		userInfo.name = name;</span><br><span class="line">		userInfo.email = res-&gt;<span class="built_in">getString</span>(<span class="string">&quot;email&quot;</span>);</span><br><span class="line">		userInfo.uid = res-&gt;<span class="built_in">getInt</span>(<span class="string">&quot;uid&quot;</span>);</span><br><span class="line">		userInfo.pwd = origin_pwd;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">catch</span> (sql::SQLException&amp; e) &#123;</span><br><span class="line">		std::cerr &lt;&lt; <span class="string">&quot;SQLException: &quot;</span> &lt;&lt; e.<span class="built_in">what</span>();</span><br><span class="line">		std::cerr &lt;&lt; <span class="string">&quot; (MySQL error code: &quot;</span> &lt;&lt; e.<span class="built_in">getErrorCode</span>();</span><br><span class="line">		std::cerr &lt;&lt; <span class="string">&quot;, SQLState: &quot;</span> &lt;&lt; e.<span class="built_in">getSQLState</span>() &lt;&lt; <span class="string">&quot; )&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>因为要调用grpc访问StatusServer，所以我们这里先完善协议proto文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">syntax = &quot;proto3&quot;;</span><br><span class="line"></span><br><span class="line">package message;</span><br><span class="line"></span><br><span class="line">service VarifyService &#123;</span><br><span class="line">  rpc GetVarifyCode (GetVarifyReq) returns (GetVarifyRsp) &#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">message GetVarifyReq &#123;</span><br><span class="line">  string email = 1;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">message GetVarifyRsp &#123;</span><br><span class="line">  int32 error = 1;</span><br><span class="line">  string email = 2;</span><br><span class="line">  string code = 3;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">message GetChatServerReq &#123;</span><br><span class="line">  int32 uid = 1;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">message GetChatServerRsp &#123;</span><br><span class="line">  int32 error = 1;</span><br><span class="line">  string host = 2;</span><br><span class="line">  string port = 3;</span><br><span class="line">  string token = 4;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">service StatusService &#123;</span><br><span class="line">	rpc GetChatServer (GetChatServerReq) returns (GetChatServerRsp) &#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们用下面两条命令重新生成pb.h和grpc.pb.h</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">D:\cppsoft\grpc\visualpro\third_party\protobuf\Debug\protoc.exe --cpp_out=. <span class="string">&quot;message.proto&quot;</span></span><br></pre></td></tr></table></figure>
+<p>生成grpc.pb.h</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">D:\cppsoft\grpc\visualpro\third_party\protobuf\Debug\protoc.exe  -I=<span class="string">&quot;.&quot;</span> --grpc_out=<span class="string">&quot;.&quot;</span> --plugin=protoc-gen-grpc=<span class="string">&quot;D:\cppsoft\grpc\visualpro\Debug\grpc_cpp_plugin.exe&quot;</span> <span class="string">&quot;message.proto&quot;</span></span><br></pre></td></tr></table></figure>
+<p>这俩命令执行完成后总计生成四个文件</p>
+<p><img src="https://cdn.llfc.club/1713239066360.jpg" alt="https://cdn.llfc.club/1713239066360.jpg"></p>
+<p>实现StatusGrpcClient</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;const.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;Singleton.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;ConfigMgr.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> grpc::Channel;</span><br><span class="line"><span class="keyword">using</span> grpc::Status;</span><br><span class="line"><span class="keyword">using</span> grpc::ClientContext;</span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> message::GetChatServerReq;</span><br><span class="line"><span class="keyword">using</span> message::GetChatServerRsp;</span><br><span class="line"><span class="keyword">using</span> message::StatusService;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">StatusGrpcClient</span> :<span class="keyword">public</span> Singleton&lt;StatusGrpcClient&gt;</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">friend</span> <span class="keyword">class</span> <span class="title class_">Singleton</span>&lt;StatusGrpcClient&gt;;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	~<span class="built_in">StatusGrpcClient</span>() &#123;</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function">GetChatServerRsp <span class="title">GetChatServer</span><span class="params">(<span class="type">int</span> uid)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	<span class="built_in">StatusGrpcClient</span>();</span><br><span class="line">	std::unique_ptr&lt;StatusConPool&gt; pool_;</span><br><span class="line">	</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>具体实现</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;StatusGrpcClient.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function">GetChatServerRsp <span class="title">StatusGrpcClient::GetChatServer</span><span class="params">(<span class="type">int</span> uid)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	ClientContext context;</span><br><span class="line">	GetChatServerRsp reply;</span><br><span class="line">	GetChatServerReq request;</span><br><span class="line">	request.<span class="built_in">set_uid</span>(uid);</span><br><span class="line">	<span class="keyword">auto</span> stub = pool_-&gt;<span class="built_in">getConnection</span>();</span><br><span class="line">	Status status = stub-&gt;<span class="built_in">GetChatServer</span>(&amp;context, request, &amp;reply);</span><br><span class="line">	<span class="function">Defer <span class="title">defer</span><span class="params">([&amp;stub, <span class="keyword">this</span>]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		pool_-&gt;returnConnection(std::move(stub));</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;)</span></span>;</span><br><span class="line">	<span class="keyword">if</span> (status.<span class="built_in">ok</span>()) &#123;	</span><br><span class="line">		<span class="keyword">return</span> reply;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		reply.<span class="built_in">set_error</span>(ErrorCodes::RPCFailed);</span><br><span class="line">		<span class="keyword">return</span> reply;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">StatusGrpcClient::<span class="built_in">StatusGrpcClient</span>()</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">auto</span>&amp; gCfgMgr = ConfigMgr::<span class="built_in">Inst</span>();</span><br><span class="line">	std::string host = gCfgMgr[<span class="string">&quot;StatusServer&quot;</span>][<span class="string">&quot;Host&quot;</span>];</span><br><span class="line">	std::string port = gCfgMgr[<span class="string">&quot;StatusServer&quot;</span>][<span class="string">&quot;Port&quot;</span>];</span><br><span class="line">	pool_.<span class="built_in">reset</span>(<span class="keyword">new</span> <span class="built_in">StatusConPool</span>(<span class="number">5</span>, host, port));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当然GateServer的config.ini文件也要做更新</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[GateServer]</span></span><br><span class="line"><span class="attr">Port</span> = <span class="number">8080</span></span><br><span class="line"><span class="section">[VarifyServer]</span></span><br><span class="line"><span class="attr">Host</span> = <span class="number">127.0</span>.<span class="number">0.1</span></span><br><span class="line"><span class="attr">Port</span> = <span class="number">50051</span></span><br><span class="line"><span class="section">[StatusServer]</span></span><br><span class="line"><span class="attr">Host</span> = <span class="number">127.0</span>.<span class="number">0.1</span></span><br><span class="line"><span class="attr">Port</span> = <span class="number">50052</span></span><br><span class="line"><span class="section">[Mysql]</span></span><br><span class="line"><span class="attr">Host</span> = <span class="number">81.68</span>.<span class="number">86.146</span></span><br><span class="line"><span class="attr">Port</span> = <span class="number">3308</span></span><br><span class="line"><span class="attr">User</span> = root</span><br><span class="line"><span class="attr">Passwd</span> = <span class="number">123456</span></span><br><span class="line"><span class="attr">Schema</span> = llfc</span><br><span class="line"><span class="section">[Redis]</span></span><br><span class="line"><span class="attr">Host</span> = <span class="number">81.68</span>.<span class="number">86.146</span></span><br><span class="line"><span class="attr">Port</span> = <span class="number">6380</span></span><br><span class="line"><span class="attr">Passwd</span> = <span class="number">123456</span></span><br></pre></td></tr></table></figure>
+<p>StatusGrpcClient用到了StatusConPool, 将其实现放在StatusGrpcClient类之上</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">StatusConPool</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">StatusConPool</span>(<span class="type">size_t</span> poolSize, std::string host, std::string port)</span><br><span class="line">		: <span class="built_in">poolSize_</span>(poolSize), <span class="built_in">host_</span>(host), <span class="built_in">port_</span>(port), <span class="built_in">b_stop_</span>(<span class="literal">false</span>) &#123;</span><br><span class="line">		<span class="keyword">for</span> (<span class="type">size_t</span> i = <span class="number">0</span>; i &lt; poolSize_; ++i) &#123;</span><br><span class="line"></span><br><span class="line">			std::shared_ptr&lt;Channel&gt; channel = grpc::<span class="built_in">CreateChannel</span>(host + <span class="string">&quot;:&quot;</span> + port,</span><br><span class="line">				grpc::<span class="built_in">InsecureChannelCredentials</span>());</span><br><span class="line"></span><br><span class="line">			connections_.<span class="built_in">push</span>(StatusService::<span class="built_in">NewStub</span>(channel));</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	~<span class="built_in">StatusConPool</span>() &#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mutex_)</span></span>;</span><br><span class="line">		<span class="built_in">Close</span>();</span><br><span class="line">		<span class="keyword">while</span> (!connections_.<span class="built_in">empty</span>()) &#123;</span><br><span class="line">			connections_.<span class="built_in">pop</span>();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::unique_ptr&lt;StatusService::Stub&gt; <span class="title">getConnection</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="function">std::unique_lock&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mutex_)</span></span>;</span><br><span class="line">		cond_.<span class="built_in">wait</span>(lock, [<span class="keyword">this</span>] &#123;</span><br><span class="line">			<span class="keyword">if</span> (b_stop_) &#123;</span><br><span class="line">				<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> !connections_.<span class="built_in">empty</span>();</span><br><span class="line">			&#125;);</span><br><span class="line">		<span class="comment">//如果停止则直接返回空指针</span></span><br><span class="line">		<span class="keyword">if</span> (b_stop_) &#123;</span><br><span class="line">			<span class="keyword">return</span>  <span class="literal">nullptr</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">auto</span> context = std::<span class="built_in">move</span>(connections_.<span class="built_in">front</span>());</span><br><span class="line">		connections_.<span class="built_in">pop</span>();</span><br><span class="line">		<span class="keyword">return</span> context;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">returnConnection</span><span class="params">(std::unique_ptr&lt;StatusService::Stub&gt; context)</span> </span>&#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mutex_)</span></span>;</span><br><span class="line">		<span class="keyword">if</span> (b_stop_) &#123;</span><br><span class="line">			<span class="keyword">return</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		connections_.<span class="built_in">push</span>(std::<span class="built_in">move</span>(context));</span><br><span class="line">		cond_.<span class="built_in">notify_one</span>();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">Close</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		b_stop_ = <span class="literal">true</span>;</span><br><span class="line">		cond_.<span class="built_in">notify_all</span>();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	atomic&lt;<span class="type">bool</span>&gt; b_stop_;</span><br><span class="line">	<span class="type">size_t</span> poolSize_;</span><br><span class="line">	std::string host_;</span><br><span class="line">	std::string port_;</span><br><span class="line">	std::queue&lt;std::unique_ptr&lt;StatusService::Stub&gt;&gt; connections_;</span><br><span class="line">	std::mutex mutex_;</span><br><span class="line">	std::condition_variable cond_;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<h2 id="StatusServer状态服务"><a href="#StatusServer状态服务" class="headerlink" title="StatusServer状态服务"></a>StatusServer状态服务</h2><p>我们要实现状态服务，主要是用来监听其他服务器的查询请求, 用visual studio创建项目，名字为StatusServer.</p>
+<p>在主函数所在文件StatusServer.cpp中实现如下逻辑</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;json/json.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;json/value.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;json/reader.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;const.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;ConfigMgr.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;hiredis.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;RedisMgr.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;MysqlMgr.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;AsioIOServicePool.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;memory&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;thread&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;boost/asio.hpp&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;StatusServiceImpl.h&quot;</span></span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">RunServer</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">auto</span> &amp; cfg = ConfigMgr::<span class="built_in">Inst</span>();</span><br><span class="line">	</span><br><span class="line">	<span class="function">std::string <span class="title">server_address</span><span class="params">(cfg[<span class="string">&quot;StatusServer&quot;</span>][<span class="string">&quot;Host&quot;</span>]+<span class="string">&quot;:&quot;</span>+ cfg[<span class="string">&quot;StatusServer&quot;</span>][<span class="string">&quot;Port&quot;</span>])</span></span>;</span><br><span class="line">	StatusServiceImpl service;</span><br><span class="line"></span><br><span class="line">	grpc::ServerBuilder builder;</span><br><span class="line">	<span class="comment">// 监听端口和添加服务</span></span><br><span class="line">	builder.<span class="built_in">AddListeningPort</span>(server_address, grpc::<span class="built_in">InsecureServerCredentials</span>());</span><br><span class="line">	builder.<span class="built_in">RegisterService</span>(&amp;service);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 构建并启动gRPC服务器</span></span><br><span class="line">	<span class="function">std::unique_ptr&lt;grpc::Server&gt; <span class="title">server</span><span class="params">(builder.BuildAndStart())</span></span>;</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;Server listening on &quot;</span> &lt;&lt; server_address &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 创建Boost.Asio的io_context</span></span><br><span class="line">	boost::asio::io_context io_context;</span><br><span class="line">	<span class="comment">// 创建signal_set用于捕获SIGINT</span></span><br><span class="line">	boost::<span class="function">asio::signal_set <span class="title">signals</span><span class="params">(io_context, SIGINT, SIGTERM)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 设置异步等待SIGINT信号</span></span><br><span class="line">	signals.<span class="built_in">async_wait</span>([&amp;server](<span class="type">const</span> boost::system::error_code&amp; error, <span class="type">int</span> signal_number) &#123;</span><br><span class="line">		<span class="keyword">if</span> (!error) &#123;</span><br><span class="line">			std::cout &lt;&lt; <span class="string">&quot;Shutting down server...&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">			server-&gt;<span class="built_in">Shutdown</span>(); <span class="comment">// 优雅地关闭服务器</span></span><br><span class="line">		&#125;</span><br><span class="line">		&#125;);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 在单独的线程中运行io_context</span></span><br><span class="line">	std::<span class="built_in">thread</span>([&amp;io_context]() &#123; io_context.<span class="built_in">run</span>(); &#125;).<span class="built_in">detach</span>();</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 等待服务器关闭</span></span><br><span class="line">	server-&gt;<span class="built_in">Wait</span>();</span><br><span class="line">	io_context.<span class="built_in">stop</span>(); <span class="comment">// 停止io_context</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span>** argv)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		<span class="built_in">RunServer</span>();</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">catch</span> (std::exception <span class="type">const</span>&amp; e) &#123;</span><br><span class="line">		std::cerr &lt;&lt; <span class="string">&quot;Error: &quot;</span> &lt;&lt; e.<span class="built_in">what</span>() &lt;&lt; std::endl;</span><br><span class="line">		<span class="keyword">return</span> EXIT_FAILURE;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>在开始逻辑之前，我们需要先更新下config.ini文件</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[StatusServer]</span></span><br><span class="line"><span class="attr">Port</span> = <span class="number">50052</span></span><br><span class="line"><span class="attr">Host</span> = <span class="number">0.0</span>.<span class="number">0.0</span></span><br><span class="line"><span class="section">[Mysql]</span></span><br><span class="line"><span class="attr">Host</span> = <span class="number">81.68</span>.<span class="number">86.146</span></span><br><span class="line"><span class="attr">Port</span> = <span class="number">3308</span></span><br><span class="line"><span class="attr">User</span> = root</span><br><span class="line"><span class="attr">Passwd</span> = <span class="number">123456</span></span><br><span class="line"><span class="attr">Schema</span> = llfc</span><br><span class="line"><span class="section">[Redis]</span></span><br><span class="line"><span class="attr">Host</span> = <span class="number">81.68</span>.<span class="number">86.146</span></span><br><span class="line"><span class="attr">Port</span> = <span class="number">6380</span></span><br><span class="line"><span class="attr">Passwd</span> = <span class="number">123456</span></span><br><span class="line"><span class="section">[ChatServer1]</span></span><br><span class="line"><span class="attr">Host</span> = <span class="number">127.0</span>.<span class="number">0.1</span></span><br><span class="line"><span class="attr">Port</span> = <span class="number">8090</span></span><br><span class="line"><span class="section">[ChatServer2]</span></span><br><span class="line"><span class="attr">Host</span> = <span class="number">127.0</span>.<span class="number">0.1</span></span><br><span class="line"><span class="attr">Port</span> = <span class="number">8091</span></span><br></pre></td></tr></table></figure>
+<p>然后我们将GateServer之前生成的pb文件和proto文件拷贝到StatusServer中。并且加入到项目中。</p>
+<p>我们在项目中添加一个新的类StatusServiceImpl，该类主要继承自StatusService::Service。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;grpcpp/grpcpp.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;message.grpc.pb.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> grpc::Server;</span><br><span class="line"><span class="keyword">using</span> grpc::ServerBuilder;</span><br><span class="line"><span class="keyword">using</span> grpc::ServerContext;</span><br><span class="line"><span class="keyword">using</span> grpc::Status;</span><br><span class="line"><span class="keyword">using</span> message::GetChatServerReq;</span><br><span class="line"><span class="keyword">using</span> message::GetChatServerRsp;</span><br><span class="line"><span class="keyword">using</span> message::StatusService;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">ChatServer</span> &#123;</span><br><span class="line">	std::string host;</span><br><span class="line">	std::string port;</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">StatusServiceImpl</span> <span class="keyword">final</span> : <span class="keyword">public</span> StatusService::Service</span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">StatusServiceImpl</span>();</span><br><span class="line">	<span class="function">Status <span class="title">GetChatServer</span><span class="params">(ServerContext* context, <span class="type">const</span> GetChatServerReq* request,</span></span></span><br><span class="line"><span class="params"><span class="function">		GetChatServerRsp* reply)</span> <span class="keyword">override</span></span>;</span><br><span class="line"></span><br><span class="line">	std::vector&lt;ChatServer&gt; _servers;</span><br><span class="line">	<span class="type">int</span> _server_index;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>具体实现</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;StatusServiceImpl.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;ConfigMgr.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;const.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function">std::string <span class="title">generate_unique_string</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">// 创建UUID对象</span></span><br><span class="line">	boost::uuids::uuid uuid = boost::uuids::<span class="built_in">random_generator</span>()();</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 将UUID转换为字符串</span></span><br><span class="line">	std::string unique_string = <span class="built_in">to_string</span>(uuid);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> unique_string;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function">Status <span class="title">StatusServiceImpl::GetChatServer</span><span class="params">(ServerContext* context, <span class="type">const</span> GetChatServerReq* request, GetChatServerRsp* reply)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="function">std::string <span class="title">prefix</span><span class="params">(<span class="string">&quot;llfc status server has received :  &quot;</span>)</span></span>;</span><br><span class="line">	_server_index = (_server_index++) % (_servers.<span class="built_in">size</span>());</span><br><span class="line">	<span class="keyword">auto</span> &amp;server = _servers[_server_index];</span><br><span class="line">	reply-&gt;<span class="built_in">set_host</span>(server.host);</span><br><span class="line">	reply-&gt;<span class="built_in">set_port</span>(server.port);</span><br><span class="line">	reply-&gt;<span class="built_in">set_error</span>(ErrorCodes::Success);</span><br><span class="line">	reply-&gt;<span class="built_in">set_token</span>(<span class="built_in">generate_unique_string</span>());</span><br><span class="line">	<span class="keyword">return</span> Status::OK;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">StatusServiceImpl::<span class="built_in">StatusServiceImpl</span>():_server_index(<span class="number">0</span>)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">auto</span>&amp; cfg = ConfigMgr::<span class="built_in">Inst</span>();</span><br><span class="line">	ChatServer server;</span><br><span class="line">	server.port = cfg[<span class="string">&quot;ChatServer1&quot;</span>][<span class="string">&quot;Port&quot;</span>];</span><br><span class="line">	server.host = cfg[<span class="string">&quot;ChatServer1&quot;</span>][<span class="string">&quot;Host&quot;</span>];</span><br><span class="line">	_servers.<span class="built_in">push_back</span>(server);</span><br><span class="line"></span><br><span class="line">	server.port = cfg[<span class="string">&quot;ChatServer2&quot;</span>][<span class="string">&quot;Port&quot;</span>];</span><br><span class="line">	server.host = cfg[<span class="string">&quot;ChatServer2&quot;</span>][<span class="string">&quot;Host&quot;</span>];</span><br><span class="line">	_servers.<span class="built_in">push_back</span>(server);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其余的文件为了保持复用，我们不重复开发，将GateServer中的RedisMgr,MysqlMgr,Singleton,IOSerivePool等统统拷贝过来并添加到项目中。</p>
+<h2 id="联调测试"><a href="#联调测试" class="headerlink" title="联调测试"></a>联调测试</h2><p>我们启动StatusServer，GateServer以及QT客户端，输入密码和用户名，点击登陆，会看到前端收到登陆成功的消息</p>
+<p><img src="https://cdn.llfc.club/1713248019373.jpg" alt="https://cdn.llfc.club/1713248019373.jpg"></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C-cpppro/" rel="tag"># C++ cpppro</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2024/08/31/cpppro25/" rel="next" title="聊天项目(25) 实现好友申请界面">
+                <i class="fa fa-chevron-left"></i> 聊天项目(25) 实现好友申请界面
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2024/08/31/cpppro11/" rel="prev" title="C++ 全栈聊天项目(11) redis环境配置和使用">
+                C++ 全栈聊天项目(11) redis环境配置和使用 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">336</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">20</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%A2%E6%88%B7%E7%AB%AF%E7%99%BB%E5%BD%95%E5%8A%9F%E8%83%BD"><span class="nav-number">1.</span> <span class="nav-text">客户端登录功能</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#GateServer%E5%AE%8C%E5%96%84%E7%99%BB%E9%99%86%E9%80%BB%E8%BE%91"><span class="nav-number">2.</span> <span class="nav-text">GateServer完善登陆逻辑</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#StatusServer%E7%8A%B6%E6%80%81%E6%9C%8D%E5%8A%A1"><span class="nav-number">3.</span> <span class="nav-text">StatusServer状态服务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%81%94%E8%B0%83%E6%B5%8B%E8%AF%95"><span class="nav-number">4.</span> <span class="nav-text">联调测试</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

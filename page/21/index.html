@@ -286,7 +286,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/04/09/eos9/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2020/05/15/golang30/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -305,7 +305,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/04/09/eos9/" itemprop="url">eos源码剖析之controller</a></h1>
+                <a class="post-title-link" href="/2020/05/15/golang30/" itemprop="url">谈谈高并发秒拍系统架构设计</a></h1>
         
 
         <div class="post-meta">
@@ -317,157 +317,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-04-09T11:01:39+08:00">
-                2019-04-09
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/blockchain/" itemprop="url" rel="index">
-                    <span itemprop="name">区块链</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="controller-block-status，区块状态枚举类，包括："><a href="#controller-block-status，区块状态枚举类，包括：" class="headerlink" title="controller::block_status，区块状态枚举类，包括："></a>controller::block_status，区块状态枚举类，包括：</h2><p>irreversible = 0，该区块已经被当前节点应用，并且被认为是不可逆的。<br>validated = 1，这是由一个有效生产者签名的完整区块，并且之前已经被当前节点应用，因此该区块已被验证但未成为不可逆。<br>complete = 2，这是一个由有效生产者签名的完整区块，但是还没有成为不可逆，也没有被当前节点应用。<br>incomplete = 3，这是一个未完成的区块，未被生产者签名也没有被某个节点生产。<br>实际上块的状态就是，1未签名未应用 2已签名未应用 3 已签名和应用，未变成不可逆 4 变成不可逆</p>
-<h2 id="controller的私有成员："><a href="#controller的私有成员：" class="headerlink" title="controller的私有成员："></a>controller的私有成员：</h2><p>apply_context,应用上下文，处理节点应用区块的上下文环境，其中包含了迭代器缓存iterator_cache<key_value_object><br>transaction_context，事务上下文环境。包括controller，db的session，signed_transaction等。<br>mutable_db()，返回一个chainbase::database的引用<br>controller_impl结构体的实例的唯一指针my。controller核心功能都是通过impl实现调用的。</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">controller_impl</span> &#123;</span><br><span class="line">   controller&amp;                    self;</span><br><span class="line">   chainbase::database            db;       <span class="comment">// 用于存储已执行的区块，这些区块可以回滚，一旦提交就成了不可逆的区块</span></span><br><span class="line">   chainbase::database            reversible_blocks; <span class="comment">///&lt; a special database to persist blocks that have successfully been applied but are still reversible</span></span><br><span class="line">   block_log                      blog;</span><br><span class="line">   optional&lt;pending_state&gt;        pending;  <span class="comment">// 尚未出的块</span></span><br><span class="line">   block_state_ptr                head;     <span class="comment">// 当前区块的状态</span></span><br><span class="line">   fork_database                  fork_db;  <span class="comment">// 用于存储可分叉区块的数据库，可分叉的区块都放到这里</span></span><br><span class="line">   wasm_interface                 wasmif;   <span class="comment">// wasm虚拟机的runtime</span></span><br><span class="line">   resource_limits_manager        resource_limits;  <span class="comment">// 资源管理</span></span><br><span class="line">   authorization_manager          authorization;    <span class="comment">// 权限管理</span></span><br><span class="line">   controller::config             conf;</span><br><span class="line">   chain_id_type                  chain_id;</span><br><span class="line">   <span class="type">bool</span>                           replaying = <span class="literal">false</span>;</span><br><span class="line">   <span class="type">bool</span>                           in_trx_requiring_checks = <span class="literal">false</span>; <span class="comment">///&lt; if true, checks that are normally skipped on replay (e.g. auth checks) cannot be skipped</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>controller_impl 几个重要的成员<br>db用于存储已执行的区块，这些区块可以回滚，一旦提交就不可逆<br>reversible_blocks用于存储已执行，但是这些区块是可逆的<br>pending用于存放当前正在生产或者验证（收到）的区块<br>fork_db用于存放所有区块（包括自己生产和收到的），这些区块链是可分叉的</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2019/04/09/eos9/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/04/01/golang02/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/04/01/golang02/" itemprop="url">Go(02)windows环境搭建和vscode配置</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-04-01T17:08:35+08:00">
-                2019-04-01
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-05-15T12:36:07+08:00">
+                2020-05-15
               </time>
             
 
@@ -527,11 +378,10 @@
 
       
         
-          <p>之前讲述过linux环境下Go语言开发环境搭建，这次简述下windows的搭建以及vscode配置</p>
-<h2 id="windows环境搭建"><a href="#windows环境搭建" class="headerlink" title="windows环境搭建"></a>windows环境搭建</h2><p>同样去<a target="_blank" rel="noopener" href="https://studygolang.com/dl">https://studygolang.com/dl</a>下载windows环境go安装包<br>直接下载msi安装</p>
+          <h2 id="缓冲系统结构"><a href="#缓冲系统结构" class="headerlink" title="缓冲系统结构"></a>缓冲系统结构</h2><p>今天谈谈电商秒杀抢购或者高并发集中访问情况下，如何设计稳定高效的缓冲系统。常用的做法是采取逻辑分离，将秒杀功能分化为不同的逻辑进行设计，降低耦合度同时增加缓冲队列降低访问压力。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2019/04/01/golang02/#more" rel="contents">
+            <a class="btn" href="/2020/05/15/golang30/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -582,7 +432,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/03/20/golang01/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2020/04/02/golang29/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -601,7 +451,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/03/20/golang01/" itemprop="url">golang(01) linux环境搭建和编码</a></h1>
+                <a class="post-title-link" href="/2020/04/02/golang29/" itemprop="url">Go项目实战：打造高并发日志采集系统（十）</a></h1>
         
 
         <div class="post-meta">
@@ -613,8 +463,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-03-20T15:12:51+08:00">
-                2019-03-20
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-04-02T13:42:06+08:00">
+                2020-04-02
               </time>
             
 
@@ -674,12 +524,11 @@
 
       
         
-          <h2 id="1-在自己的工作目录下建立一个goproject文件夹"><a href="#1-在自己的工作目录下建立一个goproject文件夹" class="headerlink" title="1 在自己的工作目录下建立一个goproject文件夹"></a>1 在自己的工作目录下建立一个goproject文件夹</h2><p>/home/secondtonone/goproject</p>
-<h2 id="2-在文件夹下建立如下三个文件"><a href="#2-在文件夹下建立如下三个文件" class="headerlink" title="2 在文件夹下建立如下三个文件"></a>2 在文件夹下建立如下三个文件</h2><p>bin  pkg  src<br>bin 保存执行go install 源码目录后生成的可执行文件<br>pkg 文件夹是存在go编译生成的文件<br>src存放的是我们的go源代码，不同工程项目的代码以包名区分</p>
-<h2 id="3-安装go"><a href="#3-安装go" class="headerlink" title="3 安装go"></a>3 安装go</h2><p>去国内的网站下载<a target="_blank" rel="noopener" href="https://studygolang.com/dl">https://studygolang.com/dl</a> 根据不同的平台选择对应的安装包<br>然后将压缩包解压到 /usr/local/<br>sudo tar -C /usr/local/ -xzvf go1.10.2.linux-amd64.tar.gz</p>
+          <h2 id="前情回顾"><a href="#前情回顾" class="headerlink" title="前情回顾"></a>前情回顾</h2><p>前文我们完成了日志管理系统后台开发。</p>
+<h2 id="本节目标"><a href="#本节目标" class="headerlink" title="本节目标"></a>本节目标</h2><p>这次为日志管理搭建一个web管理平台，可以通过web端录入项目和配置信息，以及项目对应的日志路径和采集信息，并且写入etcd，<br>这样通过之前编写的日志采集系统可以根据etcd采集对应的日志。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2019/03/20/golang01/#more" rel="contents">
+            <a class="btn" href="/2020/04/02/golang29/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -730,7 +579,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/03/15/eos8/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2020/03/24/golang28/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -749,7 +598,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/03/15/eos8/" itemprop="url">eocs跨链合约区块数据结构设计与实现</a></h1>
+                <a class="post-title-link" href="/2020/03/24/golang28/" itemprop="url">Go项目实战：打造高并发日志采集系统（九）</a></h1>
         
 
         <div class="post-meta">
@@ -761,8 +610,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-03-15T12:01:47+08:00">
-                2019-03-15
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-03-24T13:11:18+08:00">
+                2020-03-24
               </time>
             
 
@@ -784,8 +633,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/blockchain/" itemprop="url" rel="index">
-                    <span itemprop="name">区块链</span>
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
                   </a>
                 </span>
 
@@ -822,11 +671,11 @@
 
       
         
-          <h2 id="核心数据结构分析"><a href="#核心数据结构分析" class="headerlink" title="核心数据结构分析"></a>核心数据结构分析</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">block_header</span> &#123;</span><br><span class="line">    block_timestamp_type timestamp;</span><br><span class="line">    account_name producer;</span><br><span class="line">    <span class="comment">//省略部分结构......</span></span><br><span class="line">    <span class="function"><span class="type">static</span> <span class="type">uint32_t</span> <span class="title">num_from_id</span><span class="params">(<span class="type">const</span> block_id_type&amp; id)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>结构体中timestamp是块打包好的时间戳，previous是前一个块的id，transaction_mroot表示所有交易的merkle root， action_root表示 action的merkle root。<br>num_from_id通过blockid找到blocknum。</p>
+          <h2 id="前情回顾"><a href="#前情回顾" class="headerlink" title="前情回顾"></a>前情回顾</h2><p>前文我们完成了kafka消费逻辑实现，并将消息放入elasticsearch，然后通过kibana可视化工具查看我们的日志。</p>
+<h2 id="本节目标"><a href="#本节目标" class="headerlink" title="本节目标"></a>本节目标</h2><p>前文只是完成了kafka消息消费以及放入elastic，这次将项目完善，使其支持热更新，就是当config.yaml中监控的日志改变，或者etcd数据有改变时，动态启动协程监控新增日志，关闭取消的日志监控协程。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2019/03/15/eos8/#more" rel="contents">
+            <a class="btn" href="/2020/03/24/golang28/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -877,7 +726,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/03/13/python28/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2020/01/15/golang27/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -896,7 +745,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/03/13/python28/" itemprop="url">python学习(28) 浅谈可变对象的单例模式设计</a></h1>
+                <a class="post-title-link" href="/2020/01/15/golang27/" itemprop="url">Go项目实战：打造高并发日志采集系统（八）</a></h1>
         
 
         <div class="post-meta">
@@ -908,8 +757,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-03-13T10:42:07+08:00">
-                2019-03-13
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-01-15T11:09:49+08:00">
+                2020-01-15
               </time>
             
 
@@ -931,8 +780,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/python/" itemprop="url" rel="index">
-                    <span itemprop="name">python</span>
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
                   </a>
                 </span>
 
@@ -969,13 +818,11 @@
 
       
         
-          <p>python开发，有时候需要设计单例模式保证操作的唯一性和安全性。理论上python语言底层实现和C/C++不同，python采取的是引用模式，当一个对象是可变对象，对其修改不会更改引用的指向，当一个对象是不可修改对象，对其修改会改变引用指向。</p>
-<h2 id="可变对象和不可变对象"><a href="#可变对象和不可变对象" class="headerlink" title="可变对象和不可变对象"></a>可变对象和不可变对象</h2><h3 id="不可变对象"><a href="#不可变对象" class="headerlink" title="不可变对象"></a>不可变对象</h3><p>该对象所指向的内存中的值不能被改变。当改变某个变量时候，由于其所指的值不能被改变，相当于把原来的值复制一份后再改变，这会开辟一个新的地址，变量再指向这个新的地址。</p>
-<h3 id="可变对象"><a href="#可变对象" class="headerlink" title="可变对象"></a>可变对象</h3><p>该对象所指向的内存中的值可以被改变。变量（准确的说是引用）改变后，实际上是其所指的值直接发生改变，并没有发生复制行为，也没有开辟新的出地址，通俗点说就是原地改变。</p>
-<h3 id="python-中的可变对象和不可变对象"><a href="#python-中的可变对象和不可变对象" class="headerlink" title="python 中的可变对象和不可变对象"></a>python 中的可变对象和不可变对象</h3><p>Python中，数值类型（int和float）、字符串str、元组tuple都是不可变类型。<br>而列表list、字典dict、集合set,以及开发人员自己定义的类是可变类型</p>
+          <h2 id="前情回顾"><a href="#前情回顾" class="headerlink" title="前情回顾"></a>前情回顾</h2><p>前文我们完成了日志采集系统基本功能，包括日志监控，日志采集，配置热更新，协程动态启动和关闭，同时扩充支持了etcd管理文件路径。</p>
+<h2 id="本节目标"><a href="#本节目标" class="headerlink" title="本节目标"></a>本节目标</h2><p>本节新增日志查询和检索功能。基本思路是将日志信息从kafka中读取，然后放到elasticsearch中，elasticsearch是一个分布式多用户能力<br>的全文搜索引擎，我们可以通过它提供的web接口访问和查询指定数据。另外，为了更方便的检索和查询，可以利用kibana配合elastic可视化<br>查询。Kibana 是为 Elasticsearch设计的开源分析和可视化平台。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2019/03/13/python28/#more" rel="contents">
+            <a class="btn" href="/2020/01/15/golang27/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -1026,7 +873,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/02/17/eos7/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/12/31/new3/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1045,7 +892,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/02/17/eos7/" itemprop="url">EOCS中继网络源码剖析</a></h1>
+                <a class="post-title-link" href="/2019/12/31/new3/" itemprop="url">2019再见</a></h1>
         
 
         <div class="post-meta">
@@ -1057,8 +904,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-02-17T20:47:03+08:00">
-                2019-02-17
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-12-31T17:46:45+08:00">
+                2019-12-31
               </time>
             
 
@@ -1080,8 +927,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/blockchain/" itemprop="url" rel="index">
-                    <span itemprop="name">区块链</span>
+                  <a href="/categories/news/" itemprop="url" rel="index">
+                    <span itemprop="name">生活感悟</span>
                   </a>
                 </span>
 
@@ -1118,11 +965,10 @@
 
       
         
-          <p>EOCS中继网络实现了两种模式，分别是eoc模式和icp模式，今天先介绍eoc模式。</p>
-<h2 id="eoc-relay-plugin-源码剖析"><a href="#eoc-relay-plugin-源码剖析" class="headerlink" title="eoc_relay_plugin 源码剖析"></a>eoc_relay_plugin 源码剖析</h2>
+          <p>2019最后一天，做个总结吧</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2019/02/17/eos7/#more" rel="contents">
+            <a class="btn" href="/2019/12/31/new3/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -1173,7 +1019,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/02/11/eos6/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/12/27/golang26/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1192,7 +1038,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/02/11/eos6/" itemprop="url">EOCS跨链核心技术内幕</a></h1>
+                <a class="post-title-link" href="/2019/12/27/golang26/" itemprop="url">Go项目实战：打造高并发日志采集系统（七）</a></h1>
         
 
         <div class="post-meta">
@@ -1204,8 +1050,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-02-11T22:16:36+08:00">
-                2019-02-11
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-12-27T10:52:20+08:00">
+                2019-12-27
               </time>
             
 
@@ -1227,8 +1073,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/blockchain/" itemprop="url" rel="index">
-                    <span itemprop="name">区块链</span>
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
                   </a>
                 </span>
 
@@ -1265,12 +1111,12 @@
 
       
         
-          <p>EOCS跨链技术的核心就是ICP模块，ICP即Inter Chain Protocol(跨链交互协议)，下面着重介绍ICP工作原理和实现细节。</p>
-<h2 id="Inter-Chain-Protocol-ICP"><a href="#Inter-Chain-Protocol-ICP" class="headerlink" title="Inter Chain Protocol(ICP)"></a>Inter Chain Protocol(ICP)</h2><h3 id="ICP-Overview"><a href="#ICP-Overview" class="headerlink" title="ICP Overview"></a>ICP Overview</h3><p>建立于EOSIO软件堆栈之上的ICP跨链基础设施，可应用于EOSIO兼容的同构区块链的跨链通信。ICP设计之初，就考虑怎样以一种无侵入、可安全验证、去中心化的方式来实现EOS多链并行的同构跨链网络。经过对业界最前沿的跨链技术的研究（包括BTC Relay、Cosmos、Polkadot等），并结合对EOSIO软件实现细节的差异化剖析，ICP采取了比较现实的跨链方案：</p>
-<h4 id="实现类似于轻节点的跨链基础合约，对对端区块链进行区块头跟随和验证，使用Merkle树根和路径验证跨链交易的真实性，依赖全局一致的顺序来保证跨链交易同时遵循两条链的共识。"><a href="#实现类似于轻节点的跨链基础合约，对对端区块链进行区块头跟随和验证，使用Merkle树根和路径验证跨链交易的真实性，依赖全局一致的顺序来保证跨链交易同时遵循两条链的共识。" class="headerlink" title="实现类似于轻节点的跨链基础合约，对对端区块链进行区块头跟随和验证，使用Merkle树根和路径验证跨链交易的真实性，依赖全局一致的顺序来保证跨链交易同时遵循两条链的共识。"></a>实现类似于轻节点的跨链基础合约，对对端区块链进行区块头跟随和验证，使用Merkle树根和路径验证跨链交易的真实性，依赖全局一致的顺序来保证跨链交易同时遵循两条链的共识。</h4><h4 id="实现无需信任、去中心化的跨链中继，尽最大可能地向对端传递区块头和跨链交易，并对丢失、重复、超时、伪造的跨链消息进行合适的处理。"><a href="#实现无需信任、去中心化的跨链中继，尽最大可能地向对端传递区块头和跨链交易，并对丢失、重复、超时、伪造的跨链消息进行合适的处理。" class="headerlink" title="实现无需信任、去中心化的跨链中继，尽最大可能地向对端传递区块头和跨链交易，并对丢失、重复、超时、伪造的跨链消息进行合适的处理。"></a>实现无需信任、去中心化的跨链中继，尽最大可能地向对端传递区块头和跨链交易，并对丢失、重复、超时、伪造的跨链消息进行合适的处理。</h4>
+          <h2 id="前情回顾"><a href="#前情回顾" class="headerlink" title="前情回顾"></a>前情回顾</h2><p>前文我们完成了日志采集系统基本功能，包括日志监控，日志采集，配置热更新，协程动态启动和关闭等。</p>
+<h2 id="本节目标"><a href="#本节目标" class="headerlink" title="本节目标"></a>本节目标</h2><p>前文我们是通过将要监控的日志路径配置在配置文件中，根据配置文件热更新动态监控日志。<br>本节将etcd服务加入系统中，可以将要监控的日志文件路径和主题序列化为字符串保存到etcd中，这样系统可以监控etcd中该值得变化，从而动态启动协程和关闭协程监控指定日志。<br>这样可以通过etcd和配置文件两种方式监控日志。</p>
+<h2 id="图解系统监控日志流程"><a href="#图解系统监控日志流程" class="headerlink" title="图解系统监控日志流程"></a>图解系统监控日志流程</h2>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2019/02/11/eos6/#more" rel="contents">
+            <a class="btn" href="/2019/12/27/golang26/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -1321,7 +1167,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/02/10/eos5/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/12/06/golang25/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1340,7 +1186,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/02/10/eos5/" itemprop="url">EOCS框架概述和剖析</a></h1>
+                <a class="post-title-link" href="/2019/12/06/golang25/" itemprop="url">Go项目实战：打造高并发日志采集系统（六）</a></h1>
         
 
         <div class="post-meta">
@@ -1352,8 +1198,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-02-10T12:28:52+08:00">
-                2019-02-10
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-12-06T15:37:15+08:00">
+                2019-12-06
               </time>
             
 
@@ -1375,8 +1221,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/blockchain/" itemprop="url" rel="index">
-                    <span itemprop="name">区块链</span>
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
                   </a>
                 </span>
 
@@ -1413,13 +1259,12 @@
 
       
         
-          <h2 id="什么是EOCS？"><a href="#什么是EOCS？" class="headerlink" title="什么是EOCS？"></a>什么是EOCS？</h2><p>EOCS(Enterprise Operation Cross System),是一个基于eosio底层框架实现的企业级跨链操作系统，旨在实现和EOS主链通信的并行链，是真正意义的跨链，支持高效稳定的跨链交易，为跨链生态建设提供更稳定和安全的平台。作为可与EOS主链交互操作的第一条并行链，EOCS Chain力图实现安全可靠、快捷便利的跨链资产转移、跨链智能合约调用。任何人都可以在EOCS Chain并行链上开发或使用跨链DAPP。</p>
-<h2 id="为什么选择EOCS？"><a href="#为什么选择EOCS？" class="headerlink" title="为什么选择EOCS？"></a>为什么选择EOCS？</h2><h3 id="互操作性"><a href="#互操作性" class="headerlink" title="互操作性"></a>互操作性</h3><p>EOCS Chain并行链允许EOS主链与主流公有链、联盟链、私有链互相通信和价值交换。</p>
-<h3 id="可扩展性"><a href="#可扩展性" class="headerlink" title="可扩展性"></a>可扩展性</h3><p>通过多链互联互操作，EOCS Chain可帮助EOS实现史无前例的无限扩展。</p>
-<h3 id="开发友好性"><a href="#开发友好性" class="headerlink" title="开发友好性"></a>开发友好性</h3><p>EOCS Chain延续了EOS软件堆栈的WebAssembly机制，可以非常轻松地开发DAPP。</p>
+          <h2 id="前情回顾"><a href="#前情回顾" class="headerlink" title="前情回顾"></a>前情回顾</h2><p>前文我们完成了日志采集系统的日志文件监控，配置文件热更新，协程异常检测和保活机制。</p>
+<h2 id="本节目标"><a href="#本节目标" class="headerlink" title="本节目标"></a>本节目标</h2><p>本节加入kafka消息队列，kafka前文也介绍过了，可以对消息进行排队，解耦合和流量控制的作用，为什么一定要用kafka呢？主要原因就是在日志高并发读取后，如果直接将消息发给前端或者写入数据库，会造成崩溃或者卡死。kafka可以对消息进行排队和减轻压力，这样无论以后将这些消息录入数据库也好，传给前端分析也好，都能保证系统稳定性。代码我们也写过和测试了，只需要将之前写好的kafka读写消息代码整合过来即可。</p>
+<h2 id="主函数创建kafka生产者"><a href="#主函数创建kafka生产者" class="headerlink" title="主函数创建kafka生产者"></a>主函数创建kafka生产者</h2><p>在主函数中创建kafkaProducer,然后在defer中回收该资源。我们将该producer传递给每个监控日志的协程中，当日志有修改，就通过producer将修改的信息写入kafka，用kafka排队和缓存，可以提高稳定性，减少流量高峰。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2019/02/10/eos5/#more" rel="contents">
+            <a class="btn" href="/2019/12/06/golang25/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -1470,7 +1315,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/01/30/eos4/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/12/04/golang24/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1489,7 +1334,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/01/30/eos4/" itemprop="url">eos交易同步过程和区块生产过程源码分析</a></h1>
+                <a class="post-title-link" href="/2019/12/04/golang24/" itemprop="url">Go项目实战：打造高并发日志采集系统（五）</a></h1>
         
 
         <div class="post-meta">
@@ -1501,8 +1346,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-01-30T10:29:25+08:00">
-                2019-01-30
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-12-04T13:54:55+08:00">
+                2019-12-04
               </time>
             
 
@@ -1524,8 +1369,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/blockchain/" itemprop="url" rel="index">
-                    <span itemprop="name">区块链</span>
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
                   </a>
                 </span>
 
@@ -1562,11 +1407,12 @@
 
       
         
-          <h2 id="交易同步过程"><a href="#交易同步过程" class="headerlink" title="交易同步过程"></a>交易同步过程</h2><p>1 通过命令cleos调用 cleos transfer ${from_account} ${to_account} ${quantity} 发起交易<br>2 eos调用chain_plugin 的push_transaction,内部调用注册好的方法。</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">app</span>().<span class="built_in">get_method</span>&lt;incoming::methods::transaction_async&gt;();</span><br></pre></td></tr></table></figure>
+          <h2 id="前情回顾"><a href="#前情回顾" class="headerlink" title="前情回顾"></a>前情回顾</h2><p>前文我们完成了如下功能<br>1 根据配置文件启动多个协程监控日志，并启动协程监听配置文件。<br>2 根据配置文件热更新，动态协调日志监控。<br>3 编写测试代码，向文件中不断写入日志并备份日志，验证系统健壮性。</p>
+<h2 id="本节目标"><a href="#本节目标" class="headerlink" title="本节目标"></a>本节目标</h2><p>我们旨在编写一个健壮性较强的日志监控系统，不得不考虑这样一个问题，当某个日志监控协程崩溃或者异常退出，该如何处理？<br>我的想法是当监控日志文件的协程异常退出时，在主协程复活这个异常退出的协程，使其继续工作，这样极大的增强了系统的稳定性。</p>
+<h2 id="借尸还魂，增加异常处理"><a href="#借尸还魂，增加异常处理" class="headerlink" title="借尸还魂，增加异常处理"></a>借尸还魂，增加异常处理</h2><p>我们在tailf.go的WatchLogFile中增加异常处理，在协程崩溃时打印日志信息，并且向keychan中写入字符串通知主协程处理。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2019/01/30/eos4/#more" rel="contents">
+            <a class="btn" href="/2019/12/04/golang24/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -1617,7 +1463,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/01/25/eos3/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/12/03/golang23/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1636,7 +1482,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/01/25/eos3/" itemprop="url">eos 源码net_plugin分析</a></h1>
+                <a class="post-title-link" href="/2019/12/03/golang23/" itemprop="url">Go项目实战：打造高并发日志采集系统（四)</a></h1>
         
 
         <div class="post-meta">
@@ -1648,8 +1494,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-01-25T17:08:26+08:00">
-                2019-01-25
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-12-03T14:01:29+08:00">
+                2019-12-03
               </time>
             
 
@@ -1671,8 +1517,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/blockchain/" itemprop="url" rel="index">
-                    <span itemprop="name">区块链</span>
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
                   </a>
                 </span>
 
@@ -1709,10 +1555,159 @@
 
       
         
-          <p>1  net_plugin_impl::connect(connection_ptr c) 函数用于解析地址，内部异步回调async_resolve</p>
+          <h2 id="前情回顾"><a href="#前情回顾" class="headerlink" title="前情回顾"></a>前情回顾</h2><p>前文我们完成了如下目标<br>1 项目架构整体编写<br>2 使框架支持热更新</p>
+<h2 id="本节目标"><a href="#本节目标" class="headerlink" title="本节目标"></a>本节目标</h2><p>在前文的框架基础上，我们<br>1 将之前实现的日志监控功能整合到框架中。<br>2 一个日志对应一个监控协程，当配置热更新后根据新配置动态关闭和启动协程。<br>3 编写测试代码，模拟向文件中不断写入日志，并备份日志，观察监控功能是否健壮。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2019/01/25/eos3/#more" rel="contents">
+            <a class="btn" href="/2019/12/03/golang23/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2019/12/02/golang22/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/12/02/golang22/" itemprop="url">Go项目实战：打造高并发日志采集系统（三)</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-12-02T14:38:26+08:00">
+                2019-12-02
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>前文中已经完成了文件的监控，kafka信息读写，今天主要完成配置文件的读写以及热更新。并且规划一下系统的整体结构，然后将之前的功能串起来形成一套完整的日志采集系统。</p>
+<h2 id="前情提要"><a href="#前情提要" class="headerlink" title="前情提要"></a>前情提要</h2><p>上一节我们完成了如下目标<br>1 完成kafka消息读写<br>2 借助tailf实现文件监控，并模拟测试实时写文件以及文件备份时功能无误。</p>
+<h2 id="本节目标"><a href="#本节目标" class="headerlink" title="本节目标"></a>本节目标</h2><p>1 编写系统结构，在主函数中加载配置<br>2 管理配置文件，实现热更新</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2019/12/02/golang22/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -1754,7 +1749,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/20/">&lt;</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/20/">20</a><span class="page-number current">21</span><a class="page-number" href="/page/22/">22</a><span class="space">&hellip;</span><a class="page-number" href="/page/31/">31</a><a class="extend next" rel="next" href="/page/22/">&gt;</a>
+    <a class="extend prev" rel="prev" href="/page/20/">&lt;</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/20/">20</a><span class="page-number current">21</span><a class="page-number" href="/page/22/">22</a><span class="space">&hellip;</span><a class="page-number" href="/page/34/">34</a><a class="extend next" rel="next" href="/page/22/">&gt;</a>
   </nav>
 
 
@@ -1800,7 +1795,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">302</span>
+                  <span class="site-state-item-count">336</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
@@ -1811,7 +1806,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-count">16</span>
                   <span class="site-state-item-name">categories</span>
                 </a>
               </div>
@@ -1822,7 +1817,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-count">20</span>
                   <span class="site-state-item-name">tags</span>
                 </a>
               </div>

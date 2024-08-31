@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="grpc简介gRPC是Google开发的一种高性能、开源的远程过程调用（RPC）框架。它可以让客户端应用程序像调用本地服务一样轻松地调用远程服务，并提供了多种语言的支持，如C++、Java、Python、Go等。 gRPC使用Protocol Buffers作为数据格式，可以在不同的平台上进行应用程序之间的通信，支持多种编程语言和多种操作系统。它采用基于HTTP&#x2F;2的协议，提供了高效、快速且可扩展">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C++ 全栈聊天项目(6) Beast实现http post请求处理">
+<meta property="og:url" content="http://www.limerence2017.com/2023/05/28/cpppro6/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="grpc简介gRPC是Google开发的一种高性能、开源的远程过程调用（RPC）框架。它可以让客户端应用程序像调用本地服务一样轻松地调用远程服务，并提供了多种语言的支持，如C++、Java、Python、Go等。 gRPC使用Protocol Buffers作为数据格式，可以在不同的平台上进行应用程序之间的通信，支持多种编程语言和多种操作系统。它采用基于HTTP&#x2F;2的协议，提供了高效、快速且可扩展">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.llfc.club/1685268741914.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1685268920381.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1685271209281.jpg">
+<meta property="article:published_time" content="2023-05-28T05:56:35.000Z">
+<meta property="article:modified_time" content="2024-08-31T01:52:34.858Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.llfc.club/1685268741914.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2023/05/28/cpppro6/"/>
+
+
+
+
+
+  <title>C++ 全栈聊天项目(6) Beast实现http post请求处理 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/05/28/cpppro6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">C++ 全栈聊天项目(6) Beast实现http post请求处理</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-05-28T13:56:35+08:00">
+                2023-05-28
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="grpc简介"><a href="#grpc简介" class="headerlink" title="grpc简介"></a>grpc简介</h2><p>gRPC是Google开发的一种高性能、开源的远程过程调用（RPC）框架。它可以让客户端应用程序像调用本地服务一样轻松地调用远程服务，并提供了多种语言的支持，如C++、Java、Python、Go等。</p>
+<p>gRPC使用Protocol Buffers作为数据格式，可以在不同的平台上进行应用程序之间的通信，支持多种编程语言和多种操作系统。它采用基于HTTP/2的协议，提供了高效、快速且可扩展的远程调用功能，并带有负载均衡、认证、监控等功能，方便用户管理和维护分布式系统。</p>
+<p>gRPC可用于构建各种类型的分布式应用程序，如微服务、云原生应用程序、大规模Web应用程序、移动应用程序等场景。由于其高性能和可扩展性，越来越多的企业和组织开始采用gRPC来构建他们的应用程序和服务。</p>
+<span id="more"></span>
+<h2 id="grpc下载"><a href="#grpc下载" class="headerlink" title="grpc下载"></a>grpc下载</h2><p>由于国内环境，grpc下载极其困难，grpc项目在github上，源码地址为<a target="_blank" rel="noopener" href="https://github.com/grpc/grpc">https://github.com/grpc/grpc</a>,我们可以通过如下命令克隆grpc源码进行编译</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/grpc/grpc.git </span><br><span class="line">git submodule update  --init</span><br></pre></td></tr></table></figure>
+<p>但是国内网络环境执行<code>submodule update</code>时会失败,所以可以用国内的代码管理工具gitee进行克隆。<br>注意,目前在Gitee上只能找到gRPC依赖的部分”官方”镜像仓库,网友提供的镜像仓库较旧,因而只能构造v1.34.0版本.通过上述指令可以将v1.34.0版本的gRPC代码下载到grpc目录.<br>我们选择一个稳定的分支进行克隆</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> -b v1.34.0 https://gitee.com/mirrors/grpc-framework.git grpc</span><br></pre></td></tr></table></figure>
+<p>克隆之后，我们进入grpc文件夹，修改<code>.gitmodules</code>内仓库地址，修改前<code>.gitmodules</code>内容是这样的</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line">[submodule <span class="string">&quot;third_party/zlib&quot;</span>]</span><br><span class="line">	path = third_party/zlib</span><br><span class="line">	<span class="meta">#url = https:<span class="comment">//github.com/madler/zlib</span></span></span><br><span class="line">	url = https:<span class="comment">//gitee.com/mirrors/zlib.git</span></span><br><span class="line">	# When <span class="keyword">using</span> CMake to build, the zlib submodule ends up with a</span><br><span class="line">	<span class="meta"># generated file that makes Git consider the submodule dirty. This</span></span><br><span class="line">	<span class="meta"># state can be ignored for day-to-day development on gRPC.</span></span><br><span class="line">	ignore = dirty</span><br><span class="line">[submodule <span class="string">&quot;third_party/protobuf&quot;</span>]</span><br><span class="line">	path = third_party/protobuf</span><br><span class="line">	<span class="meta">#url = https:<span class="comment">//github.com/google/protobuf.git</span></span></span><br><span class="line">	url = https:<span class="comment">//gitee.com/local-grpc/protobuf.git</span></span><br><span class="line">[submodule <span class="string">&quot;third_party/googletest&quot;</span>]</span><br><span class="line">	path = third_party/googletest</span><br><span class="line">	<span class="meta">#url = https:<span class="comment">//github.com/google/googletest.git</span></span></span><br><span class="line">	url = https:<span class="comment">//gitee.com/local-grpc/googletest.git</span></span><br><span class="line">[submodule <span class="string">&quot;third_party/benchmark&quot;</span>]</span><br><span class="line">	path = third_party/benchmark</span><br><span class="line">	<span class="meta">#url = https:<span class="comment">//github.com/google/benchmark</span></span></span><br><span class="line">	url = https:<span class="comment">//gitee.com/mirrors/google-benchmark.git</span></span><br><span class="line">[submodule <span class="string">&quot;third_party/boringssl-with-bazel&quot;</span>]</span><br><span class="line">	path = third_party/boringssl-with-bazel</span><br><span class="line">	<span class="meta">#url = https:<span class="comment">//github.com/google/boringssl.git</span></span></span><br><span class="line">	url = https:<span class="comment">//gitee.com/mirrors/boringssl.git</span></span><br><span class="line">[submodule <span class="string">&quot;third_party/re2&quot;</span>]</span><br><span class="line">	path = third_party/re2</span><br><span class="line">	<span class="meta">#url = https:<span class="comment">//github.com/google/re2.git</span></span></span><br><span class="line">	url = https:<span class="comment">//gitee.com/local-grpc/re2.git</span></span><br><span class="line">[submodule <span class="string">&quot;third_party/cares/cares&quot;</span>]</span><br><span class="line">	path = third_party/cares/cares</span><br><span class="line">	<span class="meta">#url = https:<span class="comment">//github.com/c-ares/c-ares.git</span></span></span><br><span class="line">	url = https:<span class="comment">//gitee.com/mirrors/c-ares.git</span></span><br><span class="line">	branch = cares<span class="number">-1</span>_12_0</span><br><span class="line">[submodule <span class="string">&quot;third_party/bloaty&quot;</span>]</span><br><span class="line">	path = third_party/bloaty</span><br><span class="line">	<span class="meta">#url = https:<span class="comment">//github.com/google/bloaty.git</span></span></span><br><span class="line">	url = https:<span class="comment">//gitee.com/local-grpc/bloaty.git</span></span><br><span class="line">[submodule <span class="string">&quot;third_party/abseil-cpp&quot;</span>]</span><br><span class="line">	path = third_party/abseil-cpp</span><br><span class="line">	<span class="meta">#url = https:<span class="comment">//github.com/abseil/abseil-cpp.git</span></span></span><br><span class="line">	url = https:<span class="comment">//gitee.com/mirrors/abseil-cpp.git</span></span><br><span class="line">	branch = lts_2020_02_25</span><br><span class="line">[submodule <span class="string">&quot;third_party/envoy-api&quot;</span>]</span><br><span class="line">	path = third_party/envoy-api</span><br><span class="line">	<span class="meta">#url = https:<span class="comment">//github.com/envoyproxy/data-plane-api.git</span></span></span><br><span class="line">	url = https:<span class="comment">//gitee.com/local-grpc/data-plane-api.git</span></span><br><span class="line">[submodule <span class="string">&quot;third_party/googleapis&quot;</span>]</span><br><span class="line">	path = third_party/googleapis</span><br><span class="line">	<span class="meta">#url = https:<span class="comment">//github.com/googleapis/googleapis.git</span></span></span><br><span class="line">	url = https:<span class="comment">//gitee.com/mirrors/googleapis.git</span></span><br><span class="line">[submodule <span class="string">&quot;third_party/protoc-gen-validate&quot;</span>]</span><br><span class="line">	path = third_party/protoc-gen-validate</span><br><span class="line">	<span class="meta">#url = https:<span class="comment">//github.com/envoyproxy/protoc-gen-validate.git</span></span></span><br><span class="line">	url = https:<span class="comment">//gitee.com/local-grpc/protoc-gen-validate.git</span></span><br><span class="line">[submodule <span class="string">&quot;third_party/udpa&quot;</span>]</span><br><span class="line">	path = third_party/udpa</span><br><span class="line">	<span class="meta">#url = https:<span class="comment">//github.com/cncf/udpa.git</span></span></span><br><span class="line">	url = https:<span class="comment">//gitee.com/local-grpc/udpa.git</span></span><br><span class="line">[submodule <span class="string">&quot;third_party/libuv&quot;</span>]</span><br><span class="line">	path = third_party/libuv</span><br><span class="line">	<span class="meta">#url = https:<span class="comment">//github.com/libuv/libuv.git</span></span></span><br><span class="line">	url = https:<span class="comment">//gitee.com/mirrors/libuv.git</span></span><br></pre></td></tr></table></figure>
+
+<p>gRPC的依赖是通过git的submodules来关联的,代码下载下来之后可以看到.gitmodules文件,内部的git仓库地址都需要替换成Gitee的,例如:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[submodule <span class="string">&quot;third_party/zlib&quot;</span>]</span><br><span class="line">	path = third_party/zlib</span><br><span class="line">	url = https://github.com/madler/zlib</span><br><span class="line">	<span class="comment"># When using CMake to build, the zlib submodule ends up with a</span></span><br><span class="line">	<span class="comment"># generated file that makes Git consider the submodule dirty. This</span></span><br><span class="line">	<span class="comment"># state can be ignored for day-to-day development on gRPC.</span></span><br><span class="line">	ignore = dirty</span><br></pre></td></tr></table></figure>
+<p>使用了zlib,在Gitee上搜索其代码仓库为<a target="_blank" rel="noopener" href="https://gitee.com/mirrors/zlib,%E5%8F%AF%E4%BB%A5%E4%BD%BF%E7%94%A8%E5%A6%82%E4%B8%8B%E6%8C%87%E4%BB%A4clone">https://gitee.com/mirrors/zlib,可以使用如下指令clone</a>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://gitee.com/mirrors/zlib.git</span><br></pre></td></tr></table></figure>
+<p>因而替换成:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[submodule <span class="string">&quot;third_party/zlib&quot;</span>]</span><br><span class="line">	path = third_party/zlib</span><br><span class="line">	<span class="comment">#url = https://github.com/madler/zlib</span></span><br><span class="line">	url = https://gitee.com/mirrors/zlib.git</span><br><span class="line">	<span class="comment"># When using CMake to build, the zlib submodule ends up with a</span></span><br><span class="line">	<span class="comment"># generated file that makes Git consider the submodule dirty. This</span></span><br><span class="line">	<span class="comment"># state can be ignored for day-to-day development on gRPC.</span></span><br><span class="line">	ignore = dirty</span><br></pre></td></tr></table></figure>
+<p>通过这种方法可以找到部分依赖库的最新镜像仓库,但是有一些找不到最新的,例如protobuf等库,用户local-grpc提供了gRPC依赖的全部代码仓库,可以使用这些仓库(注意代码不是同步镜像,导致gRPC只能构造相应版本),其中protobuf链接为:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://gitee.com/local-grpc/protobuf.git</span><br></pre></td></tr></table></figure>
+<p>这里将.gitmodules修改为如下内容即可:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line">[submodule <span class="string">&quot;third_party/zlib&quot;</span>]</span><br><span class="line">	path = third_party/zlib</span><br><span class="line">	<span class="comment">#url = https://github.com/madler/zlib</span></span><br><span class="line">	url = https://gitee.com/mirrors/zlib.git</span><br><span class="line">	<span class="comment"># When using CMake to build, the zlib submodule ends up with a</span></span><br><span class="line">	<span class="comment"># generated file that makes Git consider the submodule dirty. This</span></span><br><span class="line">	<span class="comment"># state can be ignored for day-to-day development on gRPC.</span></span><br><span class="line">	ignore = dirty</span><br><span class="line">[submodule <span class="string">&quot;third_party/protobuf&quot;</span>]</span><br><span class="line">	path = third_party/protobuf</span><br><span class="line">	<span class="comment">#url = https://github.com/google/protobuf.git</span></span><br><span class="line">	url = https://gitee.com/local-grpc/protobuf.git</span><br><span class="line">[submodule <span class="string">&quot;third_party/googletest&quot;</span>]</span><br><span class="line">	path = third_party/googletest</span><br><span class="line">	<span class="comment">#url = https://github.com/google/googletest.git</span></span><br><span class="line">	url = https://gitee.com/local-grpc/googletest.git</span><br><span class="line">[submodule <span class="string">&quot;third_party/benchmark&quot;</span>]</span><br><span class="line">	path = third_party/benchmark</span><br><span class="line">	<span class="comment">#url = https://github.com/google/benchmark</span></span><br><span class="line">	url = https://gitee.com/mirrors/google-benchmark.git</span><br><span class="line">[submodule <span class="string">&quot;third_party/boringssl-with-bazel&quot;</span>]</span><br><span class="line">	path = third_party/boringssl-with-bazel</span><br><span class="line">	<span class="comment">#url = https://github.com/google/boringssl.git</span></span><br><span class="line">	url = https://gitee.com/mirrors/boringssl.git</span><br><span class="line">[submodule <span class="string">&quot;third_party/re2&quot;</span>]</span><br><span class="line">	path = third_party/re2</span><br><span class="line">	<span class="comment">#url = https://github.com/google/re2.git</span></span><br><span class="line">	url = https://gitee.com/local-grpc/re2.git</span><br><span class="line">[submodule <span class="string">&quot;third_party/cares/cares&quot;</span>]</span><br><span class="line">	path = third_party/cares/cares</span><br><span class="line">	<span class="comment">#url = https://github.com/c-ares/c-ares.git</span></span><br><span class="line">	url = https://gitee.com/mirrors/c-ares.git</span><br><span class="line">	branch = cares-1_12_0</span><br><span class="line">[submodule <span class="string">&quot;third_party/bloaty&quot;</span>]</span><br><span class="line">	path = third_party/bloaty</span><br><span class="line">	<span class="comment">#url = https://github.com/google/bloaty.git</span></span><br><span class="line">	url = https://gitee.com/local-grpc/bloaty.git</span><br><span class="line">[submodule <span class="string">&quot;third_party/abseil-cpp&quot;</span>]</span><br><span class="line">	path = third_party/abseil-cpp</span><br><span class="line">	<span class="comment">#url = https://github.com/abseil/abseil-cpp.git</span></span><br><span class="line">	url = https://gitee.com/mirrors/abseil-cpp.git</span><br><span class="line">	branch = lts_2020_02_25</span><br><span class="line">[submodule <span class="string">&quot;third_party/envoy-api&quot;</span>]</span><br><span class="line">	path = third_party/envoy-api</span><br><span class="line">	<span class="comment">#url = https://github.com/envoyproxy/data-plane-api.git</span></span><br><span class="line">	url = https://gitee.com/local-grpc/data-plane-api.git</span><br><span class="line">[submodule <span class="string">&quot;third_party/googleapis&quot;</span>]</span><br><span class="line">	path = third_party/googleapis</span><br><span class="line">	<span class="comment">#url = https://github.com/googleapis/googleapis.git</span></span><br><span class="line">	url = https://gitee.com/mirrors/googleapis.git</span><br><span class="line">[submodule <span class="string">&quot;third_party/protoc-gen-validate&quot;</span>]</span><br><span class="line">	path = third_party/protoc-gen-validate</span><br><span class="line">	<span class="comment">#url = https://github.com/envoyproxy/protoc-gen-validate.git</span></span><br><span class="line">	url = https://gitee.com/local-grpc/protoc-gen-validate.git</span><br><span class="line">[submodule <span class="string">&quot;third_party/udpa&quot;</span>]</span><br><span class="line">	path = third_party/udpa</span><br><span class="line">	<span class="comment">#url = https://github.com/cncf/udpa.git</span></span><br><span class="line">	url = https://gitee.com/local-grpc/udpa.git</span><br><span class="line">[submodule <span class="string">&quot;third_party/libuv&quot;</span>]</span><br><span class="line">	path = third_party/libuv</span><br><span class="line">	<span class="comment">#url = https://github.com/libuv/libuv.git</span></span><br><span class="line">	url = https://gitee.com/mirrors/libuv.git</span><br></pre></td></tr></table></figure>
+<p>使用如下指令拉取gRPC所有依赖:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> grpc</span><br><span class="line">git submodule update --init</span><br></pre></td></tr></table></figure>
+<h2 id="编译grpc"><a href="#编译grpc" class="headerlink" title="编译grpc"></a>编译grpc</h2><h3 id="CMake安装"><a href="#CMake安装" class="headerlink" title="CMake安装"></a>CMake安装</h3><p>为了编译grpc，我们需要下载cmake，cmake是一个跨平台编译工具，在之前我们编译protobuf时已经下载过了，这里再次介绍一下<br>CMake是一个跨平台的开源构建工具，可以用于自动化构建、测试和打包C++代码。与其他构建工具相比，CMake的优点之一是它的配置文件具有可读性和可维护性，而且支持多种编译器、操作系统和构建工具。</p>
+<p>我们要在windows上生成protobuf对应的库，就需要用到cmake。<br>官方下载地址<a target="_blank" rel="noopener" href="https://cmake.org/download/">https://cmake.org/download/</a>， 选择Windows Source下载。<br>由于官方下载较慢，可以去我的网盘下载<br><a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1Yg9Usdc3T-CYhyr9GiePCw?pwd=ng6x">https://pan.baidu.com/s/1Yg9Usdc3T-CYhyr9GiePCw?pwd=ng6x</a></p>
+<p>验证码<code>ng6x</code></p>
+<h3 id="NASM"><a href="#NASM" class="headerlink" title="NASM"></a>NASM</h3><p>编译grpc需要准备nasm,所以也要下载nasm, 下载地址为<a target="_blank" rel="noopener" href="https://www.nasm.us/">https://www.nasm.us/</a>,点击下载指定版本，安装即可，记得安装后把安装的路径配置在环境变量里，我的装载了C盘<br><img src="https://cdn.llfc.club/1685268741914.jpg" alt="https://cdn.llfc.club/1685268741914.jpg"><br>环境变量配置如下<br><img src="https://cdn.llfc.club/1685268920381.jpg" alt="https://cdn.llfc.club/1685268920381.jpg"></p>
+<p>有部分博主说要安装go和perl，我感觉不需要，但是我的电脑里确实有开发环境，这里还是告诉大家如何安装go和Perl</p>
+<h3 id="Go安装"><a href="#Go安装" class="headerlink" title="Go安装"></a>Go安装</h3><p>windows环境下下载go，地址<a target="_blank" rel="noopener" href="https://studygolang.com/dl">https://studygolang.com/dl</a>。<br>选择我们对应系统的安装包下载即可。一路下载安装，最后go会自动写入我们的环境变量。<br>Linux可以选择手动安装二进制包再配置环境变量。<br>安装好后，因为go的库包默认在外网，下载很慢，所以要切换代理</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">go <span class="built_in">env</span> -w GOPROXY=https://goproxy.cn,direct  <span class="comment"># 设置代理，国内网络开启</span></span><br></pre></td></tr></table></figure>
+<h3 id="Perl安装"><a href="#Perl安装" class="headerlink" title="Perl安装"></a>Perl安装</h3><p>Perl安装可以去官网下载<a target="_blank" rel="noopener" href="https://www.activestate.com/products/perl/">https://www.activestate.com/products/perl/</a>，并按照提示一步步安装，也可以去网盘下载，直接安装，网盘地址<a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1i3GLKAp">https://pan.baidu.com/s/1i3GLKAp</a></p>
+<h2 id="编译grpc-1"><a href="#编译grpc-1" class="headerlink" title="编译grpc"></a>编译grpc</h2><p>接下来我们需要用CMake编译grpc来生成我们需要的visual studio 项目</p>
+<p><img src="https://cdn.llfc.club/1685271209281.jpg" alt="https://cdn.llfc.club/1685271209281.jpg"></p>
+<p>1是grpc源码目录<br>2是grpc生成的visual studio项目目录<br>3 是我们要生成哪些项目。</p>
+<p>我们先点击啊config进行配置，此时弹出对话框，我的visual studio版本是2019的， 所以我选择编译生成visual studio2019的工程。<br>接下来点击generate生成项目，大约几分钟可以生成，生成成功后我们点击open project打开工程，此时就是用visual sutido 2019打开grpc工程了。<br>接下来我们设置编译平台为64位，选择Debug模式，这里大家尽量编译Release版，Release版压缩的更好一点。<br>选择All项目进行全量编译，编译后就可以在Debug或Release文件夹找到对应生成的库文件和exe了。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了windows环境下如何配置grpc项目和编译生成我们需要的库。<br>如果大家还是不能顺利生成编译所需的库，可以用我的，这个源码在linux和windows都能用，源码包括第三方库都下载好了，网盘地址：<br><a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1BBaAZ8-R-GSxxcy2s7TRWA?pwd=ybno">https://pan.baidu.com/s/1BBaAZ8-R-GSxxcy2s7TRWA?pwd=ybno</a><br>提取码：ybno </p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/05/25/asio14/" rel="next" title="asio处理粘包的简易方式">
+                <i class="fa fa-chevron-left"></i> asio处理粘包的简易方式
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/05/28/asio15/" rel="prev" title="windows配置和编译grpc">
+                windows配置和编译grpc <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">336</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">20</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#grpc%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">grpc简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#grpc%E4%B8%8B%E8%BD%BD"><span class="nav-number">2.</span> <span class="nav-text">grpc下载</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%96%E8%AF%91grpc"><span class="nav-number">3.</span> <span class="nav-text">编译grpc</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#CMake%E5%AE%89%E8%A3%85"><span class="nav-number">3.1.</span> <span class="nav-text">CMake安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#NASM"><span class="nav-number">3.2.</span> <span class="nav-text">NASM</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Go%E5%AE%89%E8%A3%85"><span class="nav-number">3.3.</span> <span class="nav-text">Go安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Perl%E5%AE%89%E8%A3%85"><span class="nav-number">3.4.</span> <span class="nav-text">Perl安装</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%96%E8%AF%91grpc-1"><span class="nav-number">4.</span> <span class="nav-text">编译grpc</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

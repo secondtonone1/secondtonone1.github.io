@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++ cpppro," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="气泡聊天框设计我们期待实现如下绿色的气泡对话框  对于我们自己发出的信息，我们可以实现这样一个网格布局管理  NameLabel用来显示用户的名字，Bubble用来显示聊天信息，Spacer是个弹簧，保证将NameLabel,IconLabel，Bubble等挤压到右侧。 如果是别人发出的消息，我们设置这样一个网格布局  下面是实现布局的核心代码 1234567891011121314151617">
+<meta property="og:type" content="article">
+<meta property="og:title" content="聊天项目(22) 实现气泡聊天对话框">
+<meta property="og:url" content="http://www.limerence2017.com/2024/08/31/cpppro22/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="气泡聊天框设计我们期待实现如下绿色的气泡对话框  对于我们自己发出的信息，我们可以实现这样一个网格布局管理  NameLabel用来显示用户的名字，Bubble用来显示聊天信息，Spacer是个弹簧，保证将NameLabel,IconLabel，Bubble等挤压到右侧。 如果是别人发出的消息，我们设置这样一个网格布局  下面是实现布局的核心代码 1234567891011121314151617">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.llfc.club/1718417551126.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1718423760358.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1718497364660.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1718499438435.jpg">
+<meta property="article:published_time" content="2024-08-31T01:30:35.000Z">
+<meta property="article:modified_time" content="2024-08-31T02:04:40.881Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++ cpppro">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.llfc.club/1718417551126.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2024/08/31/cpppro22/"/>
+
+
+
+
+
+  <title>聊天项目(22) 实现气泡聊天对话框 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/08/31/cpppro22/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">聊天项目(22) 实现气泡聊天对话框</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-08-31T09:30:35+08:00">
+                2024-08-31
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
+                    <span itemprop="name">C++ cpppro</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="气泡聊天框设计"><a href="#气泡聊天框设计" class="headerlink" title="气泡聊天框设计"></a>气泡聊天框设计</h2><p>我们期待实现如下绿色的气泡对话框</p>
+<p><img src="https://cdn.llfc.club/1718417551126.jpg" alt="https://cdn.llfc.club/1718417551126.jpg"></p>
+<p>对于我们自己发出的信息，我们可以实现这样一个网格布局管理</p>
+<p><img src="https://cdn.llfc.club/1718423760358.jpg" alt="https://cdn.llfc.club/1718423760358.jpg"></p>
+<p>NameLabel用来显示用户的名字，Bubble用来显示聊天信息，Spacer是个弹簧，保证将NameLabel,IconLabel，Bubble等挤压到右侧。</p>
+<p>如果是别人发出的消息，我们设置这样一个网格布局</p>
+<p><img src="https://cdn.llfc.club/1718497364660.jpg" alt="https://cdn.llfc.club/1718497364660.jpg"></p>
+<p>下面是实现布局的核心代码</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">ChatItemBase::<span class="built_in">ChatItemBase</span>(ChatRole role, QWidget *parent)</span><br><span class="line">    : <span class="built_in">QWidget</span>(parent)</span><br><span class="line">    , <span class="built_in">m_role</span>(role)</span><br><span class="line">&#123;</span><br><span class="line">    m_pNameLabel    = <span class="keyword">new</span> <span class="built_in">QLabel</span>();</span><br><span class="line">    m_pNameLabel-&gt;<span class="built_in">setObjectName</span>(<span class="string">&quot;chat_user_name&quot;</span>);</span><br><span class="line">    <span class="function">QFont <span class="title">font</span><span class="params">(<span class="string">&quot;Microsoft YaHei&quot;</span>)</span></span>;</span><br><span class="line">    font.<span class="built_in">setPointSize</span>(<span class="number">9</span>);</span><br><span class="line">    m_pNameLabel-&gt;<span class="built_in">setFont</span>(font);</span><br><span class="line">    m_pNameLabel-&gt;<span class="built_in">setFixedHeight</span>(<span class="number">20</span>);</span><br><span class="line">    m_pIconLabel    = <span class="keyword">new</span> <span class="built_in">QLabel</span>();</span><br><span class="line">    m_pIconLabel-&gt;<span class="built_in">setScaledContents</span>(<span class="literal">true</span>);</span><br><span class="line">    m_pIconLabel-&gt;<span class="built_in">setFixedSize</span>(<span class="number">42</span>, <span class="number">42</span>);</span><br><span class="line">    m_pBubble       = <span class="keyword">new</span> <span class="built_in">QWidget</span>();</span><br><span class="line">    QGridLayout *pGLayout = <span class="keyword">new</span> <span class="built_in">QGridLayout</span>();</span><br><span class="line">    pGLayout-&gt;<span class="built_in">setVerticalSpacing</span>(<span class="number">3</span>);</span><br><span class="line">    pGLayout-&gt;<span class="built_in">setHorizontalSpacing</span>(<span class="number">3</span>);</span><br><span class="line">    pGLayout-&gt;<span class="built_in">setMargin</span>(<span class="number">3</span>);</span><br><span class="line">    QSpacerItem*pSpacer = <span class="keyword">new</span> <span class="built_in">QSpacerItem</span>(<span class="number">40</span>, <span class="number">20</span>, QSizePolicy::Expanding, QSizePolicy::Minimum);</span><br><span class="line">    <span class="keyword">if</span>(m_role == ChatRole::Self)</span><br><span class="line">    &#123;</span><br><span class="line">        m_pNameLabel-&gt;<span class="built_in">setContentsMargins</span>(<span class="number">0</span>,<span class="number">0</span>,<span class="number">8</span>,<span class="number">0</span>);</span><br><span class="line">        m_pNameLabel-&gt;<span class="built_in">setAlignment</span>(Qt::AlignRight);</span><br><span class="line">        pGLayout-&gt;<span class="built_in">addWidget</span>(m_pNameLabel, <span class="number">0</span>,<span class="number">1</span>, <span class="number">1</span>,<span class="number">1</span>);</span><br><span class="line">        pGLayout-&gt;<span class="built_in">addWidget</span>(m_pIconLabel, <span class="number">0</span>, <span class="number">2</span>, <span class="number">2</span>,<span class="number">1</span>, Qt::AlignTop);</span><br><span class="line">        pGLayout-&gt;<span class="built_in">addItem</span>(pSpacer, <span class="number">1</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>);</span><br><span class="line">        pGLayout-&gt;<span class="built_in">addWidget</span>(m_pBubble, <span class="number">1</span>,<span class="number">1</span>, <span class="number">1</span>,<span class="number">1</span>);</span><br><span class="line">        pGLayout-&gt;<span class="built_in">setColumnStretch</span>(<span class="number">0</span>, <span class="number">2</span>);</span><br><span class="line">        pGLayout-&gt;<span class="built_in">setColumnStretch</span>(<span class="number">1</span>, <span class="number">3</span>);</span><br><span class="line">    &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">        m_pNameLabel-&gt;<span class="built_in">setContentsMargins</span>(<span class="number">8</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>);</span><br><span class="line">        m_pNameLabel-&gt;<span class="built_in">setAlignment</span>(Qt::AlignLeft);</span><br><span class="line">        pGLayout-&gt;<span class="built_in">addWidget</span>(m_pIconLabel, <span class="number">0</span>, <span class="number">0</span>, <span class="number">2</span>,<span class="number">1</span>, Qt::AlignTop);</span><br><span class="line">        pGLayout-&gt;<span class="built_in">addWidget</span>(m_pNameLabel, <span class="number">0</span>,<span class="number">1</span>, <span class="number">1</span>,<span class="number">1</span>);</span><br><span class="line">        pGLayout-&gt;<span class="built_in">addWidget</span>(m_pBubble, <span class="number">1</span>,<span class="number">1</span>, <span class="number">1</span>,<span class="number">1</span>);</span><br><span class="line">        pGLayout-&gt;<span class="built_in">addItem</span>(pSpacer, <span class="number">2</span>, <span class="number">2</span>, <span class="number">1</span>, <span class="number">1</span>);</span><br><span class="line">        pGLayout-&gt;<span class="built_in">setColumnStretch</span>(<span class="number">1</span>, <span class="number">3</span>);</span><br><span class="line">        pGLayout-&gt;<span class="built_in">setColumnStretch</span>(<span class="number">2</span>, <span class="number">2</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">this</span>-&gt;<span class="built_in">setLayout</span>(pGLayout);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>设置用户名和头像</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">ChatItemBase::setUserName</span><span class="params">(<span class="type">const</span> QString &amp;name)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    m_pNameLabel-&gt;<span class="built_in">setText</span>(name);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">ChatItemBase::setUserIcon</span><span class="params">(<span class="type">const</span> QPixmap &amp;icon)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    m_pIconLabel-&gt;<span class="built_in">setPixmap</span>(icon);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>因为我们还要定制化实现气泡widget，所以要写个函数更新这个widget</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">ChatItemBase::setWidget</span><span class="params">(QWidget *w)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">   QGridLayout *pGLayout = (qobject_cast&lt;QGridLayout *&gt;)(<span class="keyword">this</span>-&gt;<span class="built_in">layout</span>());</span><br><span class="line">   pGLayout-&gt;<span class="built_in">replaceWidget</span>(m_pBubble, w);</span><br><span class="line">   <span class="keyword">delete</span> m_pBubble;</span><br><span class="line">   m_pBubble = w;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="聊天气泡"><a href="#聊天气泡" class="headerlink" title="聊天气泡"></a>聊天气泡</h2><p>我们的消息分为几种，文件，文本，图片等。所以先实现BubbleFrame作为基类</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">BubbleFrame</span> : <span class="keyword">public</span> QFrame</span><br><span class="line">&#123;</span><br><span class="line">    Q_OBJECT</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">BubbleFrame</span>(ChatRole role, QWidget *parent = <span class="literal">nullptr</span>);</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">setMargin</span><span class="params">(<span class="type">int</span> margin)</span></span>;</span><br><span class="line">    <span class="comment">//inline int margin()&#123;return margin;&#125;</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">setWidget</span><span class="params">(QWidget *w)</span></span>;</span><br><span class="line"><span class="keyword">protected</span>:</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">paintEvent</span><span class="params">(QPaintEvent *e)</span></span>;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    QHBoxLayout *m_pHLayout;</span><br><span class="line">    ChatRole m_role;</span><br><span class="line">     <span class="type">int</span>      m_margin;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>BubbleFrame基类构造函数创建一个布局，要根据是自己发送的消息还是别人发送的，做margin分布</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">const</span> <span class="type">int</span> WIDTH_SANJIAO  = <span class="number">8</span>;  <span class="comment">//三角宽</span></span><br><span class="line">BubbleFrame::<span class="built_in">BubbleFrame</span>(ChatRole role, QWidget *parent)</span><br><span class="line">    :<span class="built_in">QFrame</span>(parent)</span><br><span class="line">    ,<span class="built_in">m_role</span>(role)</span><br><span class="line">    ,<span class="built_in">m_margin</span>(<span class="number">3</span>)</span><br><span class="line">&#123;</span><br><span class="line">    m_pHLayout = <span class="keyword">new</span> <span class="built_in">QHBoxLayout</span>();</span><br><span class="line">    <span class="keyword">if</span>(m_role == ChatRole::Self)</span><br><span class="line">        m_pHLayout-&gt;<span class="built_in">setContentsMargins</span>(m_margin, m_margin, WIDTH_SANJIAO + m_margin, m_margin);</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        m_pHLayout-&gt;<span class="built_in">setContentsMargins</span>(WIDTH_SANJIAO + m_margin, m_margin, m_margin, m_margin);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">this</span>-&gt;<span class="built_in">setLayout</span>(m_pHLayout);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>将气泡框内设置文本内容，或者图片内容，所以实现了下面的函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">BubbleFrame::setWidget</span><span class="params">(QWidget *w)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(m_pHLayout-&gt;<span class="built_in">count</span>() &gt; <span class="number">0</span>)</span><br><span class="line">        <span class="keyword">return</span> ;</span><br><span class="line">    <span class="keyword">else</span>&#123;</span><br><span class="line">        m_pHLayout-&gt;<span class="built_in">addWidget</span>(w);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>接下来绘制气泡</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">BubbleFrame::paintEvent</span><span class="params">(QPaintEvent *e)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">QPainter <span class="title">painter</span><span class="params">(<span class="keyword">this</span>)</span></span>;</span><br><span class="line">    painter.<span class="built_in">setPen</span>(Qt::NoPen);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(m_role == ChatRole::Other)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">//画气泡</span></span><br><span class="line">        <span class="function">QColor <span class="title">bk_color</span><span class="params">(Qt::white)</span></span>;</span><br><span class="line">        painter.<span class="built_in">setBrush</span>(<span class="built_in">QBrush</span>(bk_color));</span><br><span class="line">        QRect bk_rect = <span class="built_in">QRect</span>(WIDTH_SANJIAO, <span class="number">0</span>, <span class="keyword">this</span>-&gt;<span class="built_in">width</span>()-WIDTH_SANJIAO, <span class="keyword">this</span>-&gt;<span class="built_in">height</span>());</span><br><span class="line">        painter.<span class="built_in">drawRoundedRect</span>(bk_rect,<span class="number">5</span>,<span class="number">5</span>);</span><br><span class="line">        <span class="comment">//画小三角</span></span><br><span class="line">        QPointF points[<span class="number">3</span>] = &#123;</span><br><span class="line">            <span class="built_in">QPointF</span>(bk_rect.<span class="built_in">x</span>(), <span class="number">12</span>),</span><br><span class="line">            <span class="built_in">QPointF</span>(bk_rect.<span class="built_in">x</span>(), <span class="number">10</span>+WIDTH_SANJIAO +<span class="number">2</span>),</span><br><span class="line">            <span class="built_in">QPointF</span>(bk_rect.<span class="built_in">x</span>()-WIDTH_SANJIAO, <span class="number">10</span>+WIDTH_SANJIAO-WIDTH_SANJIAO/<span class="number">2</span>),</span><br><span class="line">        &#125;;</span><br><span class="line">        painter.<span class="built_in">drawPolygon</span>(points, <span class="number">3</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        QColor <span class="built_in">bk_color</span>(<span class="number">158</span>,<span class="number">234</span>,<span class="number">106</span>);</span><br><span class="line">        painter.<span class="built_in">setBrush</span>(<span class="built_in">QBrush</span>(bk_color));</span><br><span class="line">        <span class="comment">//画气泡</span></span><br><span class="line">        QRect bk_rect = <span class="built_in">QRect</span>(<span class="number">0</span>, <span class="number">0</span>, <span class="keyword">this</span>-&gt;<span class="built_in">width</span>()-WIDTH_SANJIAO, <span class="keyword">this</span>-&gt;<span class="built_in">height</span>());</span><br><span class="line">        painter.<span class="built_in">drawRoundedRect</span>(bk_rect,<span class="number">5</span>,<span class="number">5</span>);</span><br><span class="line">        <span class="comment">//画三角</span></span><br><span class="line">        QPointF points[<span class="number">3</span>] = &#123;</span><br><span class="line">            <span class="built_in">QPointF</span>(bk_rect.<span class="built_in">x</span>()+bk_rect.<span class="built_in">width</span>(), <span class="number">12</span>),</span><br><span class="line">            <span class="built_in">QPointF</span>(bk_rect.<span class="built_in">x</span>()+bk_rect.<span class="built_in">width</span>(), <span class="number">12</span>+WIDTH_SANJIAO +<span class="number">2</span>),</span><br><span class="line">            <span class="built_in">QPointF</span>(bk_rect.<span class="built_in">x</span>()+bk_rect.<span class="built_in">width</span>()+WIDTH_SANJIAO, <span class="number">10</span>+WIDTH_SANJIAO-WIDTH_SANJIAO/<span class="number">2</span>),</span><br><span class="line">        &#125;;</span><br><span class="line">        painter.<span class="built_in">drawPolygon</span>(points, <span class="number">3</span>);</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> QFrame::<span class="built_in">paintEvent</span>(e);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>绘制的过程很简单，先创建QPainter，然后设置NoPen,表示不绘制轮廓线，接下来用设置指定颜色的画刷绘制图形，我们先绘制矩形再绘制三角形。</p>
+<p>对于文本消息的绘制</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">TextBubble::<span class="built_in">TextBubble</span>(ChatRole role, <span class="type">const</span> QString &amp;text, QWidget *parent)</span><br><span class="line">    :<span class="built_in">BubbleFrame</span>(role, parent)</span><br><span class="line">&#123;</span><br><span class="line">    m_pTextEdit = <span class="keyword">new</span> <span class="built_in">QTextEdit</span>();</span><br><span class="line">    m_pTextEdit-&gt;<span class="built_in">setReadOnly</span>(<span class="literal">true</span>);</span><br><span class="line">    m_pTextEdit-&gt;<span class="built_in">setVerticalScrollBarPolicy</span>(Qt::ScrollBarAlwaysOff);</span><br><span class="line">    m_pTextEdit-&gt;<span class="built_in">setHorizontalScrollBarPolicy</span>(Qt::ScrollBarAlwaysOff);</span><br><span class="line">    m_pTextEdit-&gt;<span class="built_in">installEventFilter</span>(<span class="keyword">this</span>);</span><br><span class="line">    <span class="function">QFont <span class="title">font</span><span class="params">(<span class="string">&quot;Microsoft YaHei&quot;</span>)</span></span>;</span><br><span class="line">    font.<span class="built_in">setPointSize</span>(<span class="number">12</span>);</span><br><span class="line">    m_pTextEdit-&gt;<span class="built_in">setFont</span>(font);</span><br><span class="line">    <span class="built_in">setPlainText</span>(text);</span><br><span class="line">    <span class="built_in">setWidget</span>(m_pTextEdit);</span><br><span class="line">    <span class="built_in">initStyleSheet</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>setPlainText设置文本最大宽度</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">TextBubble::setPlainText</span><span class="params">(<span class="type">const</span> QString &amp;text)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    m_pTextEdit-&gt;<span class="built_in">setPlainText</span>(text);</span><br><span class="line">    <span class="comment">//m_pTextEdit-&gt;setHtml(text);</span></span><br><span class="line">    <span class="comment">//找到段落中最大宽度</span></span><br><span class="line">    qreal doc_margin = m_pTextEdit-&gt;<span class="built_in">document</span>()-&gt;<span class="built_in">documentMargin</span>();</span><br><span class="line">    <span class="type">int</span> margin_left = <span class="keyword">this</span>-&gt;<span class="built_in">layout</span>()-&gt;<span class="built_in">contentsMargins</span>().<span class="built_in">left</span>();</span><br><span class="line">    <span class="type">int</span> margin_right = <span class="keyword">this</span>-&gt;<span class="built_in">layout</span>()-&gt;<span class="built_in">contentsMargins</span>().<span class="built_in">right</span>();</span><br><span class="line">    <span class="function">QFontMetricsF <span class="title">fm</span><span class="params">(m_pTextEdit-&gt;font())</span></span>;</span><br><span class="line">    QTextDocument *doc = m_pTextEdit-&gt;<span class="built_in">document</span>();</span><br><span class="line">    <span class="type">int</span> max_width = <span class="number">0</span>;</span><br><span class="line">    <span class="comment">//遍历每一段找到 最宽的那一段</span></span><br><span class="line">    <span class="keyword">for</span> (QTextBlock it = doc-&gt;<span class="built_in">begin</span>(); it != doc-&gt;<span class="built_in">end</span>(); it = it.<span class="built_in">next</span>())    <span class="comment">//字体总长</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="type">int</span> txtW = <span class="built_in">int</span>(fm.<span class="built_in">width</span>(it.<span class="built_in">text</span>()));</span><br><span class="line">        max_width = max_width &lt; txtW ? txtW : max_width;                 <span class="comment">//找到最长的那段</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//设置这个气泡的最大宽度 只需要设置一次</span></span><br><span class="line">    <span class="built_in">setMaximumWidth</span>(max_width + doc_margin * <span class="number">2</span> + (margin_left + margin_right));        <span class="comment">//设置最大宽度</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们拉伸的时候要调整气泡的高度,这里重写事件过滤器</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">bool</span> <span class="title">TextBubble::eventFilter</span><span class="params">(QObject *o, QEvent *e)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(m_pTextEdit == o &amp;&amp; e-&gt;<span class="built_in">type</span>() == QEvent::Paint)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">adjustTextHeight</span>(); <span class="comment">//PaintEvent中设置</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> BubbleFrame::<span class="built_in">eventFilter</span>(o, e);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>调整高度</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">TextBubble::adjustTextHeight</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    qreal doc_margin = m_pTextEdit-&gt;<span class="built_in">document</span>()-&gt;<span class="built_in">documentMargin</span>();    <span class="comment">//字体到边框的距离默认为4</span></span><br><span class="line">    QTextDocument *doc = m_pTextEdit-&gt;<span class="built_in">document</span>();</span><br><span class="line">    qreal text_height = <span class="number">0</span>;</span><br><span class="line">    <span class="comment">//把每一段的高度相加=文本高</span></span><br><span class="line">    <span class="keyword">for</span> (QTextBlock it = doc-&gt;<span class="built_in">begin</span>(); it != doc-&gt;<span class="built_in">end</span>(); it = it.<span class="built_in">next</span>())</span><br><span class="line">    &#123;</span><br><span class="line">        QTextLayout *pLayout = it.<span class="built_in">layout</span>();</span><br><span class="line">        QRectF text_rect = pLayout-&gt;<span class="built_in">boundingRect</span>();                             <span class="comment">//这段的rect</span></span><br><span class="line">        text_height += text_rect.<span class="built_in">height</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">int</span> vMargin = <span class="keyword">this</span>-&gt;<span class="built_in">layout</span>()-&gt;<span class="built_in">contentsMargins</span>().<span class="built_in">top</span>();</span><br><span class="line">    <span class="comment">//设置这个气泡需要的高度 文本高+文本边距+TextEdit边框到气泡边框的距离</span></span><br><span class="line">    <span class="built_in">setFixedHeight</span>(text_height + doc_margin *<span class="number">2</span> + vMargin*<span class="number">2</span> );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>设置样式表</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">TextBubble::initStyleSheet</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    m_pTextEdit-&gt;<span class="built_in">setStyleSheet</span>(<span class="string">&quot;QTextEdit&#123;background:transparent;border:none&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于图像的旗袍对话框类似，只是计算图像的宽高即可</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> PIC_MAX_WIDTH 160</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PIC_MAX_HEIGHT 90</span></span><br><span class="line"></span><br><span class="line">PictureBubble::<span class="built_in">PictureBubble</span>(<span class="type">const</span> QPixmap &amp;picture, ChatRole role, QWidget *parent)</span><br><span class="line">    :<span class="built_in">BubbleFrame</span>(role, parent)</span><br><span class="line">&#123;</span><br><span class="line">    QLabel *lb = <span class="keyword">new</span> <span class="built_in">QLabel</span>();</span><br><span class="line">    lb-&gt;<span class="built_in">setScaledContents</span>(<span class="literal">true</span>);</span><br><span class="line">    QPixmap pix = picture.<span class="built_in">scaled</span>(<span class="built_in">QSize</span>(PIC_MAX_WIDTH, PIC_MAX_HEIGHT), Qt::KeepAspectRatio);</span><br><span class="line">    lb-&gt;<span class="built_in">setPixmap</span>(pix);</span><br><span class="line">    <span class="keyword">this</span>-&gt;<span class="built_in">setWidget</span>(lb);</span><br><span class="line"></span><br><span class="line">    <span class="type">int</span> left_margin = <span class="keyword">this</span>-&gt;<span class="built_in">layout</span>()-&gt;<span class="built_in">contentsMargins</span>().<span class="built_in">left</span>();</span><br><span class="line">    <span class="type">int</span> right_margin = <span class="keyword">this</span>-&gt;<span class="built_in">layout</span>()-&gt;<span class="built_in">contentsMargins</span>().<span class="built_in">right</span>();</span><br><span class="line">    <span class="type">int</span> v_margin = <span class="keyword">this</span>-&gt;<span class="built_in">layout</span>()-&gt;<span class="built_in">contentsMargins</span>().<span class="built_in">bottom</span>();</span><br><span class="line">    <span class="built_in">setFixedSize</span>(pix.<span class="built_in">width</span>()+left_margin + right_margin, pix.<span class="built_in">height</span>() + v_margin *<span class="number">2</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="发送测试"><a href="#发送测试" class="headerlink" title="发送测试"></a>发送测试</h2><p>接下来在发送处实现文本和图片消息的展示，点击发送按钮根据不同的类型创建不同的气泡消息</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">ChatPage::on_send_btn_clicked</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">auto</span> pTextEdit = ui-&gt;chatEdit;</span><br><span class="line">    ChatRole role = ChatRole::Self;</span><br><span class="line">    QString userName = <span class="built_in">QStringLiteral</span>(<span class="string">&quot;恋恋风辰&quot;</span>);</span><br><span class="line">    QString userIcon = <span class="string">&quot;:/res/head_1.jpg&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="type">const</span> QVector&lt;MsgInfo&gt;&amp; msgList = pTextEdit-&gt;<span class="built_in">getMsgList</span>();</span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i=<span class="number">0</span>; i&lt;msgList.<span class="built_in">size</span>(); ++i)</span><br><span class="line">    &#123;</span><br><span class="line">        QString type = msgList[i].msgFlag;</span><br><span class="line">        ChatItemBase *pChatItem = <span class="keyword">new</span> <span class="built_in">ChatItemBase</span>(role);</span><br><span class="line">        pChatItem-&gt;<span class="built_in">setUserName</span>(userName);</span><br><span class="line">        pChatItem-&gt;<span class="built_in">setUserIcon</span>(<span class="built_in">QPixmap</span>(userIcon));</span><br><span class="line">        QWidget *pBubble = <span class="literal">nullptr</span>;</span><br><span class="line">        <span class="keyword">if</span>(type == <span class="string">&quot;text&quot;</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            pBubble = <span class="keyword">new</span> <span class="built_in">TextBubble</span>(role, msgList[i].content);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span>(type == <span class="string">&quot;image&quot;</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            pBubble = <span class="keyword">new</span> <span class="built_in">PictureBubble</span>(<span class="built_in">QPixmap</span>(msgList[i].content) , role);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span>(type == <span class="string">&quot;file&quot;</span>)</span><br><span class="line">        &#123;</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span>(pBubble != <span class="literal">nullptr</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            pChatItem-&gt;<span class="built_in">setWidget</span>(pBubble);</span><br><span class="line">            ui-&gt;chat_data_list-&gt;<span class="built_in">appendChatItem</span>(pChatItem);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="效果展示"><a href="#效果展示" class="headerlink" title="效果展示"></a>效果展示</h2><p><img src="https://cdn.llfc.club/1718499438435.jpg" alt="https://cdn.llfc.club/1718499438435.jpg"></p>
+<h2 id="源码和视频"><a href="#源码和视频" class="headerlink" title="源码和视频"></a>源码和视频</h2><p><a target="_blank" rel="noopener" href="https://www.bilibili.com/video/BV1Mz4218783/?vd_source=8be9e83424c2ed2c9b2a3ed1d01385e9">https://www.bilibili.com/video/BV1Mz4218783/?vd_source=8be9e83424c2ed2c9b2a3ed1d01385e9</a></p>
+<h2 id="源码链接"><a href="#源码链接" class="headerlink" title="源码链接"></a>源码链接</h2><p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/llfcchat">https://gitee.com/secondtonone1/llfcchat</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C-cpppro/" rel="tag"># C++ cpppro</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2024/08/31/cpppro23/" rel="next" title="聊天项目(23) 侧边栏切换和搜索列表">
+                <i class="fa fa-chevron-left"></i> 聊天项目(23) 侧边栏切换和搜索列表
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2024/08/31/cpppro21/" rel="prev" title="聊天项目(21) 滚动聊天布局设计">
+                聊天项目(21) 滚动聊天布局设计 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">336</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">20</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B0%94%E6%B3%A1%E8%81%8A%E5%A4%A9%E6%A1%86%E8%AE%BE%E8%AE%A1"><span class="nav-number">1.</span> <span class="nav-text">气泡聊天框设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%81%8A%E5%A4%A9%E6%B0%94%E6%B3%A1"><span class="nav-number">2.</span> <span class="nav-text">聊天气泡</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%91%E9%80%81%E6%B5%8B%E8%AF%95"><span class="nav-number">3.</span> <span class="nav-text">发送测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%88%E6%9E%9C%E5%B1%95%E7%A4%BA"><span class="nav-number">4.</span> <span class="nav-text">效果展示</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E5%92%8C%E8%A7%86%E9%A2%91"><span class="nav-number">5.</span> <span class="nav-text">源码和视频</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E9%93%BE%E6%8E%A5"><span class="nav-number">6.</span> <span class="nav-text">源码链接</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

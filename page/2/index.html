@@ -286,6 +286,183 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/08/31/cpppro18/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2024/08/31/cpppro18/" itemprop="url">聊天项目(18) 聊天界面布局以及可点击按钮的实现</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-08-31T09:30:35+08:00">
+                2024-08-31
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
+                    <span itemprop="name">C++ cpppro</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h2 id="聊天界面整体展示"><a href="#聊天界面整体展示" class="headerlink" title="聊天界面整体展示"></a>聊天界面整体展示</h2><p>我们先看下整体的聊天界面，方便以后逐个功能添加<br><img src="https://cdn.llfc.club/1716523002662.jpg" alt="https://cdn.llfc.club/1716523002662.jpg"></p>
+<p>QT Designer中 ui 设计如下<br><img src="https://cdn.llfc.club/1716528347175.jpg" alt="https://cdn.llfc.club/1716528347175.jpg"></p>
+<p>将聊天对话框分为几个部分：</p>
+<p>1 处为左侧功能切换区域，包括聊天，联系人等。</p>
+<p>2 处为搜索区域，可以搜索联系人，聊天记录等， 搜索框后面的按钮是快速拉人创建群聊的功能。</p>
+<p>3 处为近期聊天联系列表</p>
+<p>4 处为搜索结果列表，包括匹配到的联系人，聊天记录，以及添加联系人的按钮。</p>
+<p>5  处为聊天对象名称和头像的显示区域，这里先做简单演示写死。</p>
+<p>6  处为聊天记录区域。</p>
+<p>7  处为工具栏区域。  </p>
+<p>8  处为输入区域</p>
+<p>9  处为发送按钮区域。</p>
+<p>大家可以按照这个布局拖动和修改，达到我的布局效果。</p>
+<h2 id="创建ChatDialog"><a href="#创建ChatDialog" class="headerlink" title="创建ChatDialog"></a>创建ChatDialog</h2><p>右键项目，选择创建设计师界面类，选择创建QDialog without buttons。对话框的名字为ChatDialog</p>
+<p>创建完成后，在之前登录成功的回调里，跳转到这个对话框。在MainWindow里添加槽函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">MainWindow::SlotSwitchChat</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    _chat_dlg = <span class="keyword">new</span> <span class="built_in">ChatDialog</span>();</span><br><span class="line">    _chat_dlg-&gt;<span class="built_in">setWindowFlags</span>(Qt::CustomizeWindowHint|Qt::FramelessWindowHint);</span><br><span class="line">    <span class="built_in">setCentralWidget</span>(_chat_dlg);</span><br><span class="line">    _chat_dlg-&gt;<span class="built_in">show</span>();</span><br><span class="line">    _login_dlg-&gt;<span class="built_in">hide</span>();</span><br><span class="line">    <span class="keyword">this</span>-&gt;<span class="built_in">setMinimumSize</span>(<span class="built_in">QSize</span>(<span class="number">1050</span>,<span class="number">900</span>));</span><br><span class="line">    <span class="keyword">this</span>-&gt;<span class="built_in">setMaximumSize</span>(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在MainWindow的构造函数中添加信号和槽的链接</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//连接创建聊天界面信号</span></span><br><span class="line"><span class="built_in">connect</span>(TcpMgr::<span class="built_in">GetInstance</span>().<span class="built_in">get</span>(),&amp;TcpMgr::sig_swich_chatdlg, <span class="keyword">this</span>, &amp;MainWindow::SlotSwitchChat);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>并且在TcpMgr中添加信号</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">sig_swich_chatdlg</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+<p>为了方便测试，我们在MainWindow的构造函数中直接发送sig_switch_chatdlg信号，这样程序运行起来就会直接跳转到聊天界面</p>
+<h2 id="ChatDialog-ui文件"><a href="#ChatDialog-ui文件" class="headerlink" title="ChatDialog ui文件"></a>ChatDialog ui文件</h2><p>ui文件的结构可以参考我的源码中的结构，这里我们可以简单看下</p>
+<p><img src="https://cdn.llfc.club/1716603750779.jpg" alt="https://cdn.llfc.club/1716603750779.jpg"></p>
+<p>按照这个布局拖动并设置宽高即可，接下来需要设置下qss调整颜色</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-id">#side_bar</span>&#123;</span><br><span class="line">  <span class="attribute">background-color</span>:<span class="built_in">rgb</span>(<span class="number">46</span>,<span class="number">46</span>,<span class="number">46</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="重写点击按钮"><a href="#重写点击按钮" class="headerlink" title="重写点击按钮"></a>重写点击按钮</h2><p>为了实现点击效果，我们继承QPushButton实现按钮的点击效果，包括普通状态，悬浮状态，以及按下状态</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">ClickedBtn</span>:<span class="keyword">public</span> QPushButton</span><br><span class="line">&#123;</span><br><span class="line">    Q_OBJECT</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">ClickedBtn</span>(QWidget * parent = <span class="literal">nullptr</span>);</span><br><span class="line">    ~<span class="built_in">ClickedBtn</span>();</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">SetState</span><span class="params">(QString nomal, QString hover, QString press)</span></span>;</span><br><span class="line"><span class="keyword">protected</span>:</span><br><span class="line">    <span class="function"><span class="keyword">virtual</span> <span class="type">void</span> <span class="title">enterEvent</span><span class="params">(QEvent *event)</span> <span class="keyword">override</span></span>; <span class="comment">// 鼠标进入</span></span><br><span class="line">     <span class="function"><span class="keyword">virtual</span> <span class="type">void</span> <span class="title">leaveEvent</span><span class="params">(QEvent *event)</span> <span class="keyword">override</span></span>;<span class="comment">// 鼠标离开</span></span><br><span class="line">    <span class="function"><span class="keyword">virtual</span> <span class="type">void</span> <span class="title">mousePressEvent</span><span class="params">(QMouseEvent *event)</span> <span class="keyword">override</span></span>; <span class="comment">// 鼠标按下</span></span><br><span class="line">    <span class="function"><span class="keyword">virtual</span> <span class="type">void</span> <span class="title">mouseReleaseEvent</span><span class="params">(QMouseEvent *event)</span> <span class="keyword">override</span></span>; <span class="comment">// 鼠标释放</span></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    QString _normal;</span><br><span class="line">    QString _hover;</span><br><span class="line">    QString _press;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>接下来实现其按下，离开进入等资源加载，并且重写这些事件</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">ClickedBtn::<span class="built_in">ClickedBtn</span>(QWidget *parent):<span class="built_in">QPushButton</span> (parent)</span><br><span class="line">&#123;</span><br><span class="line">      <span class="built_in">setCursor</span>(Qt::PointingHandCursor); <span class="comment">// 设置光标为小手</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ClickedBtn::~<span class="built_in">ClickedBtn</span>()&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">ClickedBtn::SetState</span><span class="params">(QString normal, QString hover, QString press)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    _hover = hover;</span><br><span class="line">    _normal = normal;</span><br><span class="line">    _press = press;</span><br><span class="line">    <span class="built_in">setProperty</span>(<span class="string">&quot;state&quot;</span>,normal);</span><br><span class="line">    <span class="built_in">repolish</span>(<span class="keyword">this</span>);</span><br><span class="line">    <span class="built_in">update</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">ClickedBtn::enterEvent</span><span class="params">(QEvent *event)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">setProperty</span>(<span class="string">&quot;state&quot;</span>,_hover);</span><br><span class="line">    <span class="built_in">repolish</span>(<span class="keyword">this</span>);</span><br><span class="line">    <span class="built_in">update</span>();</span><br><span class="line">    QPushButton::<span class="built_in">enterEvent</span>(event);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">ClickedBtn::mousePressEvent</span><span class="params">(QMouseEvent *event)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">setProperty</span>(<span class="string">&quot;state&quot;</span>,_press);</span><br><span class="line">    <span class="built_in">repolish</span>(<span class="keyword">this</span>);</span><br><span class="line">    <span class="built_in">update</span>();</span><br><span class="line">    QPushButton::<span class="built_in">mousePressEvent</span>(event);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">ClickedBtn::mouseReleaseEvent</span><span class="params">(QMouseEvent *event)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">setProperty</span>(<span class="string">&quot;state&quot;</span>,_hover);</span><br><span class="line">    <span class="built_in">repolish</span>(<span class="keyword">this</span>);</span><br><span class="line">    <span class="built_in">update</span>();</span><br><span class="line">    QPushButton::<span class="built_in">mouseReleaseEvent</span>(event);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>回到chatdialog.ui文件，将add_btn升级为ClickedBtn</p>
+<p>接着在qss文件中添加样式</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-id">#add_btn</span><span class="selector-attr">[state=<span class="string">&#x27;normal&#x27;</span>]</span>&#123;</span><br><span class="line">    <span class="attribute">border-image</span>: <span class="built_in">url</span>(<span class="string">:/res/add_friend_normal.png</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="selector-id">#add_btn</span><span class="selector-attr">[state=<span class="string">&#x27;hover&#x27;</span>]</span>&#123;</span><br><span class="line">    <span class="attribute">border-image</span>: <span class="built_in">url</span>(<span class="string">:/res/add_friend_hover.png</span>);</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="selector-id">#add_btn</span><span class="selector-attr">[state=<span class="string">&#x27;press&#x27;</span>]</span>&#123;</span><br><span class="line">    <span class="attribute">border-image</span>: <span class="built_in">url</span>(<span class="string">:/res/add_friend_hover.png</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>add_btn的样式一定要显示设置一下三个样式，所以我们回到ChatDialog的构造函数中设置样式</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ui-&gt;add_btn-&gt;<span class="built_in">SetState</span>(<span class="string">&quot;normal&quot;</span>,<span class="string">&quot;hover&quot;</span>,<span class="string">&quot;press&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>再次启动运行，可以看到添加群组的按钮样式和sidebar的样式生效了。</p>
+<p>为了美观显示，我们去mainwindow.ui中移除状态栏和菜单栏。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/08/31/cpppro19/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1934,223 +2111,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/08/31/cpppro4/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2024/08/31/cpppro4/" itemprop="url">C++ 全栈聊天项目(4) visualstudio配置boost与jsoncpp</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-08-31T09:30:35+08:00">
-                2024-08-31
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
-                    <span itemprop="name">C++ cpppro</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h2 id="绑定和监听连接"><a href="#绑定和监听连接" class="headerlink" title="绑定和监听连接"></a>绑定和监听连接</h2><p>我们利用visual studio创建一个空项目，项目名字为GateServer，然后按照day03的方法配置boost库和jsoncpp配置好后，我们添加一个新的类，名字叫CServer。添加成功后生成的CServer.h和CServer.cpp也会自动加入到项目中。</p>
-<p>CServer类构造函数接受一个端口号，创建acceptor接受新到来的链接。</p>
-<p>CServer.h包含必要的头文件，以及简化作用域声明</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;boost/beast/http.hpp&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;boost/beast.hpp&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;boost/asio.hpp&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> beast = boost::beast;         <span class="comment">// from &lt;boost/beast.hpp&gt;</span></span><br><span class="line"><span class="keyword">namespace</span> http = beast::http;           <span class="comment">// from &lt;boost/beast/http.hpp&gt;</span></span><br><span class="line"><span class="keyword">namespace</span> net = boost::asio;            <span class="comment">// from &lt;boost/asio.hpp&gt;</span></span><br><span class="line"><span class="keyword">using</span> tcp = boost::asio::ip::tcp;       <span class="comment">// from &lt;boost/asio/ip/tcp.hpp&gt;</span></span><br></pre></td></tr></table></figure>
-<p>CServer.h中声明acceptor, 以及用于事件循环的上下文iocontext,和构造函数</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">CServer</span>:<span class="keyword">public</span> std::enable_shared_from_this&lt;CServer&gt;</span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">CServer</span>(boost::asio::io_context&amp; ioc, <span class="type">unsigned</span> <span class="type">short</span>&amp; port);</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">Start</span><span class="params">()</span></span>;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	tcp::acceptor  _acceptor;</span><br><span class="line">	net::io_context&amp; _ioc;</span><br><span class="line">	boost::asio::ip::tcp::socket   _socket;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-<p>cpp中实现构造函数如下</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">CServer::<span class="built_in">CServer</span>(boost::asio::io_context&amp; ioc, <span class="type">unsigned</span> <span class="type">short</span>&amp; port) :_ioc(ioc),</span><br><span class="line">_acceptor(ioc, tcp::<span class="built_in">endpoint</span>(tcp::<span class="built_in">v4</span>(), port)),_socket(ioc) &#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>接下来我们实现Start函数，用来监听新链接</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">CServer::Start</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;	</span><br><span class="line">	<span class="keyword">auto</span> self = <span class="built_in">shared_from_this</span>();</span><br><span class="line">	_acceptor.<span class="built_in">async_accept</span>(_socket, [self](beast::error_code ec) &#123;</span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			<span class="comment">//出错则放弃这个连接，继续监听新链接</span></span><br><span class="line">			<span class="keyword">if</span> (ec) &#123;</span><br><span class="line">				self-&gt;<span class="built_in">Start</span>();</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="comment">//处理新链接，创建HpptConnection类管理新连接</span></span><br><span class="line">			std::<span class="built_in">make_shared</span>&lt;HttpConnection&gt;(std::<span class="built_in">move</span>(self-&gt;_socket))-&gt;<span class="built_in">Start</span>();</span><br><span class="line">			<span class="comment">//继续监听</span></span><br><span class="line">			self-&gt;<span class="built_in">Start</span>();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="built_in">catch</span> (std::exception&amp; exp) &#123;</span><br><span class="line">			std::cout &lt;&lt; <span class="string">&quot;exception is &quot;</span> &lt;&lt; exp.<span class="built_in">what</span>() &lt;&lt; std::endl;</span><br><span class="line">			self-&gt;<span class="built_in">Start</span>();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>Start函数内创建HttpConnection类型智能指针，将_socket内部数据转移给HttpConnection管理，_socket继续用来接受写的链接。</p>
-<p>我们创建const.h将文件件和一些作用于声明放在const.h里，这样以后创建的文件包含这个const.h即可，不用写那么多头文件了。</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;boost/beast/http.hpp&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;boost/beast.hpp&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;boost/asio.hpp&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> beast = boost::beast;         <span class="comment">// from &lt;boost/beast.hpp&gt;</span></span><br><span class="line"><span class="keyword">namespace</span> http = beast::http;           <span class="comment">// from &lt;boost/beast/http.hpp&gt;</span></span><br><span class="line"><span class="keyword">namespace</span> net = boost::asio;            <span class="comment">// from &lt;boost/asio.hpp&gt;</span></span><br><span class="line"><span class="keyword">using</span> tcp = boost::asio::ip::tcp;       <span class="comment">// from &lt;boost/asio/ip/tcp.hpp&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>新建HttpConnection类文件，在头文件添加声明</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;const.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">HttpConnection</span>: <span class="keyword">public</span> std::enable_shared_from_this&lt;HttpConnection&gt;</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">friend</span> <span class="keyword">class</span> <span class="title class_">LogicSystem</span>;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">HttpConnection</span>(tcp::socket socket);</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">Start</span><span class="params">()</span></span>;</span><br><span class="line">	</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">CheckDeadline</span><span class="params">()</span></span>;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">WriteResponse</span><span class="params">()</span></span>;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">HandleReq</span><span class="params">()</span></span>;</span><br><span class="line">	tcp::socket  _socket;</span><br><span class="line">	<span class="comment">// The buffer for performing reads.</span></span><br><span class="line">	beast::flat_buffer  _buffer&#123; <span class="number">8192</span> &#125;;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// The request message.</span></span><br><span class="line">	http::request&lt;http::dynamic_body&gt; _request;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// The response message.</span></span><br><span class="line">	http::response&lt;http::dynamic_body&gt; _response;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// The timer for putting a deadline on connection processing.</span></span><br><span class="line">	net::steady_timer deadline_&#123;</span><br><span class="line">		_socket.<span class="built_in">get_executor</span>(), std::chrono::<span class="built_in">seconds</span>(<span class="number">60</span>) &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-<p>_buffer 用来接受数据</p>
-<p>_request 用来解析请求</p>
-<p>_response 用来回应客户端</p>
-<p>_deadline 用来做定时器判断请求是否超时</p>
-<p>实现HttpConnection构造函数</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">HttpConnection::<span class="built_in">HttpConnection</span>(tcp::socket socket)</span><br><span class="line">	: _socket(std::<span class="built_in">move</span>(socket)) &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>我们考虑在HttpConnection::Start内部调用http::async_read函数，其源码为</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">async_read</span>(</span><br><span class="line">    AsyncReadStream&amp; stream,</span><br><span class="line">    DynamicBuffer&amp; buffer,</span><br><span class="line">    basic_parser&lt;isRequest&gt;&amp; parser,</span><br><span class="line">    ReadHandler&amp;&amp; handler)</span><br></pre></td></tr></table></figure>
-<p>第一个参数为异步可读的数据流，大家可以理解为socket.</p>
-<p>第二个参数为一个buffer，用来存储接受的数据，因为http可接受文本，图像，音频等多种资源文件，所以是Dynamic动态类型的buffer。</p>
-<p>第三个参数是请求参数，我们一般也要传递能接受多种资源类型的请求参数。</p>
-<p>第四个参数为回调函数，接受成功或者失败，都会触发回调函数，我们用lambda表达式就可以了。</p>
-<p>我们已经将1,2,3这几个参数写到HttpConnection类的成员声明里了</p>
-<p>实现HttpConnection的Start函数</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">HttpConnection::Start</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">auto</span> self = <span class="built_in">shared_from_this</span>();</span><br><span class="line">	http::<span class="built_in">async_read</span>(_socket, _buffer, _request, [self](beast::error_code ec,</span><br><span class="line">		std::<span class="type">size_t</span> bytes_transferred) &#123;</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				<span class="keyword">if</span> (ec) &#123;</span><br><span class="line">					std::cout &lt;&lt; <span class="string">&quot;http read err is &quot;</span> &lt;&lt; ec.<span class="built_in">what</span>() &lt;&lt; std::endl;</span><br><span class="line">					<span class="keyword">return</span>;</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				<span class="comment">//处理读到的数据</span></span><br><span class="line">				boost::<span class="built_in">ignore_unused</span>(bytes_transferred);</span><br><span class="line">				self-&gt;<span class="built_in">HandleReq</span>();</span><br><span class="line">				self-&gt;<span class="built_in">CheckDeadline</span>();</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="built_in">catch</span> (std::exception&amp; exp) &#123;</span><br><span class="line">				std::cout &lt;&lt; <span class="string">&quot;exception is &quot;</span> &lt;&lt; exp.<span class="built_in">what</span>() &lt;&lt; std::endl;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>我们实现HandleReq</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">HttpConnection::HandleReq</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">//设置版本</span></span><br><span class="line">	_response.<span class="built_in">version</span>(_request.<span class="built_in">version</span>());</span><br><span class="line">	<span class="comment">//设置为短链接</span></span><br><span class="line">	_response.<span class="built_in">keep_alive</span>(<span class="literal">false</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (_request.<span class="built_in">method</span>() == http::verb::get) &#123;</span><br><span class="line">		<span class="type">bool</span> success = LogicSystem::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">HandleGet</span>(_request.<span class="built_in">target</span>(), <span class="built_in">shared_from_this</span>());</span><br><span class="line">		<span class="keyword">if</span> (!success) &#123;</span><br><span class="line">			_response.<span class="built_in">result</span>(http::status::not_found);</span><br><span class="line">			_response.<span class="built_in">set</span>(http::field::content_type, <span class="string">&quot;text/plain&quot;</span>);</span><br><span class="line">			beast::<span class="built_in">ostream</span>(_response.<span class="built_in">body</span>()) &lt;&lt; <span class="string">&quot;url not found\r\n&quot;</span>;</span><br><span class="line">			<span class="built_in">WriteResponse</span>();</span><br><span class="line">			<span class="keyword">return</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		_response.<span class="built_in">result</span>(http::status::ok);</span><br><span class="line">		_response.<span class="built_in">set</span>(http::field::server, <span class="string">&quot;GateServer&quot;</span>);</span><br><span class="line">		<span class="built_in">WriteResponse</span>();</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>为了方便我们先实现Get请求的处理，根据请求类型为get调用LogicSystem的HandleGet接口处理get请求，根据处理成功还是失败回应数据包给对方。</p>
-<p>我们先实现LogicSystem，采用单例模式，单例基类之前讲解过了</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;memory&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;mutex&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Singleton</span> &#123;</span><br><span class="line"><span class="keyword">protected</span>:</span><br><span class="line">	<span class="built_in">Singleton</span>() = <span class="keyword">default</span>;</span><br><span class="line">	<span class="built_in">Singleton</span>(<span class="type">const</span> Singleton&lt;T&gt;&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	Singleton&amp; <span class="keyword">operator</span>=(<span class="type">const</span> Singleton&lt;T&gt;&amp; st) = <span class="keyword">delete</span>;</span><br><span class="line">	</span><br><span class="line">	<span class="type">static</span> std::shared_ptr&lt;T&gt; _instance;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="function"><span class="type">static</span> std::shared_ptr&lt;T&gt; <span class="title">GetInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="type">static</span> std::once_flag s_flag;</span><br><span class="line">		std::<span class="built_in">call_once</span>(s_flag, [&amp;]() &#123;</span><br><span class="line">			_instance = <span class="built_in">shared_ptr</span>&lt;T&gt;(<span class="keyword">new</span> T);</span><br><span class="line">			&#125;);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">return</span> _instance;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">PrintAddress</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		std::cout &lt;&lt; _instance.<span class="built_in">get</span>() &lt;&lt; endl;</span><br><span class="line">	&#125;</span><br><span class="line">	~<span class="built_in">Singleton</span>() &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;this is singleton destruct&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line">std::shared_ptr&lt;T&gt; Singleton&lt;T&gt;::_instance = <span class="literal">nullptr</span>;</span><br></pre></td></tr></table></figure>
-<p>实现LogicSystem单例类</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;Singleton.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;functional&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;map&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;const.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">HttpConnection</span>;</span><br><span class="line"><span class="keyword">typedef</span> std::function&lt;<span class="type">void</span>(std::shared_ptr&lt;HttpConnection&gt;)&gt; HttpHandler;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">LogicSystem</span> :<span class="keyword">public</span> Singleton&lt;LogicSystem&gt;</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">friend</span> <span class="keyword">class</span> <span class="title class_">Singleton</span>&lt;LogicSystem&gt;;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	~<span class="built_in">LogicSystem</span>();</span><br><span class="line">	<span class="function"><span class="type">bool</span> <span class="title">HandleGet</span><span class="params">(std::string, std::shared_ptr&lt;HttpConnection&gt;)</span></span>;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">RegGet</span><span class="params">(std::string, HttpHandler handler)</span></span>;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	<span class="built_in">LogicSystem</span>();</span><br><span class="line">	std::map&lt;std::string, HttpHandler&gt; _post_handlers;</span><br><span class="line">	std::map&lt;std::string, HttpHandler&gt; _get_handlers;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-<p>_post_handlers和_get_handlers分别是post请求和get请求的回调函数map，key为路由，value为回调函数。</p>
-<p>我们实现RegGet函数，接受路由和回调函数作为参数</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">LogicSystem::RegGet</span><span class="params">(std::string url, HttpHandler handler)</span> </span>&#123;</span><br><span class="line">	_get_handlers.<span class="built_in">insert</span>(<span class="built_in">make_pair</span>(url, handler));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>在构造函数中实现具体的消息注册</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">LogicSystem::<span class="built_in">LogicSystem</span>() &#123;</span><br><span class="line">	<span class="built_in">RegGet</span>(<span class="string">&quot;/get_test&quot;</span>, [](std::shared_ptr&lt;HttpConnection&gt; connection) &#123;</span><br><span class="line">		beast::<span class="built_in">ostream</span>(connection-&gt;_response.<span class="built_in">body</span>()) &lt;&lt; <span class="string">&quot;receive get_test req&quot;</span>;</span><br><span class="line">	&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>为防止互相引用，以及LogicSystem能够成功访问HttpConnection，在LogicSystem.cpp中包含HttpConnection头文件</p>
-<p>并且在HttpConnection中添加友元类LogicSystem, 且在HttpConnection.cpp中包含LogicSystem.h文件</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">bool</span> <span class="title">LogicSystem::HandleGet</span><span class="params">(std::string path, std::shared_ptr&lt;HttpConnection&gt; con)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (_get_handlers.<span class="built_in">find</span>(path) == _get_handlers.<span class="built_in">end</span>()) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	_get_handlers[path](con);</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这样我们在HttpConnection里实现WriteResponse函数</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">HttpConnection::WriteResponse</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">auto</span> self = <span class="built_in">shared_from_this</span>();</span><br><span class="line">	_response.<span class="built_in">content_length</span>(_response.<span class="built_in">body</span>().<span class="built_in">size</span>());</span><br><span class="line">	http::<span class="built_in">async_write</span>(</span><br><span class="line">		_socket,</span><br><span class="line">		_response,</span><br><span class="line">		[self](beast::error_code ec, std::<span class="type">size_t</span>)</span><br><span class="line">		&#123;</span><br><span class="line">			self-&gt;_socket.<span class="built_in">shutdown</span>(tcp::socket::shutdown_send, ec);</span><br><span class="line">			self-&gt;deadline_.<span class="built_in">cancel</span>();</span><br><span class="line">		&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>因为http是短链接，所以发送完数据后不需要再监听对方链接，直接断开发送端即可。</p>
-<p>另外，http处理请求需要有一个时间约束，发送的数据包不能超时。所以在发送时我们启动一个定时器，收到发送的回调后取消定时器。</p>
-<p>我们实现检测超时的函数</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">HttpConnection::CheckDeadline</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">auto</span> self = <span class="built_in">shared_from_this</span>();</span><br><span class="line"></span><br><span class="line">	deadline_.<span class="built_in">async_wait</span>(</span><br><span class="line">		[self](beast::error_code ec)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="keyword">if</span> (!ec)</span><br><span class="line">			&#123;</span><br><span class="line">				<span class="comment">// Close socket to cancel any outstanding operation.</span></span><br><span class="line">				self-&gt;_socket.<span class="built_in">close</span>(ec);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>我们在主函数中初始化上下文iocontext以及启动信号监听ctr-c退出事件， 并且启动iocontext服务</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">try</span></span><br><span class="line">	&#123;</span><br><span class="line">		<span class="type">unsigned</span> <span class="type">short</span> port = <span class="built_in">static_cast</span>&lt;<span class="type">unsigned</span> <span class="type">short</span>&gt;(<span class="number">8080</span>);</span><br><span class="line">		net::io_context ioc&#123; <span class="number">1</span> &#125;;</span><br><span class="line">		boost::<span class="function">asio::signal_set <span class="title">signals</span><span class="params">(ioc, SIGINT, SIGTERM)</span></span>;</span><br><span class="line">		signals.<span class="built_in">async_wait</span>([&amp;ioc](<span class="type">const</span> boost::system::error_code&amp; error, <span class="type">int</span> signal_number) &#123;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (error) &#123;</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			ioc.<span class="built_in">stop</span>();</span><br><span class="line">			&#125;);</span><br><span class="line">		std::<span class="built_in">make_shared</span>&lt;CServer&gt;(ioc, port)-&gt;<span class="built_in">Start</span>();</span><br><span class="line">		ioc.<span class="built_in">run</span>();</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">catch</span> (std::exception <span class="type">const</span>&amp; e)</span><br><span class="line">	&#123;</span><br><span class="line">		std::cerr &lt;&lt; <span class="string">&quot;Error: &quot;</span> &lt;&lt; e.<span class="built_in">what</span>() &lt;&lt; std::endl;</span><br><span class="line">		<span class="keyword">return</span> EXIT_FAILURE;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">``</span><br><span class="line">启动服务器，在浏览器输入`http:<span class="comment">//localhost:8080/get_test`</span></span><br><span class="line"></span><br><span class="line">会看到服务器回包`receive get_test req`</span><br><span class="line"></span><br><span class="line">如果我们输入带参数的url请求`http:<span class="comment">//localhost:8080/get_test?key1=value1&amp;key2=value2`</span></span><br><span class="line"></span><br><span class="line">会收到服务器反馈`url <span class="keyword">not</span> found`</span><br><span class="line"></span><br><span class="line">所以对于get请求带参数的情况我们要实现参数解析，我们可以自己实现简单的url解析函数</span><br><span class="line"></span><br><span class="line">``` cpp</span><br><span class="line"><span class="comment">//char 转为16进制</span></span><br><span class="line"><span class="function"><span class="type">unsigned</span> <span class="type">char</span> <span class="title">ToHex</span><span class="params">(<span class="type">unsigned</span> <span class="type">char</span> x)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span>  x &gt; <span class="number">9</span> ? x + <span class="number">55</span> : x + <span class="number">48</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>将十进制的char转为16进制，如果是数字不超过9则加48转为对应的ASCII码的值</p>
-<p>如果字符是大于9的，比如A<del>Z, a</del>z等则加55，获取到对应字符的ASCII码值</p>
-<p>详细的ASCII码表大家可以看这个<a target="_blank" rel="noopener" href="https://c.biancheng.net/c/ascii/">https://c.biancheng.net/c/ascii/</a></p>
-<p>接下来实现从16进制转为十进制的char的方法</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">unsigned</span> <span class="type">char</span> <span class="title">FromHex</span><span class="params">(<span class="type">unsigned</span> <span class="type">char</span> x)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">char</span> y;</span><br><span class="line">	<span class="keyword">if</span> (x &gt;= <span class="string">&#x27;A&#x27;</span> &amp;&amp; x &lt;= <span class="string">&#x27;Z&#x27;</span>) y = x - <span class="string">&#x27;A&#x27;</span> + <span class="number">10</span>;</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (x &gt;= <span class="string">&#x27;a&#x27;</span> &amp;&amp; x &lt;= <span class="string">&#x27;z&#x27;</span>) y = x - <span class="string">&#x27;a&#x27;</span> + <span class="number">10</span>;</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (x &gt;= <span class="string">&#x27;0&#x27;</span> &amp;&amp; x &lt;= <span class="string">&#x27;9&#x27;</span>) y = x - <span class="string">&#x27;0&#x27;</span>;</span><br><span class="line">	<span class="keyword">else</span> <span class="built_in">assert</span>(<span class="number">0</span>);</span><br><span class="line">	<span class="keyword">return</span> y;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>接下来我们实现url编码工作</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::string <span class="title">UrlEncode</span><span class="params">(<span class="type">const</span> std::string&amp; str)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	std::string strTemp = <span class="string">&quot;&quot;</span>;</span><br><span class="line">	<span class="type">size_t</span> length = str.<span class="built_in">length</span>();</span><br><span class="line">	<span class="keyword">for</span> (<span class="type">size_t</span> i = <span class="number">0</span>; i &lt; length; i++)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="comment">//判断是否仅有数字和字母构成</span></span><br><span class="line">		<span class="keyword">if</span> (<span class="built_in">isalnum</span>((<span class="type">unsigned</span> <span class="type">char</span>)str[i]) ||</span><br><span class="line">			(str[i] == <span class="string">&#x27;-&#x27;</span>) ||</span><br><span class="line">			(str[i] == <span class="string">&#x27;_&#x27;</span>) ||</span><br><span class="line">			(str[i] == <span class="string">&#x27;.&#x27;</span>) ||</span><br><span class="line">			(str[i] == <span class="string">&#x27;~&#x27;</span>))</span><br><span class="line">			strTemp += str[i];</span><br><span class="line">		<span class="keyword">else</span> <span class="keyword">if</span> (str[i] == <span class="string">&#x27; &#x27;</span>) <span class="comment">//为空字符</span></span><br><span class="line">			strTemp += <span class="string">&quot;+&quot;</span>;</span><br><span class="line">		<span class="keyword">else</span></span><br><span class="line">		&#123;</span><br><span class="line">			<span class="comment">//其他字符需要提前加%并且高四位和低四位分别转为16进制</span></span><br><span class="line">			strTemp += <span class="string">&#x27;%&#x27;</span>;</span><br><span class="line">			strTemp += <span class="built_in">ToHex</span>((<span class="type">unsigned</span> <span class="type">char</span>)str[i] &gt;&gt; <span class="number">4</span>);</span><br><span class="line">			strTemp += <span class="built_in">ToHex</span>((<span class="type">unsigned</span> <span class="type">char</span>)str[i] &amp; <span class="number">0x0F</span>);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> strTemp;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>我们先判断str[i]是否为字母或者数字，或者一些简单的下划线，如果是泽直接拼接，否则判断是否为空字符，如果为空则换成’+’拼接。否则就是特殊字符，我们需要将特殊字符转化为’%’和两个十六进制字符拼接。现拼接’%’，再将字符的高四位拼接到strTemp上，最后将低四位拼接到strTemp上。</p>
-<p>url解码的工作正好相反</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::string <span class="title">UrlDecode</span><span class="params">(<span class="type">const</span> std::string&amp; str)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	std::string strTemp = <span class="string">&quot;&quot;</span>;</span><br><span class="line">	<span class="type">size_t</span> length = str.<span class="built_in">length</span>();</span><br><span class="line">	<span class="keyword">for</span> (<span class="type">size_t</span> i = <span class="number">0</span>; i &lt; length; i++)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="comment">//还原+为空</span></span><br><span class="line">		<span class="keyword">if</span> (str[i] == <span class="string">&#x27;+&#x27;</span>) strTemp += <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">		<span class="comment">//遇到%将后面的两个字符从16进制转为char再拼接</span></span><br><span class="line">		<span class="keyword">else</span> <span class="keyword">if</span> (str[i] == <span class="string">&#x27;%&#x27;</span>)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="built_in">assert</span>(i + <span class="number">2</span> &lt; length);</span><br><span class="line">			<span class="type">unsigned</span> <span class="type">char</span> high = <span class="built_in">FromHex</span>((<span class="type">unsigned</span> <span class="type">char</span>)str[++i]);</span><br><span class="line">			<span class="type">unsigned</span> <span class="type">char</span> low = <span class="built_in">FromHex</span>((<span class="type">unsigned</span> <span class="type">char</span>)str[++i]);</span><br><span class="line">			strTemp += high * <span class="number">16</span> + low;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">else</span> strTemp += str[i];</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> strTemp;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>接下来实现get请求的参数解析, 在HttpConnection里添加两个成员</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">std::string _get_url;</span><br><span class="line">std::unordered_map&lt;std::string, std::string&gt; _get_params;</span><br></pre></td></tr></table></figure>
-<p>参数解析如下</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">HttpConnection::PreParseGetParam</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">// 提取 URI  </span></span><br><span class="line">	<span class="keyword">auto</span> uri = _request.<span class="built_in">target</span>();</span><br><span class="line">	<span class="comment">// 查找查询字符串的开始位置（即 &#x27;?&#x27; 的位置）  </span></span><br><span class="line">	<span class="keyword">auto</span> query_pos = uri.<span class="built_in">find</span>(<span class="string">&#x27;?&#x27;</span>);</span><br><span class="line">	<span class="keyword">if</span> (query_pos == std::string::npos) &#123;</span><br><span class="line">		_get_url = uri;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	_get_url = uri.<span class="built_in">substr</span>(<span class="number">0</span>, query_pos);</span><br><span class="line">	std::string query_string = uri.<span class="built_in">substr</span>(query_pos + <span class="number">1</span>);</span><br><span class="line">	std::string key;</span><br><span class="line">	std::string value;</span><br><span class="line">	<span class="type">size_t</span> pos = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">while</span> ((pos = query_string.<span class="built_in">find</span>(<span class="string">&#x27;&amp;&#x27;</span>)) != std::string::npos) &#123;</span><br><span class="line">		<span class="keyword">auto</span> pair = query_string.<span class="built_in">substr</span>(<span class="number">0</span>, pos);</span><br><span class="line">		<span class="type">size_t</span> eq_pos = pair.<span class="built_in">find</span>(<span class="string">&#x27;=&#x27;</span>);</span><br><span class="line">		<span class="keyword">if</span> (eq_pos != std::string::npos) &#123;</span><br><span class="line">			key = <span class="built_in">UrlDecode</span>(pair.<span class="built_in">substr</span>(<span class="number">0</span>, eq_pos)); <span class="comment">// 假设有 url_decode 函数来处理URL解码  </span></span><br><span class="line">			value = <span class="built_in">UrlDecode</span>(pair.<span class="built_in">substr</span>(eq_pos + <span class="number">1</span>));</span><br><span class="line">			_get_params[key] = value;</span><br><span class="line">		&#125;</span><br><span class="line">		query_string.<span class="built_in">erase</span>(<span class="number">0</span>, pos + <span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 处理最后一个参数对（如果没有 &amp; 分隔符）  </span></span><br><span class="line">	<span class="keyword">if</span> (!query_string.<span class="built_in">empty</span>()) &#123;</span><br><span class="line">		<span class="type">size_t</span> eq_pos = query_string.<span class="built_in">find</span>(<span class="string">&#x27;=&#x27;</span>);</span><br><span class="line">		<span class="keyword">if</span> (eq_pos != std::string::npos) &#123;</span><br><span class="line">			key = <span class="built_in">UrlDecode</span>(query_string.<span class="built_in">substr</span>(<span class="number">0</span>, eq_pos));</span><br><span class="line">			value = <span class="built_in">UrlDecode</span>(query_string.<span class="built_in">substr</span>(eq_pos + <span class="number">1</span>));</span><br><span class="line">			_get_params[key] = value;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>HttpConnection::HandleReq函数略作修改</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">HttpConnection::HandleReq</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">//...省略</span></span><br><span class="line">	<span class="keyword">if</span> (_request.<span class="built_in">method</span>() == http::verb::get) &#123;</span><br><span class="line">		<span class="built_in">PreParseGetParam</span>();</span><br><span class="line">		<span class="type">bool</span> success = LogicSystem::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">HandleGet</span>(_get_url, <span class="built_in">shared_from_this</span>());</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//...省略</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>我们修改LogicSytem构造函数，在get_test的回调里返回参数给对端</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">LogicSystem::<span class="built_in">LogicSystem</span>() &#123;</span><br><span class="line">	<span class="built_in">RegGet</span>(<span class="string">&quot;/get_test&quot;</span>, [](std::shared_ptr&lt;HttpConnection&gt; connection) &#123;</span><br><span class="line">		beast::<span class="built_in">ostream</span>(connection-&gt;_response.<span class="built_in">body</span>()) &lt;&lt; <span class="string">&quot;receive get_test req &quot;</span> &lt;&lt; std::endl;</span><br><span class="line">		<span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">		<span class="keyword">for</span> (<span class="keyword">auto</span>&amp; elem : connection-&gt;_get_params) &#123;</span><br><span class="line">			i++;</span><br><span class="line">			beast::<span class="built_in">ostream</span>(connection-&gt;_response.<span class="built_in">body</span>()) &lt;&lt; <span class="string">&quot;param&quot;</span> &lt;&lt; i &lt;&lt; <span class="string">&quot; key is &quot;</span> &lt;&lt; elem.first;</span><br><span class="line">			beast::<span class="built_in">ostream</span>(connection-&gt;_response.<span class="built_in">body</span>()) &lt;&lt; <span class="string">&quot;, &quot;</span> &lt;&lt;  <span class="string">&quot; value is &quot;</span> &lt;&lt; elem.second &lt;&lt; std::endl;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>在浏览器输入<code>http://localhost:8080/get_test?key1=value1&amp;key2=value2</code></p>
-<p>看到浏览器收到如下图信息，说明我们的get请求逻辑处理完了</p>
-<p><img src="https://cdn.llfc.club/1710148646788.jpg" alt="https://cdn.llfc.club/1710148646788.jpg"></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2201,7 +2161,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">336</span>
+                  <span class="site-state-item-count">337</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>

@@ -286,6 +286,411 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/09/14/cppbase04/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2024/09/14/cppbase04/" itemprop="url">零基础C++(4) extern的作用</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-09-14T17:10:54+08:00">
+                2024-09-14
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C-cppbase/" itemprop="url" rel="index">
+                    <span itemprop="name">C++ cppbase</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h2 id="重定义问题如何解决"><a href="#重定义问题如何解决" class="headerlink" title="重定义问题如何解决"></a>重定义问题如何解决</h2><h3 id="产生原因"><a href="#产生原因" class="headerlink" title="产生原因"></a>产生原因</h3><p>前文我们说过头文件只能用来做文件的声明，源文件用来做文件的实现。如果我们在头文件中定义变量会怎么样呢？</p>
+<p>假设我们在<code>global.h</code>中定义了两个变量</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifndef</span> DAY05_EXTERN_GLOBAL_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DAY05_EXTERN_GLOBAL_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string&gt;</span></span></span><br><span class="line"><span class="type">int</span> global_age = <span class="number">10</span>;</span><br><span class="line">std::string global_name = <span class="string">&quot;llfc&quot;</span>;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">//DAY05_EXTERN_GLOBAL_H</span></span></span><br></pre></td></tr></table></figure>
+
+<p>然后我们创建<code>global.cpp</code>包含<code>global.h</code></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;global.h&quot;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>然后我们在<code>main.cpp</code>中包含<code>global.h</code></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;global.h&quot;</span></span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Hello, World!&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;globbal name is&quot;</span> &lt;&lt; global_name &lt;&lt; std::endl;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;global age is &quot;</span> &lt;&lt; global_age &lt;&lt; std::endl;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们运行上述代码, 程序编译并未产生问题,但是链接产生问题了</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[1/3] Building CXX object CMakeFiles/day05_extern.<span class="built_in">dir</span>/global.cpp.obj</span><br><span class="line">[2/3] Building CXX object CMakeFiles/day05_extern.<span class="built_in">dir</span>/main.cpp.obj</span><br><span class="line">[3/3] Linking CXX executable day05_extern.exe</span><br><span class="line">FAILED: day05_extern.exe </span><br></pre></td></tr></table></figure>
+
+<p>再往下看</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">multiple definition of `global_age<span class="number">&#x27;</span>; CMakeFiles/day05_extern.dir/main.cpp.obj: /global.h:<span class="number">8</span>: first defined here</span><br><span class="line">multiple definition of `global_name[abi:cxx11]<span class="string">&#x27;; CMakeFiles/day05_extern.dir/main.cpp.obj:/global.h:9: first defined here</span></span><br></pre></td></tr></table></figure>
+
+<p>上述报错的意思是在链接<code>main.cpp.obj</code>时发现<code>global_age</code>重定义，第一次定义在<code>global.h</code>这里。</p>
+<p>同样链接<code>mian.cpp.obj</code>时发现global_name重定义，第一次定义在<code>global.h</code>。</p>
+<p>因为<code>global.h</code>中定义了<code>global_age</code>，根据我们之前学习的预编译知识，只要是包含<code>global.h</code>的文件都会展开<code>global.h</code>，<code>main.cpp</code>展开了一次，<code>global.cpp</code>展开了一次</p>
+<h3 id="解决办法"><a href="#解决办法" class="headerlink" title="解决办法"></a>解决办法</h3><h4 id="extern的作用"><a href="#extern的作用" class="headerlink" title="extern的作用"></a>extern的作用</h4><p>在C++中，<code>extern</code> 关键字用于声明一个变量或函数是在另一个文件或同一个文件的其他位置定义的。这主要用于处理全局变量或函数声明，确保在多个源文件中能够正确地链接到这些全局变量或函数的定义。</p>
+<h4 id="解决办法-1"><a href="#解决办法-1" class="headerlink" title="解决办法"></a>解决办法</h4><p>可以采用<strong>extern</strong>关键字声明变量，然后将变量的定义放在<code>global.cpp</code>中,  这样<code>main.cpp</code>包含<code>global.h</code>就只会展开声明。声明可以重复声明，不会有问题。</p>
+<p>在<code>global.h</code>中用extern声明两个变量</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifndef</span> DAY05_EXTERN_GLOBAL_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DAY05_EXTERN_GLOBAL_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string&gt;</span></span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">int</span> global_age ;</span><br><span class="line"><span class="keyword">extern</span> std::string global_name ;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">//DAY05_EXTERN_GLOBAL_H</span></span></span><br></pre></td></tr></table></figure>
+
+<p>在<code>global.cpp</code>中定义这些变量</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;global.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string&gt;</span></span></span><br><span class="line"><span class="comment">// 定义全局变量</span></span><br><span class="line">std::string global_name = <span class="string">&quot;John Doe&quot;</span>;</span><br><span class="line"><span class="type">int</span> global_age = <span class="number">30</span>;</span><br></pre></td></tr></table></figure>
+
+<p>在<code>main.cpp</code>中包含<code>global.h</code></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;global.h&quot;</span></span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Hello, World!&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;globbal name is&quot;</span> &lt;&lt; global_name &lt;&lt; std::endl;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;global age is &quot;</span> &lt;&lt; global_age &lt;&lt; std::endl;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>再次编译，运行成功</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Hello, World!</span><br><span class="line">globbal name isJohn Doe</span><br><span class="line">global age is 30</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><ul>
+<li><p>头文件只做变量的声明，不能做变量的定义</p>
+</li>
+<li><p>头文件声明变量可以采用extern的方式</p>
+</li>
+</ul>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/09/08/cppbase03/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2024/09/08/cppbase03/" itemprop="url">零基础C++(3) 认识头文件和源文件</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-09-08T09:14:44+08:00">
+                2024-09-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C-cppbase/" itemprop="url" rel="index">
+                    <span itemprop="name">C++ cppbase</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h2 id="头文件和源文件"><a href="#头文件和源文件" class="headerlink" title="头文件和源文件"></a>头文件和源文件</h2><p>在C++中，头文件（.h 或 .hpp 文件）和源文件（.cpp 文件）是组织代码的重要部分，它们共同工作以构建程序。这种分离有助于模块化和代码重用，同时也使得编译过程更加高效。</p>
+<h3 id="头文件（-h-或-hpp）"><a href="#头文件（-h-或-hpp）" class="headerlink" title="头文件（.h 或 .hpp）"></a>头文件（.h 或 .hpp）</h3><p>头文件主要用于<strong>声明</strong>（declarations），包括：</p>
+<ul>
+<li>类（class）的声明</li>
+<li>函数（functions）的原型（prototypes）</li>
+<li>模板（templates）的声明</li>
+<li>宏定义（#define）</li>
+<li>外部变量（extern variables）的声明</li>
+<li>内联函数（inline functions）</li>
+</ul>
+<p>头文件通常包含预处理指令如 <code>#ifndef</code>、<code>#define</code> 和 <code>#endif</code>，这些指令用于防止头文件被重复包含（也称为“头文件保护”或“包含卫士”）。</p>
+<p><strong>示例头文件（example.h）</strong>:</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifndef</span> EXAMPLE_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> EXAMPLE_H</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">MyClass</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">MyClass</span>(); <span class="comment">// 构造函数声明</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">myFunction</span><span class="params">()</span></span>; <span class="comment">// 成员函数声明</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+
+<h3 id="源文件（-cpp）"><a href="#源文件（-cpp）" class="headerlink" title="源文件（.cpp）"></a>源文件（.cpp）</h3><p>源文件包含实际的代码实现，即函数体、类的成员函数的实现等。源文件通常包括必要的头文件，以便编译器知道它们正在使用的函数、类等是如何声明的。</p>
+<p><strong>示例源文件（example.cpp）</strong>:</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;example.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"></span><br><span class="line">MyClass::<span class="built_in">MyClass</span>() &#123;</span><br><span class="line">    <span class="comment">// 构造函数实现</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">MyClass::myFunction</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Hello from MyClass::myFunction!&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="编译过程"><a href="#编译过程" class="headerlink" title="编译过程"></a>编译过程</h3><p>在编译C++程序时，编译器会首先处理源文件（.cpp 文件）。对于源文件中的每个 <code>#include</code> 指令，编译器都会查找并包含相应的头文件（.h 或 .hpp 文件）。然后，编译器将处理源文件中的所有实现代码，并将它们与从头文件中获取的声明进行匹配。</p>
+<h3 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h3><ul>
+<li>头文件应该只包含声明，源文件应该包含实现。</li>
+<li>使用头文件保护来避免头文件被重复包含。</li>
+<li>在大型项目中，合理组织头文件和源文件可以提高项目的可维护性和可扩展性。</li>
+<li>在编译时，确保所有的源文件都被编译，并且所有的头文件都被正确包含。</li>
+</ul>
+<p>通过这种方式，C++程序的结构变得更加清晰和模块化，有利于多人协作和代码重用。</p>
+<p><code>#pragma once</code> 和 宏定义（如 <code>#ifndef, #define, #endif</code>）都是用来防止头文件被重复包含的机制，但它们在工作方式和使用场景上存在一些区别。</p>
+<h2 id="pragma-once"><a href="#pragma-once" class="headerlink" title="pragma once"></a><code>pragma once</code></h2><h3 id="pragma-once作用"><a href="#pragma-once作用" class="headerlink" title="pragma once作用"></a><code>pragma once</code>作用</h3><ul>
+<li><strong>工作方式</strong>：<code>#pragma once</code> 是一个<strong>非标准</strong>的但广泛支持的预处理指令，它告诉编译器该头文件在单个编译过程中只应被包含一次。编译器在第一次遇到 <code>#pragma once</code> 时会记住该文件名，并在后续的包含操作中忽略它。</li>
+<li><strong>优点</strong>：简单、直观、易于使用。不需要生成唯一的宏名，减少了出错的可能性。</li>
+<li><strong>缺点</strong>：不是 C++ 标准的一部分，尽管大多数现代编译器都支持它，但在某些旧的或特定的编译器中可能不受支持。</li>
+<li><strong>使用场景</strong>：在支持 <code>#pragma once</code> 的编译器中，推荐使用它作为防止头文件重复包含的首选方法。</li>
+</ul>
+<h3 id="宏定义（-ifndef-define-endif）"><a href="#宏定义（-ifndef-define-endif）" class="headerlink" title="宏定义（#ifndef, #define, #endif）"></a>宏定义（<code>#ifndef, #define, #endif</code>）</h3><ul>
+<li><strong>工作方式</strong>：通过宏定义（通常称为“包含卫士”或“头文件保护”）来防止头文件被重复包含。首先检查一个特定的宏是否已定义，如果没有定义，则定义它并包含头文件的其余部分。如果宏已经定义，则跳过头文件的其余部分。</li>
+<li><strong>优点</strong>：是 C++ 标准的一部分，因此在所有 C++ 编译器中都是可用的。</li>
+<li><strong>缺点</strong>：需要为每个头文件生成一个唯一的宏名，这可能会增加出错的机会（例如，如果两个头文件不小心使用了相同的宏名）。</li>
+<li><strong>使用场景</strong>：在需要确保代码与所有 C++ 编译器兼容时，或者在不支持 <code>#pragma once</code> 的编译器中，使用宏定义来防止头文件重复包含。</li>
+</ul>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>尽管 <code>#pragma once</code> 和 宏定义在功能上相似，但它们在实现方式和使用场景上有所不同。在大多数现代 C++ 项目中，推荐使用 <code>#pragma once</code>，因为它更简单、更直观，并且大多数现代编译器都支持它。然而，在需要确保与所有 C++ 编译器兼容的情况下，或者在不支持 <code>#pragma once</code> 的环境中，仍然需要使用宏定义来防止头文件被重复包含。</p>
+<h2 id="程序如何编译的"><a href="#程序如何编译的" class="headerlink" title="程序如何编译的"></a>程序如何编译的</h2><h3 id="g-编译"><a href="#g-编译" class="headerlink" title="g++编译"></a>g++编译</h3><blockquote>
+<p>g++是GNU（GNU’s Not Unix）项目开发的C++编译器，它是GCC（GNU Compiler Collection，GNU编译器套件）的一个重要组成部分。GCC是一个支持多种编程语言的编译器集合，而g++则专门用于编译C++代码。</p>
+</blockquote>
+<blockquote>
+<ul>
+<li>在使用g++编译C++程序时，可能需要安装GCC或g++编译器。在大多数Linux发行版和Unix系统中，GCC和g++通常作为标准软件包的一部分进行安装。在Windows系统中，则可能需要下载并安装MinGW或Cygwin等工具来提供GCC和g++的支持。</li>
+</ul>
+</blockquote>
+<p>当使用 <code>g++</code> 编译器编译 <code>main.cpp</code> 并希望包含相关的头文件时，你实际上不需要在编译命令中直接指定头文件。编译器会在编译过程中自动查找并包含你在 <code>main.cpp</code> 或其他已包含的头文件中通过 <code>#include</code> 指令指定的头文件。</p>
+<p>然而，如果你的头文件位于非标准路径（即不在编译器的默认搜索路径中），你可能需要使用 <code>-I</code> 选项来指定额外的头文件搜索路径。</p>
+<p>假设你的头文件 <code>example.h</code> 位于与 <code>main.cpp</code> 相同的目录下，或者位于编译器默认搜索的头文件路径中，你可以简单地使用以下命令来编译 <code>main.cpp</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">g++ main.cpp -o myprogram</span><br></pre></td></tr></table></figure>
+
+<p>这里，<code>-o myprogram</code> 指定了输出文件的名称（在这个例子中是 <code>myprogram</code>）。如果你没有指定 <code>-o</code> 选项，编译器通常会生成一个名为 <code>a.out</code> 的可执行文件（在 Unix-like 系统中）。</p>
+<p>如果你的头文件位于不同的目录，比如 <code>include</code> 目录，并且 <code>main.cpp</code> 中包含了 <code>#include &quot;example.h&quot;</code>，你需要使用 <code>-I</code> 选项来告诉编译器在哪里查找这个头文件：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">g++ -Iinclude main.cpp -o myprogram</span><br></pre></td></tr></table></figure>
+
+<p>在这个例子中，<code>-Iinclude</code> 告诉编译器在 <code>include</code> 目录下查找头文件。注意，<code>-I</code> 选项后面紧跟的是目录名，而不是文件名。</p>
+<p>如果你的项目包含多个源文件（<code>.cpp</code> 文件）和/或多个头文件，并且它们位于不同的目录中，</p>
+<p>你可能还需要使用 <code>-L</code> 选项来指定库文件的搜索路径（如果你链接了外部库的话），以及使用 <code>-l</code> 选项来指定要链接的库名（去掉前缀 <code>lib</code> 和后缀 <code>.so</code> 或 <code>.a</code>）。但是，对于仅包含头文件和源文件的简单项目，通常只需要上述的编译命令即可。</p>
+<h3 id="CMake跨平台编译"><a href="#CMake跨平台编译" class="headerlink" title="CMake跨平台编译"></a><code>CMake</code>跨平台编译</h3><p><code>CMake</code>是一个跨平台的自动化构建系统，它使用<code>CMakeLists.txt</code>文件来描述构建过程。下面是一个<code>CMake</code>的基本写法示例，这将指导你如何编写一个简单的<code>CMakeLists.txt</code>文件来构建一个可执行文件。</p>
+<h4 id="示例：构建单个可执行文件"><a href="#示例：构建单个可执行文件" class="headerlink" title="示例：构建单个可执行文件"></a>示例：构建单个可执行文件</h4><p>假设你有一个<code>C++</code>源文件<code>main.cpp</code>，你想用<code>CMake</code>来构建它。首先，你需要创建一个名为<code>CMakeLists.txt</code>的文件，通常这个文件位于你的项目根目录下。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 设置CMake最小版本要求</span></span><br><span class="line">cmake_minimum_required(VERSION 3.10)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置项目名称和版本</span></span><br><span class="line">project(MyProject VERSION 1.0)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 添加一个可执行文件</span></span><br><span class="line"><span class="comment"># 语法：add_executable(目标名 源文件...)</span></span><br><span class="line">add_executable(MyExecutable main.cpp)</span><br></pre></td></tr></table></figure>
+
+<p>在这个例子中：</p>
+<ul>
+<li><code>cmake_minimum_required(VERSION 3.10)</code>：这行设置了CMake构建系统的最小版本要求。你需要确保你的CMake版本至少是3.10或更高。</li>
+<li><code>project(MyProject VERSION 1.0)</code>：这行设置了项目的名称（<code>MyProject</code>）和版本（<code>1.0</code>）。这个命令也会创建一个变量<code>$&#123;PROJECT_NAME&#125;</code>和<code>$&#123;MyProject_VERSION&#125;</code>，尽管直接使用<code>MyProject_VERSION</code>不是强制的，因为CMake通常建议使用<code>$&#123;PROJECT_VERSION&#125;</code>来引用版本。</li>
+<li><code>add_executable(MyExecutable main.cpp)</code>：这行定义了一个可执行文件目标。它告诉CMake你想将<code>main.cpp</code>编译成一个名为<code>MyExecutable</code>的可执行文件。构建时，CMake将自动找到适合你的平台的编译器和编译选项，并将<code>main.cpp</code>编译成可执行文件。</li>
+</ul>
+<h4 id="构建项目"><a href="#构建项目" class="headerlink" title="构建项目"></a>构建项目</h4><p>在命令行中，首先进入包含<code>CMakeLists.txt</code>的目录，然后运行以下命令来配置CMake项目（这将生成一个构建系统，如Makefile）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> build  <span class="comment"># 创建一个名为build的目录（不是必须的，但推荐）</span></span><br><span class="line"><span class="built_in">cd</span> build</span><br><span class="line">cmake ..     <span class="comment"># 使用上级目录中的CMakeLists.txt配置项目</span></span><br></pre></td></tr></table></figure>
+
+<p>配置完成后，你可以使用生成的构建系统来构建项目。如果你使用的是Makefile（大多数Unix-like系统），则可以运行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make</span><br></pre></td></tr></table></figure>
+
+<p>这将编译你的项目，并生成可执行文件（在这个例子中是<code>MyExecutable</code>）。如果你是在Windows上，并且CMake配置的是生成Visual Studio项目文件，那么你需要使用Visual Studio来打开生成的项目文件并构建项目。</p>
+<h4 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h4><ul>
+<li><code>CMake</code>是一个非常强大的构建系统，支持多种编程语言、复杂的目标关系、库依赖、条件编译等高级功能。上面的例子仅展示了最基础的用法。</li>
+<li>总是建议使用一个单独的构建目录（如上面的<code>build</code>目录），这样就不会污染你的源代码目录。</li>
+<li><code>CMake</code>提供了大量的命令和变量，可以用来精确控制构建过程。建议查阅<code>CMake</code>的官方文档以了解更多信息。</li>
+</ul>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/09/07/cpppro30/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1822,345 +2227,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/08/31/cpppro16/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2024/08/31/cpppro16/" itemprop="url">C++ 全栈聊天项目(16) 重置密码功能</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-08-31T09:30:35+08:00">
-                2024-08-31
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
-                    <span itemprop="name">C++ cpppro</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h2 id="ChatServer"><a href="#ChatServer" class="headerlink" title="ChatServer"></a>ChatServer</h2><p>一个TCP服务器必然会有连接的接收，维持，收发数据等逻辑。那我们就要基于asio完成这个服务的搭建。主服务是这个样子的</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;LogicSystem.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;csignal&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;thread&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;mutex&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;AsioIOServicePool.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;CServer.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;ConfigMgr.h&quot;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"><span class="type">bool</span> bstop = <span class="literal">false</span>;</span><br><span class="line">std::condition_variable cond_quit;</span><br><span class="line">std::mutex mutex_quit;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		<span class="keyword">auto</span> &amp;cfg = ConfigMgr::<span class="built_in">Inst</span>();</span><br><span class="line">		<span class="keyword">auto</span> pool = AsioIOServicePool::<span class="built_in">GetInstance</span>();</span><br><span class="line">		boost::asio::io_context  io_context;</span><br><span class="line">		boost::<span class="function">asio::signal_set <span class="title">signals</span><span class="params">(io_context, SIGINT, SIGTERM)</span></span>;</span><br><span class="line">		signals.<span class="built_in">async_wait</span>([&amp;io_context, pool](<span class="keyword">auto</span>, <span class="keyword">auto</span>) &#123;</span><br><span class="line">			io_context.<span class="built_in">stop</span>();</span><br><span class="line">			pool-&gt;<span class="built_in">Stop</span>();</span><br><span class="line">			&#125;);</span><br><span class="line">		<span class="keyword">auto</span> port_str = cfg[<span class="string">&quot;SelfServer&quot;</span>][<span class="string">&quot;Port&quot;</span>];</span><br><span class="line">		<span class="function">CServer <span class="title">s</span><span class="params">(io_context, atoi(port_str.c_str()))</span></span>;</span><br><span class="line">		io_context.<span class="built_in">run</span>();</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">catch</span> (std::exception&amp; e) &#123;</span><br><span class="line">		std::cerr &lt;&lt; <span class="string">&quot;Exception: &quot;</span> &lt;&lt; e.<span class="built_in">what</span>() &lt;&lt; endl;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>CServer类的声明</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;boost/asio.hpp&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;CSession.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;memory.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;map&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;mutex&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"><span class="keyword">using</span> boost::asio::ip::tcp;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">CServer</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">CServer</span>(boost::asio::io_context&amp; io_context, <span class="type">short</span> port);</span><br><span class="line">	~<span class="built_in">CServer</span>();</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">ClearSession</span><span class="params">(std::string)</span></span>;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">HandleAccept</span><span class="params">(shared_ptr&lt;CSession&gt;, <span class="type">const</span> boost::system::error_code &amp; error)</span></span>;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">StartAccept</span><span class="params">()</span></span>;</span><br><span class="line">	boost::asio::io_context &amp;_io_context;</span><br><span class="line">	<span class="type">short</span> _port;</span><br><span class="line">	tcp::acceptor _acceptor;</span><br><span class="line">	std::map&lt;std::string, shared_ptr&lt;CSession&gt;&gt; _sessions;</span><br><span class="line">	std::mutex _mutex;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-<p>构造函数中监听对方连接</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">CServer::<span class="built_in">CServer</span>(boost::asio::io_context&amp; io_context, <span class="type">short</span> port):_io_context(io_context), _port(port),</span><br><span class="line">_acceptor(io_context, tcp::<span class="built_in">endpoint</span>(tcp::<span class="built_in">v4</span>(),port))</span><br><span class="line">&#123;</span><br><span class="line">	cout &lt;&lt; <span class="string">&quot;Server start success, listen on port : &quot;</span> &lt;&lt; _port &lt;&lt; endl;</span><br><span class="line">	<span class="built_in">StartAccept</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>接受连接的函数</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">CServer::StartAccept</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">auto</span> &amp;io_context = AsioIOServicePool::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">GetIOService</span>();</span><br><span class="line">	shared_ptr&lt;CSession&gt; new_session = <span class="built_in">make_shared</span>&lt;CSession&gt;(io_context, <span class="keyword">this</span>);</span><br><span class="line">	_acceptor.<span class="built_in">async_accept</span>(new_session-&gt;<span class="built_in">GetSocket</span>(), std::<span class="built_in">bind</span>(&amp;CServer::HandleAccept, <span class="keyword">this</span>, new_session, placeholders::_1));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="AsioIOServicePool"><a href="#AsioIOServicePool" class="headerlink" title="AsioIOServicePool"></a>AsioIOServicePool</h2><p>从AsioIOServicePool中返回一个可用的iocontext构造Session，然后将接受的新链接的socket写入这个Session保管。</p>
-<p>AsioIOServicePool已经在前面讲解很多次了，它的声明如下</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;boost/asio.hpp&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;Singleton.h&quot;</span></span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">AsioIOServicePool</span>:<span class="keyword">public</span> Singleton&lt;AsioIOServicePool&gt;</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">friend</span> Singleton&lt;AsioIOServicePool&gt;;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="keyword">using</span> IOService = boost::asio::io_context;</span><br><span class="line">	<span class="keyword">using</span> Work = boost::asio::io_context::work;</span><br><span class="line">	<span class="keyword">using</span> WorkPtr = std::unique_ptr&lt;Work&gt;;</span><br><span class="line">	~<span class="built_in">AsioIOServicePool</span>();</span><br><span class="line">	<span class="built_in">AsioIOServicePool</span>(<span class="type">const</span> AsioIOServicePool&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	AsioIOServicePool&amp; <span class="keyword">operator</span>=(<span class="type">const</span> AsioIOServicePool&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	<span class="comment">// 使用 round-robin 的方式返回一个 io_service</span></span><br><span class="line">	boost::<span class="function">asio::io_context&amp; <span class="title">GetIOService</span><span class="params">()</span></span>;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">Stop</span><span class="params">()</span></span>;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	<span class="built_in">AsioIOServicePool</span>(std::<span class="type">size_t</span> size = std::thread::<span class="built_in">hardware_concurrency</span>());</span><br><span class="line">	std::vector&lt;IOService&gt; _ioServices;</span><br><span class="line">	std::vector&lt;WorkPtr&gt; _works;</span><br><span class="line">	std::vector&lt;std::thread&gt; _threads;</span><br><span class="line">	std::<span class="type">size_t</span>                        _nextIOService;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-<p>AsioIOServicePool具体实现</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;AsioIOServicePool.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line">AsioIOServicePool::<span class="built_in">AsioIOServicePool</span>(std::<span class="type">size_t</span> size):_ioServices(size),</span><br><span class="line">_works(size), _nextIOService(<span class="number">0</span>)&#123;</span><br><span class="line">	<span class="keyword">for</span> (std::<span class="type">size_t</span> i = <span class="number">0</span>; i &lt; size; ++i) &#123;</span><br><span class="line">		_works[i] = std::<span class="built_in">unique_ptr</span>&lt;Work&gt;(<span class="keyword">new</span> <span class="built_in">Work</span>(_ioServices[i]));</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//遍历多个ioservice，创建多个线程，每个线程内部启动ioservice</span></span><br><span class="line">	<span class="keyword">for</span> (std::<span class="type">size_t</span> i = <span class="number">0</span>; i &lt; _ioServices.<span class="built_in">size</span>(); ++i) &#123;</span><br><span class="line">		_threads.<span class="built_in">emplace_back</span>([<span class="keyword">this</span>, i]() &#123;</span><br><span class="line">			_ioServices[i].<span class="built_in">run</span>();</span><br><span class="line">			&#125;);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">AsioIOServicePool::~<span class="built_in">AsioIOServicePool</span>() &#123;</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;AsioIOServicePool destruct&quot;</span> &lt;&lt; endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">boost::<span class="function">asio::io_context&amp; <span class="title">AsioIOServicePool::GetIOService</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">auto</span>&amp; service = _ioServices[_nextIOService++];</span><br><span class="line">	<span class="keyword">if</span> (_nextIOService == _ioServices.<span class="built_in">size</span>()) &#123;</span><br><span class="line">		_nextIOService = <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> service;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">AsioIOServicePool::Stop</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="comment">//因为仅仅执行work.reset并不能让iocontext从run的状态中退出</span></span><br><span class="line">	<span class="comment">//当iocontext已经绑定了读或写的监听事件后，还需要手动stop该服务。</span></span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">auto</span>&amp; work : _works) &#123;</span><br><span class="line">		<span class="comment">//把服务先停止</span></span><br><span class="line">		work-&gt;<span class="built_in">get_io_context</span>().<span class="built_in">stop</span>();</span><br><span class="line">		work.<span class="built_in">reset</span>();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">auto</span>&amp; t : _threads) &#123;</span><br><span class="line">		t.<span class="built_in">join</span>();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>CServer的处理连接逻辑</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">CServer::HandleAccept</span><span class="params">(shared_ptr&lt;CSession&gt; new_session, <span class="type">const</span> boost::system::error_code&amp; error)</span></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (!error) &#123;</span><br><span class="line">		new_session-&gt;<span class="built_in">Start</span>();</span><br><span class="line">		<span class="function">lock_guard&lt;mutex&gt; <span class="title">lock</span><span class="params">(_mutex)</span></span>;</span><br><span class="line">		_sessions.<span class="built_in">insert</span>(<span class="built_in">make_pair</span>(new_session-&gt;<span class="built_in">GetUuid</span>(), new_session));</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		cout &lt;&lt; <span class="string">&quot;session accept failed, error is &quot;</span> &lt;&lt; error.<span class="built_in">what</span>() &lt;&lt; endl;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="built_in">StartAccept</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="Session层"><a href="#Session层" class="headerlink" title="Session层"></a>Session层</h2><p>上面的逻辑接受新链接后执行Start函数，新链接接受数据，然后Server继续监听新的连接</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">CSession::Start</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="built_in">AsyncReadHead</span>(HEAD_TOTAL_LEN);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>先读取头部数据</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">CSession::AsyncReadHead</span><span class="params">(<span class="type">int</span> total_len)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">auto</span> self = <span class="built_in">shared_from_this</span>();</span><br><span class="line">	<span class="built_in">asyncReadFull</span>(HEAD_TOTAL_LEN, [self, <span class="keyword">this</span>](<span class="type">const</span> boost::system::error_code&amp; ec, std::<span class="type">size_t</span> bytes_transfered) &#123;</span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			<span class="keyword">if</span> (ec) &#123;</span><br><span class="line">				std::cout &lt;&lt; <span class="string">&quot;handle read failed, error is &quot;</span> &lt;&lt; ec.<span class="built_in">what</span>() &lt;&lt; endl;</span><br><span class="line">				<span class="built_in">Close</span>();</span><br><span class="line">				_server-&gt;<span class="built_in">ClearSession</span>(_uuid);</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (bytes_transfered &lt; HEAD_TOTAL_LEN) &#123;</span><br><span class="line">				std::cout &lt;&lt; <span class="string">&quot;read length not match, read [&quot;</span> &lt;&lt; bytes_transfered &lt;&lt; <span class="string">&quot;] , total [&quot;</span></span><br><span class="line">					&lt;&lt; HEAD_TOTAL_LEN &lt;&lt; <span class="string">&quot;]&quot;</span> &lt;&lt; endl;</span><br><span class="line">				<span class="built_in">Close</span>();</span><br><span class="line">				_server-&gt;<span class="built_in">ClearSession</span>(_uuid);</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			_recv_head_node-&gt;<span class="built_in">Clear</span>();</span><br><span class="line">			<span class="built_in">memcpy</span>(_recv_head_node-&gt;_data, _data, bytes_transfered);</span><br><span class="line"></span><br><span class="line">			<span class="comment">//获取头部MSGID数据</span></span><br><span class="line">			<span class="type">short</span> msg_id = <span class="number">0</span>;</span><br><span class="line">			<span class="built_in">memcpy</span>(&amp;msg_id, _recv_head_node-&gt;_data, HEAD_ID_LEN);</span><br><span class="line">			<span class="comment">//网络字节序转化为本地字节序</span></span><br><span class="line">			msg_id = boost::asio::detail::socket_ops::<span class="built_in">network_to_host_short</span>(msg_id);</span><br><span class="line">			std::cout &lt;&lt; <span class="string">&quot;msg_id is &quot;</span> &lt;&lt; msg_id &lt;&lt; endl;</span><br><span class="line">			<span class="comment">//id非法</span></span><br><span class="line">			<span class="keyword">if</span> (msg_id &gt; MAX_LENGTH) &#123;</span><br><span class="line">				std::cout &lt;&lt; <span class="string">&quot;invalid msg_id is &quot;</span> &lt;&lt; msg_id &lt;&lt; endl;</span><br><span class="line">				_server-&gt;<span class="built_in">ClearSession</span>(_uuid);</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="type">short</span> msg_len = <span class="number">0</span>;</span><br><span class="line">			<span class="built_in">memcpy</span>(&amp;msg_len, _recv_head_node-&gt;_data + HEAD_ID_LEN, HEAD_DATA_LEN);</span><br><span class="line">			<span class="comment">//网络字节序转化为本地字节序</span></span><br><span class="line">			msg_len = boost::asio::detail::socket_ops::<span class="built_in">network_to_host_short</span>(msg_len);</span><br><span class="line">			std::cout &lt;&lt; <span class="string">&quot;msg_len is &quot;</span> &lt;&lt; msg_len &lt;&lt; endl;</span><br><span class="line"></span><br><span class="line">			<span class="comment">//id非法</span></span><br><span class="line">			<span class="keyword">if</span> (msg_len &gt; MAX_LENGTH) &#123;</span><br><span class="line">				std::cout &lt;&lt; <span class="string">&quot;invalid data length is &quot;</span> &lt;&lt; msg_len &lt;&lt; endl;</span><br><span class="line">				_server-&gt;<span class="built_in">ClearSession</span>(_uuid);</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			_recv_msg_node = <span class="built_in">make_shared</span>&lt;RecvNode&gt;(msg_len, msg_id);</span><br><span class="line">			<span class="built_in">AsyncReadBody</span>(msg_len);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="built_in">catch</span> (std::exception&amp; e) &#123;</span><br><span class="line">			std::cout &lt;&lt; <span class="string">&quot;Exception code is &quot;</span> &lt;&lt; e.<span class="built_in">what</span>() &lt;&lt; endl;</span><br><span class="line">		&#125;</span><br><span class="line">		&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>上面的逻辑里调用asyncReadFull读取整个长度，然后解析收到的数据，前两个字节为id，之后两个字节为长度，最后n个长度字节为消息内容。</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//读取完整长度</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">CSession::asyncReadFull</span><span class="params">(std::<span class="type">size_t</span> maxLength, std::function&lt;<span class="type">void</span>(<span class="type">const</span> boost::system::error_code&amp;, std::<span class="type">size_t</span>)&gt; handler )</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	::<span class="built_in">memset</span>(_data, <span class="number">0</span>, MAX_LENGTH);</span><br><span class="line">	<span class="built_in">asyncReadLen</span>(<span class="number">0</span>, maxLength, handler);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>读取指定长度</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//读取指定字节数</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">CSession::asyncReadLen</span><span class="params">(std::<span class="type">size_t</span> read_len, std::<span class="type">size_t</span> total_len, </span></span></span><br><span class="line"><span class="params"><span class="function">	std::function&lt;<span class="type">void</span>(<span class="type">const</span> boost::system::error_code&amp;, std::<span class="type">size_t</span>)&gt; handler)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">auto</span> self = <span class="built_in">shared_from_this</span>();</span><br><span class="line">	_socket.<span class="built_in">async_read_some</span>(boost::asio::<span class="built_in">buffer</span>(_data + read_len, total_len-read_len),</span><br><span class="line">		[read_len, total_len, handler, self](<span class="type">const</span> boost::system::error_code&amp; ec, std::<span class="type">size_t</span>  bytesTransfered) &#123;</span><br><span class="line">			<span class="keyword">if</span> (ec) &#123;</span><br><span class="line">				<span class="comment">// 出现错误，调用回调函数</span></span><br><span class="line">				<span class="built_in">handler</span>(ec, read_len + bytesTransfered);</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (read_len + bytesTransfered &gt;= total_len) &#123;</span><br><span class="line">				<span class="comment">//长度够了就调用回调函数</span></span><br><span class="line">				<span class="built_in">handler</span>(ec, read_len + bytesTransfered);</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="comment">// 没有错误，且长度不足则继续读取</span></span><br><span class="line">			self-&gt;<span class="built_in">asyncReadLen</span>(read_len + bytesTransfered, total_len, handler);</span><br><span class="line">	&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>读取头部成功后，其回调函数内部调用了读包体的逻辑</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">CSession::AsyncReadBody</span><span class="params">(<span class="type">int</span> total_len)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">auto</span> self = <span class="built_in">shared_from_this</span>();</span><br><span class="line">	<span class="built_in">asyncReadFull</span>(total_len, [self, <span class="keyword">this</span>, total_len](<span class="type">const</span> boost::system::error_code&amp; ec, std::<span class="type">size_t</span> bytes_transfered) &#123;</span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			<span class="keyword">if</span> (ec) &#123;</span><br><span class="line">				std::cout &lt;&lt; <span class="string">&quot;handle read failed, error is &quot;</span> &lt;&lt; ec.<span class="built_in">what</span>() &lt;&lt; endl;</span><br><span class="line">				<span class="built_in">Close</span>();</span><br><span class="line">				_server-&gt;<span class="built_in">ClearSession</span>(_uuid);</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (bytes_transfered &lt; total_len) &#123;</span><br><span class="line">				std::cout &lt;&lt; <span class="string">&quot;read length not match, read [&quot;</span> &lt;&lt; bytes_transfered &lt;&lt; <span class="string">&quot;] , total [&quot;</span></span><br><span class="line">					&lt;&lt; total_len&lt;&lt;<span class="string">&quot;]&quot;</span> &lt;&lt; endl;</span><br><span class="line">				<span class="built_in">Close</span>();</span><br><span class="line">				_server-&gt;<span class="built_in">ClearSession</span>(_uuid);</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="built_in">memcpy</span>(_recv_msg_node-&gt;_data , _data , bytes_transfered);</span><br><span class="line">			_recv_msg_node-&gt;_cur_len += bytes_transfered;</span><br><span class="line">			_recv_msg_node-&gt;_data[_recv_msg_node-&gt;_total_len] = <span class="string">&#x27;\0&#x27;</span>;</span><br><span class="line">			cout &lt;&lt; <span class="string">&quot;receive data is &quot;</span> &lt;&lt; _recv_msg_node-&gt;_data &lt;&lt; endl;</span><br><span class="line">			<span class="comment">//此处将消息投递到逻辑队列中</span></span><br><span class="line">			LogicSystem::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">PostMsgToQue</span>(<span class="built_in">make_shared</span>&lt;LogicNode&gt;(<span class="built_in">shared_from_this</span>(), _recv_msg_node));</span><br><span class="line">			<span class="comment">//继续监听头部接受事件</span></span><br><span class="line">			<span class="built_in">AsyncReadHead</span>(HEAD_TOTAL_LEN);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="built_in">catch</span> (std::exception&amp; e) &#123;</span><br><span class="line">			std::cout &lt;&lt; <span class="string">&quot;Exception code is &quot;</span> &lt;&lt; e.<span class="built_in">what</span>() &lt;&lt; endl;</span><br><span class="line">		&#125;</span><br><span class="line">		&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>读取包体完成后，在回调中继续读包头。以此循环往复直到读完所有数据。如果对方不发送数据，则回调函数就不会触发。不影响程序执行其他工作，因为我们采用的是asio异步的读写操作。</p>
-<p>当然我们解析完包体后会调用LogicSystem单例将解析好的消息封装为逻辑节点传递给逻辑层进行处理。</p>
-<h2 id="LogicSystem"><a href="#LogicSystem" class="headerlink" title="LogicSystem"></a>LogicSystem</h2><p>我们在逻辑层处理</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">LogicSystem::RegisterCallBacks</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	_fun_callbacks[MSG_CHAT_LOGIN] = std::<span class="built_in">bind</span>(&amp;LogicSystem::LoginHandler, <span class="keyword">this</span>,</span><br><span class="line">		placeholders::_1, placeholders::_2, placeholders::_3);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">LogicSystem::LoginHandler</span><span class="params">(shared_ptr&lt;CSession&gt; session, <span class="type">const</span> <span class="type">short</span> &amp;msg_id, <span class="type">const</span> string &amp;msg_data)</span> </span>&#123;</span><br><span class="line">	Json::Reader reader;</span><br><span class="line">	Json::Value root;</span><br><span class="line">	reader.<span class="built_in">parse</span>(msg_data, root);</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;user login uid is  &quot;</span> &lt;&lt; root[<span class="string">&quot;uid&quot;</span>].<span class="built_in">asInt</span>() &lt;&lt; <span class="string">&quot; user token  is &quot;</span></span><br><span class="line">		&lt;&lt; root[<span class="string">&quot;token&quot;</span>].<span class="built_in">asString</span>() &lt;&lt; endl;</span><br><span class="line"></span><br><span class="line">	std::string return_str = root.<span class="built_in">toStyledString</span>();</span><br><span class="line">	session-&gt;<span class="built_in">Send</span>(return_str, msg_id);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>并在构造函数中注册这些处理流程</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">LogicSystem::<span class="built_in">LogicSystem</span>():_b_stop(<span class="literal">false</span>)&#123;</span><br><span class="line">	<span class="built_in">RegisterCallBacks</span>();</span><br><span class="line">	_worker_thread = std::<span class="built_in">thread</span> (&amp;LogicSystem::DealMsg, <span class="keyword">this</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>到此，完成了ChatServer收到QT客户端发送过来的长链接请求，并解析读取的数据，将收到的数据通过tcp发送给对端。接下来还要做ChatServer到GateServer的token验证，判断是否合理，这个教给之后的文章处理。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/08/31/cpppro17/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2024/08/31/cpppro17/" itemprop="url">C++ 全栈聊天项目(17) 登录验证和状态服务</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-08-31T09:30:35+08:00">
-                2024-08-31
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
-                    <span itemprop="name">C++ cpppro</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h2 id="完善proto"><a href="#完善proto" class="headerlink" title="完善proto"></a>完善proto</h2><p>在proto文件里新增登陆验证服务</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">message LoginReq&#123;</span><br><span class="line">	int32 uid = 1;</span><br><span class="line">	string token= 2;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">message LoginRsp &#123;</span><br><span class="line">	int32 error = 1;</span><br><span class="line">	int32 uid = 2;</span><br><span class="line">	string token = 3;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">service StatusService &#123;</span><br><span class="line">	rpc GetChatServer (GetChatServerReq) returns (GetChatServerRsp) &#123;&#125;</span><br><span class="line">	rpc Login(LoginReq) returns(LoginRsp);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>接下来是调用grpc命令生成新的pb文件覆盖原有的，并且也拷贝给StatusServer一份</p>
-<p>我们完善登陆逻辑，先去StatusServer验证token是否合理，如果合理再从内存中寻找用户信息，如果没找到则从数据库加载一份。</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">LogicSystem::LoginHandler</span><span class="params">(shared_ptr&lt;CSession&gt; session, <span class="type">const</span> <span class="type">short</span> &amp;msg_id, <span class="type">const</span> string &amp;msg_data)</span> </span>&#123;</span><br><span class="line">	Json::Reader reader;</span><br><span class="line">	Json::Value root;</span><br><span class="line">	reader.<span class="built_in">parse</span>(msg_data, root);</span><br><span class="line">	<span class="keyword">auto</span> uid = root[<span class="string">&quot;uid&quot;</span>].<span class="built_in">asInt</span>();</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;user login uid is  &quot;</span> &lt;&lt; uid &lt;&lt; <span class="string">&quot; user token  is &quot;</span></span><br><span class="line">		&lt;&lt; root[<span class="string">&quot;token&quot;</span>].<span class="built_in">asString</span>() &lt;&lt; endl;</span><br><span class="line">	<span class="comment">//从状态服务器获取token匹配是否准确</span></span><br><span class="line">	<span class="keyword">auto</span> rsp = StatusGrpcClient::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">Login</span>(uid, root[<span class="string">&quot;token&quot;</span>].<span class="built_in">asString</span>());</span><br><span class="line">	Json::Value  rtvalue;</span><br><span class="line">	<span class="function">Defer <span class="title">defer</span><span class="params">([<span class="keyword">this</span>, &amp;rtvalue, session]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		std::string return_str = rtvalue.toStyledString();</span></span></span><br><span class="line"><span class="params"><span class="function">		session-&gt;Send(return_str, MSG_CHAT_LOGIN_RSP);</span></span></span><br><span class="line"><span class="params"><span class="function">	&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	rtvalue[<span class="string">&quot;error&quot;</span>] = rsp.<span class="built_in">error</span>();</span><br><span class="line">	<span class="keyword">if</span> (rsp.<span class="built_in">error</span>() != ErrorCodes::Success) &#123;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//内存中查询用户信息</span></span><br><span class="line">	<span class="keyword">auto</span> find_iter = _users.<span class="built_in">find</span>(uid);</span><br><span class="line">	std::shared_ptr&lt;UserInfo&gt; user_info = <span class="literal">nullptr</span>;</span><br><span class="line">	<span class="keyword">if</span> (find_iter == _users.<span class="built_in">end</span>()) &#123;</span><br><span class="line">		<span class="comment">//查询数据库</span></span><br><span class="line">		user_info = MysqlMgr::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">GetUser</span>(uid);</span><br><span class="line">		<span class="keyword">if</span> (user_info == <span class="literal">nullptr</span>) &#123;</span><br><span class="line">			rtvalue[<span class="string">&quot;error&quot;</span>] = ErrorCodes::UidInvalid;</span><br><span class="line">			<span class="keyword">return</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		_users[uid] = user_info;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		user_info = find_iter-&gt;second;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	rtvalue[<span class="string">&quot;uid&quot;</span>] = uid;</span><br><span class="line">	rtvalue[<span class="string">&quot;token&quot;</span>] = rsp.<span class="built_in">token</span>();</span><br><span class="line">	rtvalue[<span class="string">&quot;name&quot;</span>] = user_info-&gt;name;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="StatusServer验证token"><a href="#StatusServer验证token" class="headerlink" title="StatusServer验证token"></a>StatusServer验证token</h2><p>在StatusServer验证token之前，我们需要在StatusServer中的GetServer的服务里将token写入内存</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">Status <span class="title">StatusServiceImpl::GetChatServer</span><span class="params">(ServerContext* context, <span class="type">const</span> GetChatServerReq* request, GetChatServerRsp* reply)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="function">std::string <span class="title">prefix</span><span class="params">(<span class="string">&quot;llfc status server has received :  &quot;</span>)</span></span>;</span><br><span class="line">	<span class="type">const</span> <span class="keyword">auto</span>&amp; server = <span class="built_in">getChatServer</span>();</span><br><span class="line">	reply-&gt;<span class="built_in">set_host</span>(server.host);</span><br><span class="line">	reply-&gt;<span class="built_in">set_port</span>(server.port);</span><br><span class="line">	reply-&gt;<span class="built_in">set_error</span>(ErrorCodes::Success);</span><br><span class="line">	reply-&gt;<span class="built_in">set_token</span>(<span class="built_in">generate_unique_string</span>());</span><br><span class="line">	<span class="built_in">insertToken</span>(request-&gt;<span class="built_in">uid</span>(), reply-&gt;<span class="built_in">token</span>());</span><br><span class="line">	<span class="keyword">return</span> Status::OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>接下来我们实现登陆验证服务</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">Status <span class="title">StatusServiceImpl::Login</span><span class="params">(ServerContext* context, <span class="type">const</span> LoginReq* request, LoginRsp* reply)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">auto</span> uid = request-&gt;<span class="built_in">uid</span>();</span><br><span class="line">	<span class="keyword">auto</span> token = request-&gt;<span class="built_in">token</span>();</span><br><span class="line">	<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">guard</span><span class="params">(_token_mtx)</span></span>;</span><br><span class="line">	<span class="keyword">auto</span> iter = _tokens.<span class="built_in">find</span>(uid);</span><br><span class="line">	<span class="keyword">if</span> (iter == _tokens.<span class="built_in">end</span>()) &#123;</span><br><span class="line">		reply-&gt;<span class="built_in">set_error</span>(ErrorCodes::UidInvalid);</span><br><span class="line">		<span class="keyword">return</span> Status::OK;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (iter-&gt;second != token) &#123;</span><br><span class="line">		reply-&gt;<span class="built_in">set_error</span>(ErrorCodes::TokenInvalid);</span><br><span class="line">		<span class="keyword">return</span> Status::OK;</span><br><span class="line">	&#125;</span><br><span class="line">	reply-&gt;<span class="built_in">set_error</span>(ErrorCodes::Success);</span><br><span class="line">	reply-&gt;<span class="built_in">set_uid</span>(uid);</span><br><span class="line">	reply-&gt;<span class="built_in">set_token</span>(token);</span><br><span class="line">	<span class="keyword">return</span> Status::OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这样当GateServer访问StatusServer的Login服务做验证后，就可以将数据返回给QT前端了。</p>
-<h2 id="客户端处理登陆回包"><a href="#客户端处理登陆回包" class="headerlink" title="客户端处理登陆回包"></a>客户端处理登陆回包</h2><p>QT 的客户端TcpMgr收到请求后要进行对应的逻辑处理。所以我们在TcpMgr的构造函数中调用initHandlers注册消息</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">TcpMgr::initHandlers</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//auto self = shared_from_this();</span></span><br><span class="line">    _handlers.<span class="built_in">insert</span>(ID_CHAT_LOGIN_RSP, [<span class="keyword">this</span>](ReqId id, <span class="type">int</span> len, QByteArray data)&#123;</span><br><span class="line">        <span class="built_in">qDebug</span>()&lt;&lt; <span class="string">&quot;handle id is &quot;</span>&lt;&lt; id &lt;&lt; <span class="string">&quot; data is &quot;</span> &lt;&lt; data;</span><br><span class="line">        <span class="comment">// 将QByteArray转换为QJsonDocument</span></span><br><span class="line">        QJsonDocument jsonDoc = QJsonDocument::<span class="built_in">fromJson</span>(data);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 检查转换是否成功</span></span><br><span class="line">        <span class="keyword">if</span>(jsonDoc.<span class="built_in">isNull</span>())&#123;</span><br><span class="line">           <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;Failed to create QJsonDocument.&quot;</span>;</span><br><span class="line">           <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        QJsonObject jsonObj = jsonDoc.<span class="built_in">object</span>();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>(!jsonObj.<span class="built_in">contains</span>(<span class="string">&quot;error&quot;</span>))&#123;</span><br><span class="line">            <span class="type">int</span> err = ErrorCodes::ERR_JSON;</span><br><span class="line">            <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;Login Failed, err is Json Parse Err&quot;</span> &lt;&lt; err ;</span><br><span class="line">            emit <span class="built_in">sig_login_failed</span>(err);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="type">int</span> err = jsonObj[<span class="string">&quot;error&quot;</span>].<span class="built_in">toInt</span>();</span><br><span class="line">        <span class="keyword">if</span>(err != ErrorCodes::SUCCESS)&#123;</span><br><span class="line">            <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;Login Failed, err is &quot;</span> &lt;&lt; err ;</span><br><span class="line">            emit <span class="built_in">sig_login_failed</span>(err);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        UserMgr::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">SetUid</span>(jsonObj[<span class="string">&quot;uid&quot;</span>].<span class="built_in">toInt</span>());</span><br><span class="line">        UserMgr::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">SetName</span>(jsonObj[<span class="string">&quot;name&quot;</span>].<span class="built_in">toString</span>());</span><br><span class="line">        UserMgr::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">SetToken</span>(jsonObj[<span class="string">&quot;token&quot;</span>].<span class="built_in">toString</span>());</span><br><span class="line">        emit <span class="built_in">sig_swich_chatdlg</span>();</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>并且增加处理请求</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">TcpMgr::handleMsg</span><span class="params">(ReqId id, <span class="type">int</span> len, QByteArray data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">   <span class="keyword">auto</span> find_iter =  _handlers.<span class="built_in">find</span>(id);</span><br><span class="line">   <span class="keyword">if</span>(find_iter == _handlers.<span class="built_in">end</span>())&#123;</span><br><span class="line">        <span class="built_in">qDebug</span>()&lt;&lt; <span class="string">&quot;not found id [&quot;</span>&lt;&lt; id &lt;&lt; <span class="string">&quot;] to handle&quot;</span>;</span><br><span class="line">        <span class="keyword">return</span> ;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   find_iter.<span class="built_in">value</span>()(id,len,data);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="用户管理"><a href="#用户管理" class="headerlink" title="用户管理"></a>用户管理</h2><p>为管理用户数据，需要创建一个UserMgr类，统一管理用户数据，我们这么声明</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifndef</span> USERMGR_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> USERMGR_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;QObject&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;memory&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;singleton.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">UserMgr</span>:<span class="keyword">public</span> QObject,<span class="keyword">public</span> Singleton&lt;UserMgr&gt;,</span><br><span class="line">        <span class="keyword">public</span> std::enable_shared_from_this&lt;UserMgr&gt;</span><br><span class="line">&#123;</span><br><span class="line">    Q_OBJECT</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="keyword">friend</span> <span class="keyword">class</span> <span class="title class_">Singleton</span>&lt;UserMgr&gt;;</span><br><span class="line">    ~ <span class="built_in">UserMgr</span>();</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">SetName</span><span class="params">(QString name)</span></span>;</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">SetUid</span><span class="params">(<span class="type">int</span> uid)</span></span>;</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">SetToken</span><span class="params">(QString token)</span></span>;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="built_in">UserMgr</span>();</span><br><span class="line">    QString _name;</span><br><span class="line">    QString _token;</span><br><span class="line">    <span class="type">int</span> _uid;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">// USERMGR_H</span></span></span><br></pre></td></tr></table></figure>
-<p>简单实现几个功能</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;usermgr.h&quot;</span></span></span><br><span class="line"></span><br><span class="line">UserMgr::~<span class="built_in">UserMgr</span>()</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">UserMgr::SetName</span><span class="params">(QString name)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    _name = name;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">UserMgr::SetUid</span><span class="params">(<span class="type">int</span> uid)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    _uid = uid;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">UserMgr::SetToken</span><span class="params">(QString token)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    _token = token;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">UserMgr::<span class="built_in">UserMgr</span>()</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>详细和复杂的管理后续不断往这里补充就行了。</p>
-<h2 id="登陆界面"><a href="#登陆界面" class="headerlink" title="登陆界面"></a>登陆界面</h2><p>登陆界面响应TcpMgr返回的登陆请求，在其构造函数中添加</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//连接tcp管理者发出的登陆失败信号</span></span><br><span class="line"> <span class="built_in">connect</span>(TcpMgr::<span class="built_in">GetInstance</span>().<span class="built_in">get</span>(), &amp;TcpMgr::sig_login_failed, <span class="keyword">this</span>, &amp;LoginDialog::slot_login_failed);</span><br></pre></td></tr></table></figure>
-<p>并实现槽函数</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">LoginDialog::slot_login_failed</span><span class="params">(<span class="type">int</span> err)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    QString result = <span class="built_in">QString</span>(<span class="string">&quot;登录失败, err is %1&quot;</span>)</span><br><span class="line">                             .<span class="built_in">arg</span>(err);</span><br><span class="line">    <span class="built_in">showTip</span>(result,<span class="literal">false</span>);</span><br><span class="line">    <span class="built_in">enableBtn</span>(<span class="literal">true</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>到此完成了登陆的请求和响应，接下来要实现响应登陆成功后跳转到聊天界面。下一篇先实现聊天布局。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2211,7 +2277,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">337</span>
+                  <span class="site-state-item-count">339</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>

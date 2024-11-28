@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++ cpppro," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="设计思路文件传输必须满足以下几个条件：  限制文件大小(不超过4G) 长连接传输(效率高，支持大文件) 客户端和服务器都知道传输进度，以保证支持断点续传(后续实现) 先实现服务器单线程处理版本，在实现多线程处理版本  如遇问题可添加我的微信   也可以去我得哔哩哔哩主页查看项目视频详细讲解 B站主页 https:&#x2F;&#x2F;space.bilibili.com&#x2F;271469206 客户端客户端还是采用聊天">
+<meta property="og:type" content="article">
+<meta property="og:title" content="聊天项目(31) 单线程文件传输">
+<meta property="og:url" content="http://www.limerence2017.com/2024/11/24/cpppro31/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="设计思路文件传输必须满足以下几个条件：  限制文件大小(不超过4G) 长连接传输(效率高，支持大文件) 客户端和服务器都知道传输进度，以保证支持断点续传(后续实现) 先实现服务器单线程处理版本，在实现多线程处理版本  如遇问题可添加我的微信   也可以去我得哔哩哔哩主页查看项目视频详细讲解 B站主页 https:&#x2F;&#x2F;space.bilibili.com&#x2F;271469206 客户端客户端还是采用聊天">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.llfc.club/wechat.jpg">
+<meta property="og:image" content="https://cdn.llfc.club/1732450428990.jpg">
+<meta property="article:published_time" content="2024-11-24T10:04:18.000Z">
+<meta property="article:modified_time" content="2024-11-24T13:40:30.109Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++ cpppro">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.llfc.club/wechat.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2024/11/24/cpppro31/"/>
+
+
+
+
+
+  <title>聊天项目(31) 单线程文件传输 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/11/24/cpppro31/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">聊天项目(31) 单线程文件传输</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-11-24T18:04:18+08:00">
+                2024-11-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
+                    <span itemprop="name">C++ cpppro</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="设计思路"><a href="#设计思路" class="headerlink" title="设计思路"></a>设计思路</h2><p>文件传输必须满足以下几个条件：</p>
+<ul>
+<li>限制文件大小(不超过<code>4G</code>)</li>
+<li>长连接传输(效率高，支持大文件)</li>
+<li>客户端和服务器都知道传输进度，以保证支持断点续传(后续实现)</li>
+<li>先实现服务器单线程处理版本，在实现多线程处理版本</li>
+</ul>
+<p>如遇问题可添加我的微信</p>
+<img src="https://cdn.llfc.club/wechat.jpg" alt="img" style="zoom: 33%;" />
+
+<p>也可以去我得哔哩哔哩主页查看项目视频详细讲解</p>
+<p>B站主页 <a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206">https://space.bilibili.com/271469206</a></p>
+<h2 id="客户端"><a href="#客户端" class="headerlink" title="客户端"></a>客户端</h2><p>客户端还是采用聊天项目客户端封装的<code>TcpClient</code>, 只是修改了发送逻辑</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//发送数据槽函数</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">TcpClient::slot_send_msg</span><span class="params">(quint16 id, QByteArray body)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//如果连接异常则直接返回</span></span><br><span class="line">    <span class="keyword">if</span>(_socket-&gt;<span class="built_in">state</span>() != QAbstractSocket::ConnectedState)&#123;</span><br><span class="line">        <span class="function">emit <span class="title">sig_net_error</span><span class="params">(QString(<span class="string">&quot;断开连接无法发送&quot;</span>))</span></span>;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//获取body的长度</span></span><br><span class="line">    quint32 bodyLength = body.<span class="built_in">size</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">//创建字节数组</span></span><br><span class="line">    QByteArray data;</span><br><span class="line">    <span class="comment">//绑定字节数组</span></span><br><span class="line">    <span class="function">QDataStream <span class="title">stream</span><span class="params">(&amp;data, QIODevice::WriteOnly)</span></span>;</span><br><span class="line">    <span class="comment">//设置大端模式</span></span><br><span class="line">    stream.<span class="built_in">setByteOrder</span>(QDataStream::BigEndian);</span><br><span class="line">    <span class="comment">//写入ID</span></span><br><span class="line">    stream &lt;&lt; id;</span><br><span class="line">    <span class="comment">//写入长度</span></span><br><span class="line">    stream &lt;&lt; bodyLength;</span><br><span class="line">    <span class="comment">//写入包体</span></span><br><span class="line">    data.<span class="built_in">append</span>(body);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//发送消息</span></span><br><span class="line">     _socket-&gt;<span class="built_in">write</span>(data);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>这里着重叙述以下，发送的格式是<code>id + bodyLength + 文件流数据</code></p>
+<p>其中id 为2字节，<code>bodyLength</code>为4字节，之后就是传输的文件流</p>
+<p><img src="https://cdn.llfc.club/1732450428990.jpg" alt="https://cdn.llfc.club/1732450428990.jpg"></p>
+<p><code>slot_send_msg</code>是槽函数，和 <code>sig_send_msg</code>信号连接</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//连接 发送数据信号和槽函数</span></span><br><span class="line"><span class="built_in">connect</span>(<span class="keyword">this</span>, &amp;TcpClient::sig_send_msg, <span class="keyword">this</span>, &amp;TcpClient::slot_send_msg);</span><br></pre></td></tr></table></figure>
+
+<p>客户端在发送数据的时候调用</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">TcpClient::sendMsg</span><span class="params">(quint16 id,QByteArray data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//发送信号，统一交给槽函数处理，这么做的好处是多线程安全</span></span><br><span class="line">    <span class="function">emit <span class="title">sig_send_msg</span><span class="params">(id, data)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>客户端在打开文件对话框后选择文件，接下来，点击发送会将文件切分成固定大小的报文发送</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">MainWindow::on_uploadBtn_clicked</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ui-&gt;uploadBtn-&gt;<span class="built_in">setEnabled</span>(<span class="literal">false</span>);</span><br><span class="line">    <span class="comment">// 打开文件</span></span><br><span class="line">       <span class="function">QFile <span class="title">file</span><span class="params">(_file_name)</span></span>;</span><br><span class="line">       <span class="keyword">if</span> (!file.<span class="built_in">open</span>(QIODevice::ReadOnly)) &#123;</span><br><span class="line">           <span class="built_in">qWarning</span>() &lt;&lt; <span class="string">&quot;Could not open file:&quot;</span> &lt;&lt; file.<span class="built_in">errorString</span>();</span><br><span class="line">           <span class="keyword">return</span>;</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="comment">// 保存当前文件指针位置</span></span><br><span class="line">       qint64 originalPos = file.<span class="built_in">pos</span>();</span><br><span class="line">       <span class="function">QCryptographicHash <span class="title">hash</span><span class="params">(QCryptographicHash::Md5)</span></span>;</span><br><span class="line">       <span class="keyword">if</span> (!hash.<span class="built_in">addData</span>(&amp;file)) &#123;</span><br><span class="line">           <span class="built_in">qWarning</span>() &lt;&lt; <span class="string">&quot;Failed to read data from file:&quot;</span> &lt;&lt; _file_name;</span><br><span class="line">           <span class="keyword">return</span> ;</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       _file_md5 = hash.<span class="built_in">result</span>().<span class="built_in">toHex</span>(); <span class="comment">// 返回十六进制字符串</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 读取文件内容并发送</span></span><br><span class="line">    QByteArray buffer;</span><br><span class="line">    <span class="type">int</span> seq = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function">QFileInfo <span class="title">fileInfo</span><span class="params">(_file_name)</span></span>; <span class="comment">// 创建 QFileInfo 对象</span></span><br><span class="line"></span><br><span class="line">    QString fileName = fileInfo.<span class="built_in">fileName</span>(); <span class="comment">// 获取文件名</span></span><br><span class="line">    <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;文件名是：&quot;</span> &lt;&lt; fileName; <span class="comment">// 输出文件名</span></span><br><span class="line">    <span class="type">int</span> total_size = fileInfo.<span class="built_in">size</span>();</span><br><span class="line">    <span class="type">int</span> last_seq = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span>(total_size % MAX_FILE_LEN)&#123;</span><br><span class="line">        last_seq = (total_size/MAX_FILE_LEN)+<span class="number">1</span>;</span><br><span class="line">    &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">        last_seq = total_size/MAX_FILE_LEN;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 恢复文件指针到原来的位置</span></span><br><span class="line">    file.<span class="built_in">seek</span>(originalPos);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (!file.<span class="built_in">atEnd</span>()) &#123;</span><br><span class="line">        <span class="comment">//每次读取2048字节发送</span></span><br><span class="line">        buffer = file.<span class="built_in">read</span>(MAX_FILE_LEN);</span><br><span class="line">        QJsonObject jsonObj;</span><br><span class="line">        <span class="comment">// 将文件内容转换为 Base64 编码（可选）</span></span><br><span class="line">        QString base64Data = buffer.<span class="built_in">toBase64</span>();</span><br><span class="line">        <span class="comment">//qDebug() &lt;&lt; &quot;send data is &quot; &lt;&lt; base64Data;</span></span><br><span class="line">        ++seq;</span><br><span class="line">        jsonObj[<span class="string">&quot;md5&quot;</span>] = _file_md5;</span><br><span class="line">        jsonObj[<span class="string">&quot;name&quot;</span>] = fileName;</span><br><span class="line">        jsonObj[<span class="string">&quot;seq&quot;</span>] = seq;</span><br><span class="line">        jsonObj[<span class="string">&quot;trans_size&quot;</span>] = buffer.<span class="built_in">size</span>() + (seq<span class="number">-1</span>)*MAX_FILE_LEN;</span><br><span class="line">        jsonObj[<span class="string">&quot;total_size&quot;</span>] = total_size;</span><br><span class="line">        <span class="keyword">if</span>(buffer.<span class="built_in">size</span>() &lt; MAX_FILE_LEN)&#123;</span><br><span class="line">            jsonObj[<span class="string">&quot;last&quot;</span>] = <span class="number">1</span>;</span><br><span class="line">        &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">            jsonObj[<span class="string">&quot;last&quot;</span>] = <span class="number">0</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        jsonObj[<span class="string">&quot;data&quot;</span>]= base64Data;</span><br><span class="line">        jsonObj[<span class="string">&quot;last_seq&quot;</span>] = last_seq;</span><br><span class="line">        <span class="function">QJsonDocument <span class="title">doc</span><span class="params">(jsonObj)</span></span>;</span><br><span class="line">        <span class="keyword">auto</span> send_data = doc.<span class="built_in">toJson</span>();</span><br><span class="line">        TcpClient::<span class="built_in">Inst</span>().<span class="built_in">sendMsg</span>(ID_UPLOAD_FILE_REQ, send_data);</span><br><span class="line">        <span class="comment">//startDelay(500);</span></span><br><span class="line">     &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//关闭文件</span></span><br><span class="line">    file.<span class="built_in">close</span>();</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>发送时数据字段分别为：</p>
+<ul>
+<li><p>文件<code>md5 </code> : 以后用来做断点续传校验</p>
+</li>
+<li><p><code>name</code> : 文件名</p>
+</li>
+<li><p><code>seq</code>:  报文序列号，类似于TCP序列号，自己定义的，服务器根据这个序列号组合数据写入文件。</p>
+</li>
+<li><p><code>trans_size</code>:   当前已经传输的大小</p>
+</li>
+<li><p><code>total_size</code>： 传输文件的总大小。</p>
+</li>
+</ul>
+<p>客户端需要接受服务器返回的消息更新进度条</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//接受服务器发送的信息</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">TcpClient::slot_ready_read</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//读取所有数据</span></span><br><span class="line">    QByteArray data = _socket-&gt;<span class="built_in">readAll</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">//将数据缓存起来</span></span><br><span class="line">    _buffer.<span class="built_in">append</span>(data);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//处理收到的数据</span></span><br><span class="line">    <span class="built_in">processData</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>处理消息更新进度条</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">TcpClient::processData</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">while</span>(_buffer.<span class="built_in">size</span>() &gt;= TCP_HEAD_LEN)&#123;</span><br><span class="line">        <span class="comment">//先取出八字节头部</span></span><br><span class="line">        <span class="keyword">auto</span> head_byte = _buffer.<span class="built_in">left</span>(TCP_HEAD_LEN);</span><br><span class="line">        <span class="function">QDataStream <span class="title">stream</span><span class="params">(head_byte)</span></span>;</span><br><span class="line">        <span class="comment">//设置为大端模式</span></span><br><span class="line">        stream.<span class="built_in">setByteOrder</span>(QDataStream::BigEndian);</span><br><span class="line">        <span class="comment">//读取ID</span></span><br><span class="line">        quint16 msg_id;</span><br><span class="line">        stream &gt;&gt; msg_id;</span><br><span class="line">        <span class="comment">//读取长度</span></span><br><span class="line">        quint32 body_length;</span><br><span class="line">        stream &gt;&gt; body_length;</span><br><span class="line">        <span class="keyword">if</span>(_buffer.<span class="built_in">size</span>() &gt;= TCP_HEAD_LEN+body_length)&#123;</span><br><span class="line">            <span class="comment">//完整的消息体已经接受</span></span><br><span class="line">            QByteArray body = _buffer.<span class="built_in">mid</span>(TCP_HEAD_LEN,body_length);</span><br><span class="line">            <span class="comment">//去掉完整的消息包</span></span><br><span class="line">            _buffer = _buffer.<span class="built_in">mid</span>(TCP_HEAD_LEN+body_length);</span><br><span class="line">            <span class="comment">// 解析服务器发过来的消息</span></span><br><span class="line">            QJsonDocument jsonDoc = QJsonDocument::<span class="built_in">fromJson</span>(body);</span><br><span class="line">            <span class="keyword">if</span>(jsonDoc.<span class="built_in">isNull</span>())&#123;</span><br><span class="line">                <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;Failed to create JSON doc.&quot;</span>;</span><br><span class="line">                <span class="keyword">this</span>-&gt;_socket-&gt;<span class="built_in">close</span>();</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span>(!jsonDoc.<span class="built_in">isObject</span>())&#123;</span><br><span class="line">                <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;JSON is not an object.&quot;</span>;</span><br><span class="line">                <span class="keyword">this</span>-&gt;_socket-&gt;<span class="built_in">close</span>();</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//qDebug() &lt;&lt; &quot;receive data is &quot; &lt;&lt; body;</span></span><br><span class="line">            <span class="comment">// 获取 JSON 对象</span></span><br><span class="line">            QJsonObject jsonObject = jsonDoc.<span class="built_in">object</span>();</span><br><span class="line">            <span class="function">emit <span class="title">sig_logic_process</span><span class="params">(msg_id, jsonObject)</span></span>;</span><br><span class="line">        &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">            <span class="comment">//消息未完全接受，所以中断</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="单线程逻辑服务器"><a href="#单线程逻辑服务器" class="headerlink" title="单线程逻辑服务器"></a>单线程逻辑服务器</h2><p>我们先讲解单线程处理收包逻辑的服务器，以后再给大家将多线程的。</p>
+<p>服务器要配合客户端，对报文头部大小做修改</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//头部总长度</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> HEAD_TOTAL_LEN 6</span></span><br><span class="line"><span class="comment">//头部id长度</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> HEAD_ID_LEN 2</span></span><br><span class="line"><span class="comment">//头部数据长度</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> HEAD_DATA_LEN 4</span></span><br><span class="line"><span class="comment">// 接受队列最大个数</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MAX_RECVQUE  2000000</span></span><br><span class="line"><span class="comment">// 发送队列最大个数</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MAX_SENDQUE 2000000</span></span><br></pre></td></tr></table></figure>
+
+<p>其余逻辑和我们在网络编程中讲的<code>IocontextPool</code>模型服务器一样</p>
+<p>服务器收到报文头后调用<code>LogicSystem</code>来处理</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">CSession::AsyncReadBody</span><span class="params">(<span class="type">int</span> total_len)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">auto</span> self = <span class="built_in">shared_from_this</span>();</span><br><span class="line">	<span class="built_in">asyncReadFull</span>(total_len, [self, <span class="keyword">this</span>, total_len](<span class="type">const</span> boost::system::error_code&amp; ec, std::<span class="type">size_t</span> bytes_transfered) &#123;</span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			<span class="keyword">if</span> (ec) &#123;</span><br><span class="line">				std::cout &lt;&lt; <span class="string">&quot;handle read failed, error is &quot;</span> &lt;&lt; ec.<span class="built_in">what</span>() &lt;&lt; endl;</span><br><span class="line">				<span class="built_in">Close</span>();</span><br><span class="line">				_server-&gt;<span class="built_in">ClearSession</span>(_session_id);</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (bytes_transfered &lt; total_len) &#123;</span><br><span class="line">				std::cout &lt;&lt; <span class="string">&quot;read length not match, read [&quot;</span> &lt;&lt; bytes_transfered &lt;&lt; <span class="string">&quot;] , total [&quot;</span></span><br><span class="line">					&lt;&lt; total_len&lt;&lt;<span class="string">&quot;]&quot;</span> &lt;&lt; endl;</span><br><span class="line">				<span class="built_in">Close</span>();</span><br><span class="line">				_server-&gt;<span class="built_in">ClearSession</span>(_session_id);</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="built_in">memcpy</span>(_recv_msg_node-&gt;_data , _data , bytes_transfered);</span><br><span class="line">			_recv_msg_node-&gt;_cur_len += bytes_transfered;</span><br><span class="line">			_recv_msg_node-&gt;_data[_recv_msg_node-&gt;_total_len] = <span class="string">&#x27;\0&#x27;</span>;</span><br><span class="line">			cout &lt;&lt; <span class="string">&quot;receive data is &quot;</span> &lt;&lt; _recv_msg_node-&gt;_data &lt;&lt; endl;</span><br><span class="line">			<span class="comment">//此处将消息投递到逻辑队列中</span></span><br><span class="line">			LogicSystem::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">PostMsgToQue</span>(<span class="built_in">make_shared</span>&lt;LogicNode&gt;(<span class="built_in">shared_from_this</span>(), _recv_msg_node));</span><br><span class="line">			<span class="comment">//继续监听头部接受事件</span></span><br><span class="line">			<span class="built_in">AsyncReadHead</span>(HEAD_TOTAL_LEN);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="built_in">catch</span> (std::exception&amp; e) &#123;</span><br><span class="line">			std::cout &lt;&lt; <span class="string">&quot;Exception code is &quot;</span> &lt;&lt; e.<span class="built_in">what</span>() &lt;&lt; endl;</span><br><span class="line">		&#125;</span><br><span class="line">		&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们知道<code>LogicSystem</code>会将消息投递到队列里，然后单线程处理,  服务器<code>LogicSystem</code>注册上传逻辑</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">LogicSystem::RegisterCallBacks</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	_fun_callbacks[ID_TEST_MSG_REQ] = [<span class="keyword">this</span>](shared_ptr&lt;CSession&gt; session, <span class="type">const</span> <span class="type">short</span>&amp; msg_id,</span><br><span class="line">		<span class="type">const</span> string&amp; msg_data) &#123;</span><br><span class="line">			Json::Reader reader;</span><br><span class="line">			Json::Value root;</span><br><span class="line">			reader.<span class="built_in">parse</span>(msg_data, root);</span><br><span class="line">			<span class="keyword">auto</span> data = root[<span class="string">&quot;data&quot;</span>].<span class="built_in">asString</span>();</span><br><span class="line">			std::cout &lt;&lt; <span class="string">&quot;recv test data is  &quot;</span> &lt;&lt; data &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">			Json::Value  rtvalue;</span><br><span class="line">			<span class="function">Defer <span class="title">defer</span><span class="params">([<span class="keyword">this</span>, &amp;rtvalue, session]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">				std::string return_str = rtvalue.toStyledString();</span></span></span><br><span class="line"><span class="params"><span class="function">				session-&gt;Send(return_str, ID_TEST_MSG_RSP);</span></span></span><br><span class="line"><span class="params"><span class="function">				&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">			rtvalue[<span class="string">&quot;error&quot;</span>] = ErrorCodes::Success;</span><br><span class="line">			rtvalue[<span class="string">&quot;data&quot;</span>] = data;</span><br><span class="line">	&#125;;</span><br><span class="line"></span><br><span class="line">	_fun_callbacks[ID_UPLOAD_FILE_REQ] = [<span class="keyword">this</span>](shared_ptr&lt;CSession&gt; session, <span class="type">const</span> <span class="type">short</span>&amp; msg_id,</span><br><span class="line">		<span class="type">const</span> string&amp; msg_data) &#123;</span><br><span class="line">			Json::Reader reader;</span><br><span class="line">			Json::Value root;</span><br><span class="line">			reader.<span class="built_in">parse</span>(msg_data, root);</span><br><span class="line">			<span class="keyword">auto</span> data = root[<span class="string">&quot;data&quot;</span>].<span class="built_in">asString</span>();</span><br><span class="line">			<span class="comment">//std::cout &lt;&lt; &quot;recv file data is  &quot; &lt;&lt; data &lt;&lt; std::endl;</span></span><br><span class="line"></span><br><span class="line">			Json::Value  rtvalue;</span><br><span class="line">			<span class="function">Defer <span class="title">defer</span><span class="params">([<span class="keyword">this</span>, &amp;rtvalue, session]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">				std::string return_str = rtvalue.toStyledString();</span></span></span><br><span class="line"><span class="params"><span class="function">				session-&gt;Send(return_str, ID_UPLOAD_FILE_RSP);</span></span></span><br><span class="line"><span class="params"><span class="function">				&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">			<span class="comment">// 解码</span></span><br><span class="line">			std::string decoded = <span class="built_in">base64_decode</span>(data);</span><br><span class="line"></span><br><span class="line">			<span class="keyword">auto</span> seq = root[<span class="string">&quot;seq&quot;</span>].<span class="built_in">asInt</span>();</span><br><span class="line">			<span class="keyword">auto</span> name = root[<span class="string">&quot;name&quot;</span>].<span class="built_in">asString</span>();</span><br><span class="line">			<span class="keyword">auto</span> total_size = root[<span class="string">&quot;total_size&quot;</span>].<span class="built_in">asInt</span>();</span><br><span class="line">			<span class="keyword">auto</span> trans_size = root[<span class="string">&quot;trans_size&quot;</span>].<span class="built_in">asInt</span>();</span><br><span class="line">			<span class="keyword">auto</span> file_path = ConfigMgr::<span class="built_in">Inst</span>().<span class="built_in">GetFileOutPath</span>();</span><br><span class="line">			<span class="keyword">auto</span> file_path_str = (file_path / name).<span class="built_in">string</span>();</span><br><span class="line">			std::cout &lt;&lt; <span class="string">&quot;file_path_str is &quot;</span> &lt;&lt; file_path_str &lt;&lt; std::endl;</span><br><span class="line">			std::ofstream outfile;</span><br><span class="line">			<span class="comment">//第一个包</span></span><br><span class="line">			<span class="keyword">if</span> (seq == <span class="number">1</span>) &#123;</span><br><span class="line">				<span class="comment">// 打开文件，如果存在则清空，不存在则创建</span></span><br><span class="line">				outfile.<span class="built_in">open</span>(file_path_str, std::ios::binary | std::ios::trunc);</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">else</span> &#123;</span><br><span class="line">				<span class="comment">// 保存为文件</span></span><br><span class="line">				outfile.<span class="built_in">open</span>(file_path_str, std::ios::binary | std::ios::app);</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			</span><br><span class="line">			<span class="keyword">if</span> (!outfile) &#123;</span><br><span class="line">				std::cerr &lt;&lt; <span class="string">&quot;无法打开文件进行写入。&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">				<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			outfile.<span class="built_in">write</span>(decoded.<span class="built_in">data</span>(), decoded.<span class="built_in">size</span>());</span><br><span class="line">			<span class="keyword">if</span> (!outfile) &#123;</span><br><span class="line">				std::cerr &lt;&lt; <span class="string">&quot;写入文件失败。&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">				<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			outfile.<span class="built_in">close</span>();</span><br><span class="line">			std::cout &lt;&lt; <span class="string">&quot;文件已成功保存为: &quot;</span> &lt;&lt; name &lt;&lt;  std::endl;</span><br><span class="line"></span><br><span class="line">			rtvalue[<span class="string">&quot;error&quot;</span>] = ErrorCodes::Success;</span><br><span class="line">			rtvalue[<span class="string">&quot;total_size&quot;</span>] = total_size;</span><br><span class="line">			rtvalue[<span class="string">&quot;seq&quot;</span>] = seq;</span><br><span class="line">			rtvalue[<span class="string">&quot;name&quot;</span>] = name;</span><br><span class="line">			rtvalue[<span class="string">&quot;trans_size&quot;</span>] = trans_size;</span><br><span class="line">	&#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>收到上传消息后写入文件。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C-cpppro/" rel="tag"># C++ cpppro</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2024/11/23/cppbase21/" rel="next" title="零基础C++(21) 类相关面试题">
+                <i class="fa fa-chevron-left"></i> 零基础C++(21) 类相关面试题
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">357</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">20</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF"><span class="nav-number">1.</span> <span class="nav-text">设计思路</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%A2%E6%88%B7%E7%AB%AF"><span class="nav-number">2.</span> <span class="nav-text">客户端</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%95%E7%BA%BF%E7%A8%8B%E9%80%BB%E8%BE%91%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="nav-number">3.</span> <span class="nav-text">单线程逻辑服务器</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

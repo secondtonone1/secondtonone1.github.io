@@ -286,6 +286,171 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/08/31/cpppro17/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2024/08/31/cpppro17/" itemprop="url">C++ 全栈聊天项目(17) 登录验证和状态服务</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-08-31T09:30:35+08:00">
+                2024-08-31
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpppro/" itemprop="url" rel="index">
+                    <span itemprop="name">C++聊天项目</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h2 id="完善proto"><a href="#完善proto" class="headerlink" title="完善proto"></a>完善proto</h2><p>在proto文件里新增登陆验证服务</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">message LoginReq&#123;</span><br><span class="line">	int32 uid = 1;</span><br><span class="line">	string token= 2;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">message LoginRsp &#123;</span><br><span class="line">	int32 error = 1;</span><br><span class="line">	int32 uid = 2;</span><br><span class="line">	string token = 3;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">service StatusService &#123;</span><br><span class="line">	rpc GetChatServer (GetChatServerReq) returns (GetChatServerRsp) &#123;&#125;</span><br><span class="line">	rpc Login(LoginReq) returns(LoginRsp);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>接下来是调用grpc命令生成新的pb文件覆盖原有的，并且也拷贝给StatusServer一份</p>
+<p>我们完善登陆逻辑，先去StatusServer验证token是否合理，如果合理再从内存中寻找用户信息，如果没找到则从数据库加载一份。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">LogicSystem::LoginHandler</span><span class="params">(shared_ptr&lt;CSession&gt; session, <span class="type">const</span> <span class="type">short</span> &amp;msg_id, <span class="type">const</span> string &amp;msg_data)</span> </span>&#123;</span><br><span class="line">	Json::Reader reader;</span><br><span class="line">	Json::Value root;</span><br><span class="line">	reader.<span class="built_in">parse</span>(msg_data, root);</span><br><span class="line">	<span class="keyword">auto</span> uid = root[<span class="string">&quot;uid&quot;</span>].<span class="built_in">asInt</span>();</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;user login uid is  &quot;</span> &lt;&lt; uid &lt;&lt; <span class="string">&quot; user token  is &quot;</span></span><br><span class="line">		&lt;&lt; root[<span class="string">&quot;token&quot;</span>].<span class="built_in">asString</span>() &lt;&lt; endl;</span><br><span class="line">	<span class="comment">//从状态服务器获取token匹配是否准确</span></span><br><span class="line">	<span class="keyword">auto</span> rsp = StatusGrpcClient::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">Login</span>(uid, root[<span class="string">&quot;token&quot;</span>].<span class="built_in">asString</span>());</span><br><span class="line">	Json::Value  rtvalue;</span><br><span class="line">	<span class="function">Defer <span class="title">defer</span><span class="params">([<span class="keyword">this</span>, &amp;rtvalue, session]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		std::string return_str = rtvalue.toStyledString();</span></span></span><br><span class="line"><span class="params"><span class="function">		session-&gt;Send(return_str, MSG_CHAT_LOGIN_RSP);</span></span></span><br><span class="line"><span class="params"><span class="function">	&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	rtvalue[<span class="string">&quot;error&quot;</span>] = rsp.<span class="built_in">error</span>();</span><br><span class="line">	<span class="keyword">if</span> (rsp.<span class="built_in">error</span>() != ErrorCodes::Success) &#123;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//内存中查询用户信息</span></span><br><span class="line">	<span class="keyword">auto</span> find_iter = _users.<span class="built_in">find</span>(uid);</span><br><span class="line">	std::shared_ptr&lt;UserInfo&gt; user_info = <span class="literal">nullptr</span>;</span><br><span class="line">	<span class="keyword">if</span> (find_iter == _users.<span class="built_in">end</span>()) &#123;</span><br><span class="line">		<span class="comment">//查询数据库</span></span><br><span class="line">		user_info = MysqlMgr::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">GetUser</span>(uid);</span><br><span class="line">		<span class="keyword">if</span> (user_info == <span class="literal">nullptr</span>) &#123;</span><br><span class="line">			rtvalue[<span class="string">&quot;error&quot;</span>] = ErrorCodes::UidInvalid;</span><br><span class="line">			<span class="keyword">return</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		_users[uid] = user_info;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		user_info = find_iter-&gt;second;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	rtvalue[<span class="string">&quot;uid&quot;</span>] = uid;</span><br><span class="line">	rtvalue[<span class="string">&quot;token&quot;</span>] = rsp.<span class="built_in">token</span>();</span><br><span class="line">	rtvalue[<span class="string">&quot;name&quot;</span>] = user_info-&gt;name;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="StatusServer验证token"><a href="#StatusServer验证token" class="headerlink" title="StatusServer验证token"></a>StatusServer验证token</h2><p>在StatusServer验证token之前，我们需要在StatusServer中的GetServer的服务里将token写入内存</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">Status <span class="title">StatusServiceImpl::GetChatServer</span><span class="params">(ServerContext* context, <span class="type">const</span> GetChatServerReq* request, GetChatServerRsp* reply)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="function">std::string <span class="title">prefix</span><span class="params">(<span class="string">&quot;llfc status server has received :  &quot;</span>)</span></span>;</span><br><span class="line">	<span class="type">const</span> <span class="keyword">auto</span>&amp; server = <span class="built_in">getChatServer</span>();</span><br><span class="line">	reply-&gt;<span class="built_in">set_host</span>(server.host);</span><br><span class="line">	reply-&gt;<span class="built_in">set_port</span>(server.port);</span><br><span class="line">	reply-&gt;<span class="built_in">set_error</span>(ErrorCodes::Success);</span><br><span class="line">	reply-&gt;<span class="built_in">set_token</span>(<span class="built_in">generate_unique_string</span>());</span><br><span class="line">	<span class="built_in">insertToken</span>(request-&gt;<span class="built_in">uid</span>(), reply-&gt;<span class="built_in">token</span>());</span><br><span class="line">	<span class="keyword">return</span> Status::OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>接下来我们实现登陆验证服务</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">Status <span class="title">StatusServiceImpl::Login</span><span class="params">(ServerContext* context, <span class="type">const</span> LoginReq* request, LoginRsp* reply)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">auto</span> uid = request-&gt;<span class="built_in">uid</span>();</span><br><span class="line">	<span class="keyword">auto</span> token = request-&gt;<span class="built_in">token</span>();</span><br><span class="line">	<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">guard</span><span class="params">(_token_mtx)</span></span>;</span><br><span class="line">	<span class="keyword">auto</span> iter = _tokens.<span class="built_in">find</span>(uid);</span><br><span class="line">	<span class="keyword">if</span> (iter == _tokens.<span class="built_in">end</span>()) &#123;</span><br><span class="line">		reply-&gt;<span class="built_in">set_error</span>(ErrorCodes::UidInvalid);</span><br><span class="line">		<span class="keyword">return</span> Status::OK;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (iter-&gt;second != token) &#123;</span><br><span class="line">		reply-&gt;<span class="built_in">set_error</span>(ErrorCodes::TokenInvalid);</span><br><span class="line">		<span class="keyword">return</span> Status::OK;</span><br><span class="line">	&#125;</span><br><span class="line">	reply-&gt;<span class="built_in">set_error</span>(ErrorCodes::Success);</span><br><span class="line">	reply-&gt;<span class="built_in">set_uid</span>(uid);</span><br><span class="line">	reply-&gt;<span class="built_in">set_token</span>(token);</span><br><span class="line">	<span class="keyword">return</span> Status::OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这样当GateServer访问StatusServer的Login服务做验证后，就可以将数据返回给QT前端了。</p>
+<h2 id="客户端处理登陆回包"><a href="#客户端处理登陆回包" class="headerlink" title="客户端处理登陆回包"></a>客户端处理登陆回包</h2><p>QT 的客户端TcpMgr收到请求后要进行对应的逻辑处理。所以我们在TcpMgr的构造函数中调用initHandlers注册消息</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">TcpMgr::initHandlers</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//auto self = shared_from_this();</span></span><br><span class="line">    _handlers.<span class="built_in">insert</span>(ID_CHAT_LOGIN_RSP, [<span class="keyword">this</span>](ReqId id, <span class="type">int</span> len, QByteArray data)&#123;</span><br><span class="line">        <span class="built_in">qDebug</span>()&lt;&lt; <span class="string">&quot;handle id is &quot;</span>&lt;&lt; id &lt;&lt; <span class="string">&quot; data is &quot;</span> &lt;&lt; data;</span><br><span class="line">        <span class="comment">// 将QByteArray转换为QJsonDocument</span></span><br><span class="line">        QJsonDocument jsonDoc = QJsonDocument::<span class="built_in">fromJson</span>(data);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 检查转换是否成功</span></span><br><span class="line">        <span class="keyword">if</span>(jsonDoc.<span class="built_in">isNull</span>())&#123;</span><br><span class="line">           <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;Failed to create QJsonDocument.&quot;</span>;</span><br><span class="line">           <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        QJsonObject jsonObj = jsonDoc.<span class="built_in">object</span>();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>(!jsonObj.<span class="built_in">contains</span>(<span class="string">&quot;error&quot;</span>))&#123;</span><br><span class="line">            <span class="type">int</span> err = ErrorCodes::ERR_JSON;</span><br><span class="line">            <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;Login Failed, err is Json Parse Err&quot;</span> &lt;&lt; err ;</span><br><span class="line">            emit <span class="built_in">sig_login_failed</span>(err);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="type">int</span> err = jsonObj[<span class="string">&quot;error&quot;</span>].<span class="built_in">toInt</span>();</span><br><span class="line">        <span class="keyword">if</span>(err != ErrorCodes::SUCCESS)&#123;</span><br><span class="line">            <span class="built_in">qDebug</span>() &lt;&lt; <span class="string">&quot;Login Failed, err is &quot;</span> &lt;&lt; err ;</span><br><span class="line">            emit <span class="built_in">sig_login_failed</span>(err);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        UserMgr::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">SetUid</span>(jsonObj[<span class="string">&quot;uid&quot;</span>].<span class="built_in">toInt</span>());</span><br><span class="line">        UserMgr::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">SetName</span>(jsonObj[<span class="string">&quot;name&quot;</span>].<span class="built_in">toString</span>());</span><br><span class="line">        UserMgr::<span class="built_in">GetInstance</span>()-&gt;<span class="built_in">SetToken</span>(jsonObj[<span class="string">&quot;token&quot;</span>].<span class="built_in">toString</span>());</span><br><span class="line">        emit <span class="built_in">sig_swich_chatdlg</span>();</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>并且增加处理请求</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">TcpMgr::handleMsg</span><span class="params">(ReqId id, <span class="type">int</span> len, QByteArray data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">   <span class="keyword">auto</span> find_iter =  _handlers.<span class="built_in">find</span>(id);</span><br><span class="line">   <span class="keyword">if</span>(find_iter == _handlers.<span class="built_in">end</span>())&#123;</span><br><span class="line">        <span class="built_in">qDebug</span>()&lt;&lt; <span class="string">&quot;not found id [&quot;</span>&lt;&lt; id &lt;&lt; <span class="string">&quot;] to handle&quot;</span>;</span><br><span class="line">        <span class="keyword">return</span> ;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   find_iter.<span class="built_in">value</span>()(id,len,data);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="用户管理"><a href="#用户管理" class="headerlink" title="用户管理"></a>用户管理</h2><p>为管理用户数据，需要创建一个UserMgr类，统一管理用户数据，我们这么声明</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifndef</span> USERMGR_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> USERMGR_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;QObject&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;memory&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;singleton.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">UserMgr</span>:<span class="keyword">public</span> QObject,<span class="keyword">public</span> Singleton&lt;UserMgr&gt;,</span><br><span class="line">        <span class="keyword">public</span> std::enable_shared_from_this&lt;UserMgr&gt;</span><br><span class="line">&#123;</span><br><span class="line">    Q_OBJECT</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="keyword">friend</span> <span class="keyword">class</span> <span class="title class_">Singleton</span>&lt;UserMgr&gt;;</span><br><span class="line">    ~ <span class="built_in">UserMgr</span>();</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">SetName</span><span class="params">(QString name)</span></span>;</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">SetUid</span><span class="params">(<span class="type">int</span> uid)</span></span>;</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">SetToken</span><span class="params">(QString token)</span></span>;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="built_in">UserMgr</span>();</span><br><span class="line">    QString _name;</span><br><span class="line">    QString _token;</span><br><span class="line">    <span class="type">int</span> _uid;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">// USERMGR_H</span></span></span><br></pre></td></tr></table></figure>
+<p>简单实现几个功能</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;usermgr.h&quot;</span></span></span><br><span class="line"></span><br><span class="line">UserMgr::~<span class="built_in">UserMgr</span>()</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">UserMgr::SetName</span><span class="params">(QString name)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    _name = name;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">UserMgr::SetUid</span><span class="params">(<span class="type">int</span> uid)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    _uid = uid;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">UserMgr::SetToken</span><span class="params">(QString token)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    _token = token;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">UserMgr::<span class="built_in">UserMgr</span>()</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>详细和复杂的管理后续不断往这里补充就行了。</p>
+<h2 id="登陆界面"><a href="#登陆界面" class="headerlink" title="登陆界面"></a>登陆界面</h2><p>登陆界面响应TcpMgr返回的登陆请求，在其构造函数中添加</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//连接tcp管理者发出的登陆失败信号</span></span><br><span class="line"> <span class="built_in">connect</span>(TcpMgr::<span class="built_in">GetInstance</span>().<span class="built_in">get</span>(), &amp;TcpMgr::sig_login_failed, <span class="keyword">this</span>, &amp;LoginDialog::slot_login_failed);</span><br></pre></td></tr></table></figure>
+<p>并实现槽函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">LoginDialog::slot_login_failed</span><span class="params">(<span class="type">int</span> err)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    QString result = <span class="built_in">QString</span>(<span class="string">&quot;登录失败, err is %1&quot;</span>)</span><br><span class="line">                             .<span class="built_in">arg</span>(err);</span><br><span class="line">    <span class="built_in">showTip</span>(result,<span class="literal">false</span>);</span><br><span class="line">    <span class="built_in">enableBtn</span>(<span class="literal">true</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>到此完成了登陆的请求和响应，接下来要实现响应登陆成功后跳转到聊天界面。下一篇先实现聊天布局。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/08/31/cpppro18/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -340,8 +505,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
-                    <span itemprop="name">C++ cpppro</span>
+                  <a href="/categories/cpppro/" itemprop="url" rel="index">
+                    <span itemprop="name">C++聊天项目</span>
                   </a>
                 </span>
 
@@ -517,8 +682,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
-                    <span itemprop="name">C++ cpppro</span>
+                  <a href="/categories/cpppro/" itemprop="url" rel="index">
+                    <span itemprop="name">C++聊天项目</span>
                   </a>
                 </span>
 
@@ -712,8 +877,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
-                    <span itemprop="name">C++ cpppro</span>
+                  <a href="/categories/cpppro/" itemprop="url" rel="index">
+                    <span itemprop="name">C++聊天项目</span>
                   </a>
                 </span>
 
@@ -911,8 +1076,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
-                    <span itemprop="name">C++ cpppro</span>
+                  <a href="/categories/cpppro/" itemprop="url" rel="index">
+                    <span itemprop="name">C++聊天项目</span>
                   </a>
                 </span>
 
@@ -1086,8 +1251,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
-                    <span itemprop="name">C++ cpppro</span>
+                  <a href="/categories/cpppro/" itemprop="url" rel="index">
+                    <span itemprop="name">C++聊天项目</span>
                   </a>
                 </span>
 
@@ -1244,8 +1409,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
-                    <span itemprop="name">C++ cpppro</span>
+                  <a href="/categories/cpppro/" itemprop="url" rel="index">
+                    <span itemprop="name">C++聊天项目</span>
                   </a>
                 </span>
 
@@ -1424,8 +1589,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
-                    <span itemprop="name">C++ cpppro</span>
+                  <a href="/categories/cpppro/" itemprop="url" rel="index">
+                    <span itemprop="name">C++聊天项目</span>
                   </a>
                 </span>
 
@@ -1608,8 +1773,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
-                    <span itemprop="name">C++ cpppro</span>
+                  <a href="/categories/cpppro/" itemprop="url" rel="index">
+                    <span itemprop="name">C++聊天项目</span>
                   </a>
                 </span>
 
@@ -1771,8 +1936,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
-                    <span itemprop="name">C++ cpppro</span>
+                  <a href="/categories/cpppro/" itemprop="url" rel="index">
+                    <span itemprop="name">C++聊天项目</span>
                   </a>
                 </span>
 
@@ -1888,229 +2053,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/08/31/cpppro3/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2024/08/31/cpppro3/" itemprop="url">C++ 全栈聊天项目(3) CRTP实现Http管理者</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-08-31T09:30:35+08:00">
-                2024-08-31
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C-cpppro/" itemprop="url" rel="index">
-                    <span itemprop="name">C++ cpppro</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h2 id="GateServer"><a href="#GateServer" class="headerlink" title="GateServer"></a>GateServer</h2><p>网关服务器主要应答客户端基本的连接请求，包括根据服务器负载情况选择合适服务器给客户端登录，注册，获取验证服务等，接收http请求并应答。</p>
-<h2 id="boost库安装"><a href="#boost库安装" class="headerlink" title="boost库安装"></a>boost库安装</h2><p>boost库的安装分为Windows和Linux两部分，Linux部分放在后面再讲解。因为Windows比较直观，便于我们编写代码，所以优先在windows平台搭建环境并编写代码，测试无误后再移植到linux。</p>
-<p>boost官网地址：</p>
-<p>Boost库官网<a target="_blank" rel="noopener" href="https://www.boost.org/">https://www.boost.org/</a>，首先进入官网下载对应的Boost库文件。点击下图所示红框中Download进入下载页面。更多版本点击链接下载。</p>
-<p><img src="https://cdn.llfc.club/1709188088318.jpg" alt="https://cdn.llfc.club/1709188088318.jpg"></p>
-<p>点击进入页面后，接下来选择7z或者zip文件都可以。</p>
-<p><img src="https://cdn.llfc.club/1709188365491.jpg" alt="https://cdn.llfc.club/1709188365491.jpg"></p>
-<p>如果下载缓慢，大家可以去我的网盘下载<br>链接：<a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1Uf-7gZxWpCOl7dnYzlYRHg?pwd=xt01">https://pan.baidu.com/s/1Uf-7gZxWpCOl7dnYzlYRHg?pwd=xt01</a> </p>
-<p>提取码：xt01 </p>
-<p>我的是boost_1_81_0版本，大家可以和我的版本匹配，也可以自己用最新版。</p>
-<p>下载好后解压, 其中booststrap.bat点击后生成编译程序</p>
-<p><img src="https://cdn.llfc.club/1709189119436.jpg" alt="https://cdn.llfc.club/1709189119436.jpg"></p>
-<p>点击后，生成b2.exe，我们执行如下命令</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">.\b2.exe install --toolset=msvc-14.2 --build-type=complete --prefix=<span class="string">&quot;D:\cppsoft\boost_1_81_0&quot;</span> <span class="built_in">link</span>=static runtime-link=shared threading=multi debug release</span><br></pre></td></tr></table></figure>
-<p>先逐一解释各参数含义</p>
-<ol>
-<li><p>install可以更改为stage, stage表示只生成库(dll和lib), install还会生成包含头文件的include目录。一般来说用stage就可以了，我们将生成的lib和下载的源码包的include头文件夹放到项目要用的地方即可。</p>
-</li>
-<li><p>toolset 指定编译器，<code>gcc</code>用来编译生成linux用的库，<code>msvc-14.2（VS2019）</code>用来编译windows使用的库，版本号看你的编译器比如<code>msvc-10.0（VS2010）</code>，我的是<code>VS2019</code>所以是<code>msvc-14.2</code>。</p>
-</li>
-<li><p>如果选择的是install 命令，指定生成的库文件夹要用<code>--prefix</code>，如果使用的是stage命令，需要用<code>--stagedir</code>指定。</p>
-</li>
-<li><p><code>link</code> 表示生成动态库还是静态库，<code>static</code>表示生成lib库，<code>shared</code>表示生成dll库。</p>
-</li>
-<li><p><code>runtime-link</code> 表示用于指定运行时链接方式为静态库还是动态库，指定为<code>static</code>就是<code>MT</code>模式，指定<code>shared</code>就是<code>MD</code>模式。<code>MD</code> 和 <code>MT</code> 是微软 Visual C++ 编译器的选项，用于指定运行时库的链接方式。这两个选项有以下区别：</p>
-<ul>
-<li><code>/MD</code>：表示使用多线程 DLL（Dynamic Link Library）版本的运行时库。这意味着你的应用程序将使用动态链接的运行时库（MSVCRT.dll）。这样的设置可以减小最终可执行文件的大小，并且允许应用程序与其他使用相同运行时库版本的程序共享代码和数据。</li>
-<li><code>/MT</code>：表示使用多线程静态库（Static Library）版本的运行时库。这意味着所有的运行时函数将被静态链接到应用程序中，使得应用程序不再依赖于动态链接的运行时库。这样可以确保应用程序在没有额外依赖的情况下独立运行，但可能会导致最终可执行文件的体积增大。</li>
-</ul>
-</li>
-</ol>
-<p>执行上述命令后就会在指定目录生成lib库了，我们将lib库拷贝到要使用的地方即可。</p>
-<p>一句话简化上面的含义，就是我们生成的是lib库，运行时采用的md加载模式。</p>
-<p>下面是编译界面</p>
-<p><img src="https://cdn.llfc.club/1709190169393.jpg" alt="https://cdn.llfc.club/1709190169393.jpg"></p>
-<p>编译后生成如下目录和文件, 我的是D盘 cppsoft目录下的boost文件夹，大家可以根据自己的设置去指定文件夹查看。</p>
-<p><img src="https://cdn.llfc.club/1709192144529.jpg" alt="https://cdn.llfc.club/1709192144529.jpg"></p>
-<p>为了兼容我之前做的旧项目，我创建了一个stage文件夹，将lib文件夹和内容移动到stage中了。然后将include文件夹下的boost文件夹移出到boost_1_81_0目录下，整体看就就是如下</p>
-<p><img src="https://cdn.llfc.club/1709192797632.jpg" alt="https://cdn.llfc.club/1709192797632.jpg"></p>
-<p>接下来我们创建项目并配置boost</p>
-<h2 id="配置boost"><a href="#配置boost" class="headerlink" title="配置boost"></a>配置boost</h2><p>打开visual studio 创建项目 </p>
-<p><img src="https://cdn.llfc.club/1709193315698.jpg" alt="https://cdn.llfc.club/1709193315698.jpg"></p>
-<p>接下来配置boost到项目中,右键项目选择属性，配置VC++包含目录，添加<code>D:\cppsoft\boost_1_81_0</code>（根据你自己的boost目录配置）</p>
-<p><img src="https://cdn.llfc.club/1709193680525.jpg" alt="https://cdn.llfc.club/1709193680525.jpg"></p>
-<p>再配置VC++库目录, 添加<code>D:\cppsoft\boost_1_81_0\stage\lib</code></p>
-<p><img src="https://cdn.llfc.club/1709194005921.jpg" alt="https://cdn.llfc.club/1709194005921.jpg"></p>
-<p>写个代码测试一下</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;boost/lexical_cast.hpp&quot;</span></span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;Enter your weight: &quot;</span>;</span><br><span class="line">    <span class="type">float</span> weight;</span><br><span class="line">    cin &gt;&gt; weight;</span><br><span class="line">    string gain = <span class="string">&quot;A 10% increase raises &quot;</span>;</span><br><span class="line">    string wt = boost::<span class="built_in">lexical_cast</span>&lt;string&gt; (weight);</span><br><span class="line">    gain = gain + wt + <span class="string">&quot; to &quot;</span>;      <span class="comment">// string operator()</span></span><br><span class="line">    weight = <span class="number">1.1</span> * weight;</span><br><span class="line">    gain = gain + boost::<span class="built_in">lexical_cast</span>&lt;string&gt;(weight) + <span class="string">&quot;.&quot;</span>;</span><br><span class="line">    cout &lt;&lt; gain &lt;&lt; endl;</span><br><span class="line">    <span class="built_in">system</span>(<span class="string">&quot;pause&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>运行成功，可以看到弹出了窗口</p>
-<p><img src="https://cdn.llfc.club/1675233803676.jpg" alt="https://cdn.llfc.club/1675233803676.jpg"></p>
-<h2 id="配置jsoncpp"><a href="#配置jsoncpp" class="headerlink" title="配置jsoncpp"></a>配置jsoncpp</h2><p>因为要用到json解析，所以我们选择jsoncpp来做后端json解析工作</p>
-<p>jsoncpp下载地址：<br><a target="_blank" rel="noopener" href="https://github.com/open-source-parsers/jsoncpp">https://github.com/open-source-parsers/jsoncpp</a><br>官方文档：<br><a target="_blank" rel="noopener" href="http://jsoncpp.sourceforge.net/old.html">http://jsoncpp.sourceforge.net/old.html</a></p>
-<p>选择windows版本的下载。</p>
-<p>如果下载速度很慢，可以去我的网盘地址下载<br><a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1Yg9Usdc3T-CYhyr9GiePCw?pwd=ng6x">https://pan.baidu.com/s/1Yg9Usdc3T-CYhyr9GiePCw?pwd=ng6x</a></p>
-<p>验证码ng6x<br>下载后我们解压文件夹，解压后文件夹如下图<br><img src="https://cdn.llfc.club/1684638346874.jpg" alt="https://cdn.llfc.club/1684638346874.jpg"></p>
-<p>然后进行编译，编译需要进入makefile文件夹下</p>
-<p><img src="https://cdn.llfc.club/1684638830012.jpg" alt="https://cdn.llfc.club/1684638830012.jpg"></p>
-<p>找到jsoncpp.sln文件，用visual studio打开，因为我的是visual studio2019版本，所以会提示我升级。</p>
-<p><img src="https://cdn.llfc.club/1684638950615.jpg" alt="https://cdn.llfc.club/1684638950615.jpg"></p>
-<p>点击确定升级，之后我们选择编译lib_json即可，当然偷懒可以选择编译整个解决方案。<br><img src="https://cdn.llfc.club/1684639169065.jpg" alt="https://cdn.llfc.club/1684639169065.jpg"></p>
-<p>然后我们配置编译属性，我想要用x64位的，所以配置编译平台为X64位，编译模式为debug模式，大家最好把release版和debug版都编译一遍。</p>
-<p>右键lib_json属性里选择C++，再选择代码生成，之后在右侧选择运行库，选择md(release版), mdd(debug版).</p>
-<p><img src="https://cdn.llfc.club/1709197886189.jpg" alt="https://cdn.llfc.club/1709197886189.jpg"></p>
-<p>编译生成后，我们的json库生成在项目同级目录的x64文件夹下的debug目录下<br><img src="https://cdn.llfc.club/1684640251160.jpg" alt="https://cdn.llfc.club/1684640251160.jpg"></p>
-<p>接下来我们在D盘cppsoft新建一个文件夹libjson，然后在其内部分别建立include和lib文件夹</p>
-<p><img src="https://cdn.llfc.club/1684640531206.jpg" alt="https://cdn.llfc.club/1684640531206.jpg"></p>
-<p>将jsoncpp-src-0.5.0源码文件夹下include文件夹里的内容copy到libjson下的include文件夹内。</p>
-<p>将jsoncpp-src-0.5.0源码文件夹下x64位debug文件夹和Release文件夹下生成的库copy到libjson下的lib文件夹内。</p>
-<p><img src="https://cdn.llfc.club/1709198276119.jpg" alt="https://cdn.llfc.club/1709198276119.jpg"></p>
-<p>我们生成的是mdd和md版本的库，但是名字却是mt，这个是visual studio生成的小bug先不管了。</p>
-<p>接下来我们新建一个项目，在项目属性中配置jsoncpp</p>
-<p>项目属性中，VC++包含目录设置为 D:\cppsoft\libjson\include</p>
-<p>库目录选择为 VC++库目录设置为 D:\cppsoft\libjson\lib</p>
-<p><img src="https://cdn.llfc.club/1684641520042.jpg" alt="https://cdn.llfc.club/1684641520042.jpg"></p>
-<p>另外我们还要设置链接器-&gt;输入-&gt;附加依赖项里设置json_vc71_libmtd.lib</p>
-<p><img src="https://cdn.llfc.club/1684641902273.jpg" alt="https://cdn.llfc.club/1684641902273.jpg"></p>
-<p>我们写个程序测试一下json库安装的情况</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;json/json.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;json/value.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;json/reader.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Json::Value root;</span><br><span class="line">    root[<span class="string">&quot;id&quot;</span>] = <span class="number">1001</span>;</span><br><span class="line">    root[<span class="string">&quot;data&quot;</span>] = <span class="string">&quot;hello world&quot;</span>;</span><br><span class="line">    std::string request = root.<span class="built_in">toStyledString</span>();</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;request is &quot;</span> &lt;&lt; request &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">    Json::Value root2;</span><br><span class="line">    Json::Reader reader;</span><br><span class="line">    reader.<span class="built_in">parse</span>(request, root2);</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;msg id is &quot;</span> &lt;&lt; root2[<span class="string">&quot;id&quot;</span>] &lt;&lt; <span class="string">&quot; msg is &quot;</span> &lt;&lt; root2[<span class="string">&quot;data&quot;</span>] &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>从这段代码中，我们先将root序列化为字符串，再将字符串反序列化为root2.</p>
-<p>输出如下</p>
-<p><img src="https://cdn.llfc.club/1684642765063.jpg" alt="https://cdn.llfc.club/1684642765063.jpg"></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2161,7 +2103,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">367</span>
+                  <span class="site-state-item-count">368</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>

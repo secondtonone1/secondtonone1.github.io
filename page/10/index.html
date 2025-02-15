@@ -286,7 +286,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/03/asio18/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/07/30/asio27/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -305,7 +305,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2023/06/03/asio18/" itemprop="url">逻辑层设计</a></h1>
+                <a class="post-title-link" href="/2023/07/30/asio27/" itemprop="url">Linux C++ 安装和使用grpc和jsoncpp库</a></h1>
         
 
         <div class="post-meta">
@@ -317,8 +317,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-03T09:49:07+08:00">
-                2023-06-03
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-07-30T19:29:37+08:00">
+                2023-07-30
               </time>
             
 
@@ -378,16 +378,78 @@
 
       
         
-          <h2 id="优雅退出"><a href="#优雅退出" class="headerlink" title="优雅退出"></a>优雅退出</h2><p>服务器优雅退出一直是服务器设计必须考虑的一个方向，意在能通过捕获信号使服务器安全退出。我们可以通过asio提供的信号机制绑定回调函数即可实现优雅退出。在主函数中我们添加</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		boost::asio::io_context  io_context;</span><br><span class="line">		boost::<span class="function">asio::signal_set <span class="title">signals</span><span class="params">(io_context, SIGINT, SIGTERM)</span></span>;</span><br><span class="line">		signals.<span class="built_in">async_wait</span>([&amp;io_context](<span class="keyword">auto</span>, <span class="keyword">auto</span>) &#123;</span><br><span class="line">			io_context.<span class="built_in">stop</span>();</span><br><span class="line">			&#125;);</span><br><span class="line">		<span class="function">CServer <span class="title">s</span><span class="params">(io_context, <span class="number">10086</span>)</span></span>;</span><br><span class="line">		io_context.<span class="built_in">run</span>();</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">catch</span> (std::exception&amp; e) &#123;</span><br><span class="line">		std::cerr &lt;&lt; <span class="string">&quot;Exception: &quot;</span> &lt;&lt; e.<span class="built_in">what</span>() &lt;&lt; endl;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>利用signal_set 定义了一系列信号合集，并且绑定了一个匿名函数，匿名函数捕获了io_context的引用，并且函数中设置了停止操作，也就是说当捕获到SIGINT,SIGTERM等信号时，会调用<code>io_context.stop</code>。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2023/06/03/asio18/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
+          
+            <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文主要教会大家如何在Linux环境搭建C++ 所需的grpc和jsoncpp库，并教会大家如何编写cmake，并配置使用这些库。</p>
+<h2 id="解决vim乱码"><a href="#解决vim乱码" class="headerlink" title="解决vim乱码"></a>解决vim乱码</h2><p>为了解决Linux环境下打开vim中文乱码的问题<br>用vim打开用户目录下的vim配置文件</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim ~/.vimrc</span><br></pre></td></tr></table></figure>
+<p>配置如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">set termencoding=utf<span class="number">-8</span></span><br><span class="line">set encoding=utf8</span><br><span class="line">set fileencodings=utf8,ucs-bom,gbk,cp936,gb2312,gb18030</span><br></pre></td></tr></table></figure>
+<h2 id="配置和使用jsoncpp"><a href="#配置和使用jsoncpp" class="headerlink" title="配置和使用jsoncpp"></a>配置和使用jsoncpp</h2><p>如果你是ubuntu系统，可以通过如下命令直接安装</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">可以通过指令apt install  libjsoncpp-dev 安装</span><br></pre></td></tr></table></figure>
+<p>但是如果是其他Linux系统最好是手动安装源码包，我的操作都是在ubuntu为基础镜像生成的docker中进行的，如果大家使用的是宿主机，可以直接安装。<br>推荐源码安装，去github下载</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/open-source-parsers/jsoncpp/releases">https://github.com/open-source-parsers/jsoncpp/releases</a></p>
+<p>可以选择用wget 命令<br>我在电脑下好后传到云服务器上<br>然后在云服务器上copy到docker里, 如果你是在宿主机进行的，可以略去这一步。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker cp /home/ubuntu/download/jsoncpp-1.9.5.tar.gz  cppubuntu:/test</span><br></pre></td></tr></table></figure>
+
+<p>进入容器</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec -it cppubuntu /bin/bash</span><br></pre></td></tr></table></figure>
+
+<p>接下来解压压缩包，无论docker还是宿主机内，都需执行如下命令</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar zxvf ./jsoncpp-1.9.5.tar.gz </span><br></pre></td></tr></table></figure>
+
+<p>进入到源码目录</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cd  ./json</span><br></pre></td></tr></table></figure>
+
+<p>创建目录</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkdir build</span><br></pre></td></tr></table></figure>
+
+<p>进入目录</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cd build</span><br></pre></td></tr></table></figure>
+
+<p>执行cmake生成makefile</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cmake ../</span><br></pre></td></tr></table></figure>
+
+<p>执行make</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make</span><br></pre></td></tr></table></figure>
+
+<p>执行安装</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make install</span><br></pre></td></tr></table></figure>
+
+<p>更新库</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ldconfig</span><br></pre></td></tr></table></figure>
+
+<p>写一个jsoncpp的测试cpp</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span><span class="string">&lt;json/json.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span><span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span>** argv)</span> </span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">Json::Value root;</span><br><span class="line">Json::FastWriter fast;</span><br><span class="line">root[<span class="string">&quot;ModuleType&quot;</span>]= Json::<span class="built_in">Value</span>(<span class="string">&quot;你好&quot;</span>);</span><br><span class="line">root[<span class="string">&quot;ModuleCode&quot;</span>]= Json::<span class="built_in">Value</span>(<span class="string">&quot;22&quot;</span>);</span><br><span class="line">root[<span class="string">&quot;ModuleDesc&quot;</span>]= Json::<span class="built_in">Value</span>(<span class="string">&quot;33&quot;</span>);</span><br><span class="line">root[<span class="string">&quot;DateTime&quot;</span>]= Json::<span class="built_in">Value</span>(<span class="string">&quot;44&quot;</span>);</span><br><span class="line">root[<span class="string">&quot;LogType&quot;</span>]= Json::<span class="built_in">Value</span>(<span class="string">&quot;55&quot;</span>);</span><br><span class="line">cout&lt;&lt;fast.<span class="built_in">write</span>(root)&lt;&lt;endl;</span><br><span class="line"><span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>执行 编译</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">g++ jsontest.cpp  -o jsontest -ljsoncpp</span><br></pre></td></tr></table></figure>
+<p>或者写个cmake</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">cmake_minimum_required(VERSION 3.12)</span><br><span class="line">project(jsontest)</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">设置 C++ 标准</span></span><br><span class="line">set(CMAKE_CXX_STANDARD 17)</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">添加可执行文件和源文件</span></span><br><span class="line">file(GLOB SOURCES $&#123;CMAKE_CURRENT_SOURCE_DIR&#125;/*.cpp)</span><br><span class="line">set(JSONCPP_INC_DIR  /usr/local/include)</span><br><span class="line"></span><br><span class="line">add_executable(jsontest $&#123;SOURCES&#125;)</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">包含头文件路径（包括其他目录）</span></span><br><span class="line">target_include_directories(jsontest </span><br><span class="line">    PRIVATE </span><br><span class="line">    $&#123;JSONCPP_INC_DIR&#125;</span><br><span class="line">)</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">链接 Boost 库</span></span><br><span class="line">target_link_libraries(jsontest PRIVATE jsoncpp)</span><br></pre></td></tr></table></figure>
+<p>运行 <code>./jsontest</code><br>输出 </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;&quot;DateTime&quot;:&quot;44&quot;,&quot;LogType&quot;:&quot;55&quot;,&quot;ModuleCode&quot;:&quot;22&quot;,&quot;ModuleDesc&quot;:&quot;33&quot;,&quot;ModuleType&quot;:&quot;\u4f60\u597d&quot;&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="grpc配置和使用"><a href="#grpc配置和使用" class="headerlink" title="grpc配置和使用"></a>grpc配置和使用</h2><p>克隆grpc指定分支</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git clone -b v1.34.0 https://gitee.com/mirrors/grpc-framework.git grpc</span><br></pre></td></tr></table></figure>
+
+<p>进入目录并更新子模块</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd grpc</span><br><span class="line">git submodule update --init</span><br></pre></td></tr></table></figure>
+
+<p>编译并生成grpc库</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">cd grpc</span><br><span class="line">mkdir build</span><br><span class="line">cd build</span><br><span class="line">// 指定安装路径 /usr/local </span><br><span class="line">cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..</span><br><span class="line">make -j2</span><br><span class="line">sudo make install</span><br></pre></td></tr></table></figure>
+
+<p>测试安装成功与否</p>
+<p>编译源代码中的helloworld文件夹下的文件，步骤如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">进入grpc文件夹下</span></span><br><span class="line">cd examples/cpp/helloworld</span><br><span class="line">mkdir build</span><br><span class="line">cd build</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">编译</span></span><br><span class="line">cmake ..</span><br><span class="line">make -j8 </span><br></pre></td></tr></table></figure>
+<p>编译完成后，分别执行greeter_server和greeter_client即可测试。</p>
+<h2 id="项目应用grpc"><a href="#项目应用grpc" class="headerlink" title="项目应用grpc"></a>项目应用grpc</h2><p>我们的项目中也用到了grpc， 需要编写一个CMakeLists.txt 配置grpc。<br>大家可以克隆我的boost项目代码</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn">https://gitee.com/secondtonone1/boostasio-learn</a></p>
+<p>进入day19-Grpc-Server目录，我们编写如下的CMakeLists.txt</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">cmake_minimum_required(VERSION 3.1)</span><br><span class="line"></span><br><span class="line">project(GrpcServer LANGUAGES CXX)</span><br><span class="line"></span><br><span class="line">set(CMAKE_INCLUDE_CURRENT_DIR ON)</span><br><span class="line"></span><br><span class="line">set(CMAKE_CXX_STANDARD 17)</span><br><span class="line">set(CMAKE_CXX_STANDARD_REQUIRED ON)</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">假设已经安装好grpc了</span></span><br><span class="line">find_package(Threads REQUIRED)</span><br><span class="line"></span><br><span class="line">set(protobuf_MODULE_COMPATIBLE TRUE)</span><br><span class="line">find_package(Protobuf CONFIG REQUIRED)</span><br><span class="line">message(STATUS &quot;Using protobuf $&#123;Protobuf_VERSION&#125;&quot;)</span><br><span class="line"></span><br><span class="line">set(_PROTOBUF_LIBPROTOBUF protobuf::libprotobuf)</span><br><span class="line">set(_REFLECTION gRPC::grpc++_reflection)</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Find gRPC installation</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Looks <span class="keyword">for</span> gRPCConfig.cmake file installed by gRPC<span class="string">&#x27;s cmake installation.</span></span></span><br><span class="line">find_package(gRPC CONFIG REQUIRED)</span><br><span class="line">message(STATUS &quot;Using gRPC $&#123;gRPC_VERSION&#125;&quot;)</span><br><span class="line"></span><br><span class="line">set(_GRPC_GRPCPP gRPC::grpc++)</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="string">添加可执行文件和源文件</span></span></span><br><span class="line">file(GLOB SOURCES $&#123;CMAKE_CURRENT_SOURCE_DIR&#125;/*.cpp)</span><br><span class="line">file(GLOB PBSOURCES $&#123;CMAKE_CURRENT_SOURCE_DIR&#125;/*.cc)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">add_executable(GrpcServer $&#123;SOURCES&#125;</span><br><span class="line"><span class="meta prompt_">		$</span><span class="language-bash"><span class="string">&#123;PBSOURCES&#125;)</span></span></span><br><span class="line">		</span><br><span class="line">target_link_libraries(GrpcServer</span><br><span class="line">    $&#123;_REFLECTION&#125;</span><br><span class="line">    $&#123;_GRPC_GRPCPP&#125;</span><br><span class="line">    $&#123;_PROTOBUF_LIBPROTOBUF&#125;)</span><br></pre></td></tr></table></figure>
+<p>我们新建一个build文件夹</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkdir build</span><br></pre></td></tr></table></figure>
+<p>进入build文件夹里，执行<code>cmake ..</code>, 再执行<code>make</code>即可。<br>直接执行<code>GrpcServer</code>就可以看到我们的程序跑起来了。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了如何使用Linux环境下配置和使用grpc和cppjson库，我将docker打包为镜像提交到了网盘上，大家感兴趣可以下载看看</p>
+<p><a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1K-NGEh88qUMVJexY6SNA5Q?pwd=5wng">链接</a><br>提取码：5wng</p>
+
+          
         
       
     </div>
@@ -434,7 +496,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/01/asio17/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/07/23/cpp43/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -453,7 +515,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2023/06/01/asio17/" itemprop="url">逻辑层设计和消息完善</a></h1>
+                <a class="post-title-link" href="/2023/07/23/cpp43/" itemprop="url">可变参数模板+异步队列实现异步打印功能</a></h1>
         
 
         <div class="post-meta">
@@ -465,8 +527,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-01T18:45:58+08:00">
-                2023-06-01
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-07-23T15:51:35+08:00">
+                2023-07-23
               </time>
             
 
@@ -526,14 +588,10 @@
 
       
         
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文概述基于<code>boost::asio</code>实现的服务器逻辑层结构，并且完善之前设计的消息结构。因为为了简化粘包处理，我们简化了发送数据的结构,这次我们给出完整的消息设计，以及服务器架构设计。</p>
-<h2 id="服务器架构设计"><a href="#服务器架构设计" class="headerlink" title="服务器架构设计"></a>服务器架构设计</h2><p>之前我们设计了Session(会话层)，并且给大家讲述了Asio底层的通信过程，如下图</p>
-<p><img src="https://cdn.llfc.club/1685620269385.jpg" alt="https://cdn.llfc.club/1685620269385.jpg"></p>
-<p>我们接下来要设计的服务器结构是这样的</p>
-<p><img src="https://cdn.llfc.club/1685621283099.jpg" alt="https://cdn.llfc.club/1685621283099.jpg"></p>
+          <h2 id="场景"><a href="#场景" class="headerlink" title="场景"></a>场景</h2><p>公司有成熟的日志库，但是打印日志的功能是在调用线程里触发的，简而言之就是哪个线程调用了日志库的打印功能，就在哪个线程里输出，如果打印功能频繁，可能会影响该线程的逻辑处理。目前公司的软件界面显示和计算等逻辑很频繁，考虑用异步的方式实现打印。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2023/06/01/asio17/#more" rel="contents">
+            <a class="btn" href="/2023/07/23/cpp43/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -584,7 +642,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/05/31/asio16/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/07/21/asio26/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -603,7 +661,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2023/05/31/asio16/" itemprop="url">windows配置和使用grpc</a></h1>
+                <a class="post-title-link" href="/2023/07/21/asio26/" itemprop="url">利用Docker搭建Linux C++ Boost开发环境</a></h1>
         
 
         <div class="post-meta">
@@ -615,8 +673,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-05-31T18:41:39+08:00">
-                2023-05-31
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-07-21T10:15:46+08:00">
+                2023-07-21
               </time>
             
 
@@ -676,10 +734,10 @@
 
       
         
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文主要讲述如何在Windows环境下使用visual studio配置grpc，并且实现grpc通信的例子。前文<a target="_blank" rel="noopener" href="https://llfc.club/articlepage?id=2QSEHcC1he1RgiewYG93ilaAMiY">windows配置和编译grpc</a>已经介绍了如何在windows环境配置grpc，接下来我们利用之前编译好的库配置到项目中，并实现grpc通信。</p>
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文介绍如何使用Docker搭建Linux环境下C++的开发环境。众所周知C++的开发环境分为Windows和Linux两种，在windows配置C++开发环境并实现了Asio服务器的开发，我们也做过QT的配置和使用，前面的教程已经很完善了，接下来介绍如何在Linux系统部署C++开发环境。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2023/05/31/asio16/#more" rel="contents">
+            <a class="btn" href="/2023/07/21/asio26/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -730,7 +788,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/05/29/qt27/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/07/15/asio25/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -749,7 +807,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2023/05/29/qt27/" itemprop="url">QT 实现电子相册(六)--总结</a></h1>
+                <a class="post-title-link" href="/2023/07/15/asio25/" itemprop="url">网络答疑汇总</a></h1>
         
 
         <div class="post-meta">
@@ -761,154 +819,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-05-29T15:44:35+08:00">
-                2023-05-29
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Qt/" itemprop="url" rel="index">
-                    <span itemprop="name">Qt</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前面几篇的讲解，我们已经完成QT电子相册的开发，这里做一个总结，说明各个类的功能，以及关联和使用情况。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2023/05/29/qt27/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/05/28/asio15/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2023/05/28/asio15/" itemprop="url">windows配置和编译grpc</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-05-28T13:56:35+08:00">
-                2023-05-28
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-07-15T20:20:05+08:00">
+                2023-07-15
               </time>
             
 
@@ -968,12 +880,10 @@
 
       
         
-          <h2 id="grpc简介"><a href="#grpc简介" class="headerlink" title="grpc简介"></a>grpc简介</h2><p>gRPC是Google开发的一种高性能、开源的远程过程调用（RPC）框架。它可以让客户端应用程序像调用本地服务一样轻松地调用远程服务，并提供了多种语言的支持，如C++、Java、Python、Go等。</p>
-<p>gRPC使用Protocol Buffers作为数据格式，可以在不同的平台上进行应用程序之间的通信，支持多种编程语言和多种操作系统。它采用基于HTTP/2的协议，提供了高效、快速且可扩展的远程调用功能，并带有负载均衡、认证、监控等功能，方便用户管理和维护分布式系统。</p>
-<p>gRPC可用于构建各种类型的分布式应用程序，如微服务、云原生应用程序、大规模Web应用程序、移动应用程序等场景。由于其高性能和可扩展性，越来越多的企业和组织开始采用gRPC来构建他们的应用程序和服务。</p>
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>总结下目前视频教程中读者提出的问题，并逐一回答。视频地址在哔哩哔哩<br><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206">https://space.bilibili.com/271469206</a></p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2023/05/28/asio15/#more" rel="contents">
+            <a class="btn" href="/2023/07/15/asio25/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -1024,7 +934,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/05/28/cpppro6/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/25/asio24/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1043,7 +953,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2023/05/28/cpppro6/" itemprop="url">C++ 全栈聊天项目(6) Beast实现http post请求处理</a></h1>
+                <a class="post-title-link" href="/2023/06/25/asio24/" itemprop="url">beast网络库实现websocket服务器</a></h1>
         
 
         <div class="post-meta">
@@ -1055,8 +965,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-05-28T13:56:35+08:00">
-                2023-05-28
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-25T15:12:48+08:00">
+                2023-06-25
               </time>
             
 
@@ -1116,12 +1026,10 @@
 
       
         
-          <h2 id="grpc简介"><a href="#grpc简介" class="headerlink" title="grpc简介"></a>grpc简介</h2><p>gRPC是Google开发的一种高性能、开源的远程过程调用（RPC）框架。它可以让客户端应用程序像调用本地服务一样轻松地调用远程服务，并提供了多种语言的支持，如C++、Java、Python、Go等。</p>
-<p>gRPC使用Protocol Buffers作为数据格式，可以在不同的平台上进行应用程序之间的通信，支持多种编程语言和多种操作系统。它采用基于HTTP/2的协议，提供了高效、快速且可扩展的远程调用功能，并带有负载均衡、认证、监控等功能，方便用户管理和维护分布式系统。</p>
-<p>gRPC可用于构建各种类型的分布式应用程序，如微服务、云原生应用程序、大规模Web应用程序、移动应用程序等场景。由于其高性能和可扩展性，越来越多的企业和组织开始采用gRPC来构建他们的应用程序和服务。</p>
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>使用beast网络库实现websocket服务器，一般来说websocket是一个长连接的协议，但是自动包含了解包处理，当我们在浏览器输入一个http请求时如果是以ws开头的如<code>ws://127.0.0.1:9501</code>就是请求本地9501端口的websocket服务器处理。而beast为我们提供了websocket的处理方案，我们可以在http服务器的基础上升级协议为websocket，处理部分websocket请求。如果服务器收到的是普通的http请求则按照http请求处理。我们可以从官方文档中按照示例逐步搭建websocket服务器。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2023/05/28/cpppro6/#more" rel="contents">
+            <a class="btn" href="/2023/06/25/asio24/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -1172,7 +1080,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/05/25/asio14/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/24/asio23/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1191,7 +1099,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2023/05/25/asio14/" itemprop="url">asio处理粘包的简易方式</a></h1>
+                <a class="post-title-link" href="/2023/06/24/asio23/" itemprop="url">beast网络库搭建http服务器</a></h1>
         
 
         <div class="post-meta">
@@ -1203,8 +1111,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-05-25T19:58:32+08:00">
-                2023-05-25
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-24T17:21:08+08:00">
+                2023-06-24
               </time>
             
 
@@ -1264,11 +1172,12 @@
 
       
         
-          <h2 id="简易方式"><a href="#简易方式" class="headerlink" title="简易方式"></a>简易方式</h2><p>之前我们介绍了通过async_read_some函数监听读事件，并且绑定了读事件的回调函数HandleRead</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">_socket.<span class="built_in">async_read_some</span>(boost::asio::<span class="built_in">buffer</span>(_data, MAX_LENGTH), std::<span class="built_in">bind</span>(&amp;CSession::HandleRead, <span class="keyword">this</span>, </span><br><span class="line">std::placeholders::_1, std::placeholders::_2, <span class="built_in">SharedSelf</span>()));</span><br></pre></td></tr></table></figure>
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前面的几篇文章已经介绍了如何使用asio搭建高并发的tcp服务器，以及http服务器。但是纯手写http服务器太麻烦了，有网络库beast已经帮我们实现了。这一期讲讲如何使用beast实现一个http服务器。</p>
+<h2 id="连接类"><a href="#连接类" class="headerlink" title="连接类"></a>连接类</h2><p>我们先实现http_server函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">http_server</span><span class="params">(tcp::acceptor&amp; acceptor, tcp::socket&amp; socket)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	acceptor.<span class="built_in">async_accept</span>(socket,</span><br><span class="line">		[&amp;](beast::error_code ec)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="keyword">if</span> (!ec)</span><br><span class="line">				std::<span class="built_in">make_shared</span>&lt;http_connection&gt;(std::<span class="built_in">move</span>(socket))-&gt;<span class="built_in">start</span>();</span><br><span class="line">			<span class="built_in">http_server</span>(acceptor, socket);</span><br><span class="line">		&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2023/05/25/asio14/#more" rel="contents">
+            <a class="btn" href="/2023/06/24/asio23/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -1319,7 +1228,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/05/21/asio13/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/23/asio22/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1338,7 +1247,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2023/05/21/asio13/" itemprop="url">visual studio配置jsoncpp</a></h1>
+                <a class="post-title-link" href="/2023/06/23/asio22/" itemprop="url">asio实现http服务器</a></h1>
         
 
         <div class="post-meta">
@@ -1350,8 +1259,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-05-21T10:39:51+08:00">
-                2023-05-21
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-23T11:56:51+08:00">
+                2023-06-23
               </time>
             
 
@@ -1411,23 +1320,10 @@
 
       
         
-          <h2 id="jsoncpp简介"><a href="#jsoncpp简介" class="headerlink" title="jsoncpp简介"></a>jsoncpp简介</h2><p>jsoncpp 是一个 C++ JSON 库，它提供了将 JSON 数据解析为 C++ 对象、将 C++ 对象序列化为 JSON 数据的功能。它支持所有主流操作系统（包括 Windows、Linux、Mac OS X 等），并且可以与常见编译器（包括 Visual Studio、GCC 等）兼容。</p>
-<p>jsoncpp 库是以源代码的形式发布的，因此使用者需要自己构建和链接库文件。该库文件不依赖于第三方库，只需包含头文件即可使用。</p>
-<p>jsoncpp 库的特点包括：</p>
-<ol>
-<li><p>轻量级：JSON 解析器和序列化器都非常快速，不会占用太多的 CPU 和内存资源；</p>
-</li>
-<li><p>易于使用：提供简单的 API，易于理解和使用；</p>
-</li>
-<li><p>可靠性高：经过广泛测试，已被许多企业和开发者用于生产环境中；</p>
-</li>
-<li><p>开源免费：遵循 MIT 许可证发布，使用和修改均免费。</p>
-</li>
-</ol>
-<p>总之，jsoncpp 是一款优秀的 C++ JSON 库，它可以帮助你轻松地处理 JSON 数据，为你的项目带来便利和高效。</p>
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前文介绍了asio如何实现并发的长连接tcp服务器，今天介绍如何实现http服务器，在介绍实现http服务器之前，需要讲述下http报文头的格式，其实http报文头的格式就是为了避免我们之前提到的粘包现象，告诉服务器一个数据包的开始和结尾，并在包头里标识请求的类型如get或post等信息。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2023/05/21/asio13/#more" rel="contents">
+            <a class="btn" href="/2023/06/23/asio22/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -1478,7 +1374,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/05/11/asio12/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/16/asio21/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1497,7 +1393,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2023/05/11/asio12/" itemprop="url">visual studio配置protobuf</a></h1>
+                <a class="post-title-link" href="/2023/06/16/asio21/" itemprop="url">利用asio协程调度实现并发服务器</a></h1>
         
 
         <div class="post-meta">
@@ -1509,8 +1405,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-05-11T16:16:08+08:00">
-                2023-05-11
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-16T10:41:26+08:00">
+                2023-06-16
               </time>
             
 
@@ -1570,12 +1466,10 @@
 
       
         
-          <h2 id="protobuf简介"><a href="#protobuf简介" class="headerlink" title="protobuf简介"></a>protobuf简介</h2><p>Protocol Buffers（简称 Protobuf）是一种轻便高效的序列化数据结构的协议，由 Google 开发。它可以用于将结构化数据序列化到二进制格式，并广泛用于数据存储、通信协议、配置文件等领域。<br>我们的逻辑是有类等抽象数据构成的，而tcp是面向字节流的，我们需要将类结构序列化为字符串来传输。</p>
-<h2 id="下载protobuf安装包"><a href="#下载protobuf安装包" class="headerlink" title="下载protobuf安装包"></a>下载protobuf安装包</h2><p>官方下载地址<br><a target="_blank" rel="noopener" href="https://github.com/protocolbuffers/protobuf/releases">https://github.com/protocolbuffers/protobuf/releases</a></p>
-<p>选择zip文件下载即可</p>
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>之前介绍了asio服务器并发编程的几种模型，包括单线程，多线程IOServicePool，多线程IOThreadPool等，今天带着大家利用asio协程实现并发服务器。利用协程实现并发程序有两个好处<br>1 &emsp; 将回调函数改写为顺序调用，提高开发效率。<br>2 &emsp; 协程调度比线程调度更轻量化，因为协程是运行在用户空间的，线程切换需要在用户空间和内核空间切换。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2023/05/11/asio12/#more" rel="contents">
+            <a class="btn" href="/2023/06/16/asio21/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -1626,7 +1520,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/05/11/asio11/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/07/asio20/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1645,7 +1539,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2023/05/11/asio11/" itemprop="url">字节序处理和消息队列的控制</a></h1>
+                <a class="post-title-link" href="/2023/06/07/asio20/" itemprop="url">asio多线程模型IOThreadPool</a></h1>
         
 
         <div class="post-meta">
@@ -1657,8 +1551,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-05-11T11:40:01+08:00">
-                2023-05-11
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-07T08:59:25+08:00">
+                2023-06-07
               </time>
             
 
@@ -1718,14 +1612,156 @@
 
       
         
-          <h2 id="字节序的问题"><a href="#字节序的问题" class="headerlink" title="字节序的问题"></a>字节序的问题</h2><p>在计算机网络中，由于不同的计算机使用的 CPU 架构和字节顺序可能不同，因此在传输数据时需要对数据的字节序进行统一，以保证数据能够正常传输和解析。这就是网络字节序的作用。</p>
-<p>具体来说，计算机内部存储数据的方式有两种：大端序（Big-Endian）和小端序（Little-Endian）。在大端序中，高位字节存储在低地址处，而低位字节存储在高地址处；在小端序中，高位字节存储在高地址处，而低位字节存储在低地址处。</p>
-<p>在网络通信过程中，通常使用的是大端序。这是因为早期的网络硬件大多采用了 Motorola 处理器，而 Motorola 处理器使用的是大端序。此外，大多数网络协议规定了网络字节序必须为大端序。</p>
-<p>因此，在进行网络编程时，需要将主机字节序转换为网络字节序，也就是将数据从本地字节序转换为大端序。可以使用诸如 htonl、htons、ntohl 和 ntohs 等函数来实现字节序转换操作。</p>
-<p>综上所述，网络字节序的主要作用是统一不同计算机间的数据表示方式，以保证数据在网络中的正确传输和解析。</p>
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>今天给大家介绍asio多线程模式的第二种，之前我们介绍了IOServicePool的方式，一个IOServicePool开启n个线程和n个iocontext，每个线程内独立运行iocontext, 各个iocontext监听各自绑定的socket是否就绪，如果就绪就在各自线程里触发回调函数。为避免线程安全问题，我们将网络数据封装为逻辑包投递给逻辑系统，逻辑系统有一个单独线程处理，这样将网络IO和逻辑处理解耦合，极大的提高了服务器IO层面的吞吐率。这一次介绍的另一种多线程模式IOThreadPool，我们只初始化一个iocontext用来监听服务器的读写事件，包括新连接到来的监听也用这个iocontext。只是我们让<code>iocontext.run</code>在多个线程中调用，这样回调函数就会被不同的线程触发，从这个角度看回调函数被并发调用了。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2023/05/11/asio11/#more" rel="contents">
+            <a class="btn" href="/2023/06/07/asio20/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/04/asio19/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2023/06/04/asio19/" itemprop="url">asio多线程模型IOServicePool</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-04T09:48:11+08:00">
+                2023-06-04
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>前面的设计，我们对asio的使用都是单线程模式，为了提升网络io并发处理的效率，这一次我们设计多线程模式下asio的使用方式。总体来说asio有两个多线程模型，第一个是启动多个线程，每个线程管理一个iocontext。第二种是只启动一个iocontext，被多个线程共享，后面的文章会对比两个模式的区别，这里先介绍第一种模式，多个线程，每个线程管理独立的iocontext服务。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2023/06/04/asio19/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -1767,7 +1803,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/9/">&lt;</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/9/">9</a><span class="page-number current">10</span><a class="page-number" href="/page/11/">11</a><span class="space">&hellip;</span><a class="page-number" href="/page/36/">36</a><a class="extend next" rel="next" href="/page/11/">&gt;</a>
+    <a class="extend prev" rel="prev" href="/page/9/">&lt;</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/9/">9</a><span class="page-number current">10</span><a class="page-number" href="/page/11/">11</a><span class="space">&hellip;</span><a class="page-number" href="/page/37/">37</a><a class="extend next" rel="next" href="/page/11/">&gt;</a>
   </nav>
 
 
@@ -1813,7 +1849,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">357</span>
+                  <span class="site-state-item-count">367</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
@@ -1824,7 +1860,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-count">17</span>
                   <span class="site-state-item-name">categories</span>
                 </a>
               </div>
@@ -1835,7 +1871,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">20</span>
+                  <span class="site-state-item-count">21</span>
                   <span class="site-state-item-name">tags</span>
                 </a>
               </div>
@@ -1888,7 +1924,7 @@
 
     <footer id="footer" class="footer">
       <div class="footer-inner">
-        <div class="copyright">&copy; <span itemprop="copyrightYear">2024</span>
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2025</span>
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>

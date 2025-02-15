@@ -286,7 +286,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/09/07/python10/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/12/19/python16/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -305,7 +305,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/09/07/python10/" itemprop="url">python学习(十)元类学习和应用</a></h1>
+                <a class="post-title-link" href="/2017/12/19/python16/" itemprop="url">python学习(十六)写爬虫获取糗事百科段子</a></h1>
         
 
         <div class="post-meta">
@@ -317,8 +317,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-09-07T15:33:37+08:00">
-                2017-09-07
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-12-19T19:04:33+08:00">
+                2017-12-19
               </time>
             
 
@@ -378,12 +378,11 @@
 
       
         
-          <p>python 可以通过<code>type</code>函数创建类,也可通过type判断数据类型</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">from</span> io <span class="keyword">import</span> StringIO</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">TypeClass</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">typeprint</span>(<span class="params">self, name = <span class="string">&#x27;typeclass&#x27;</span></span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;class name is %s&#x27;</span> %(name))</span><br><span class="line"></span><br><span class="line">typeclasses = TypeClass()</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">type</span>(TypeClass))</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">type</span>(typeclasses))</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">printHW</span>(<span class="params">self</span>):</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;Hello world!!!&#x27;</span>)</span><br><span class="line">TypeClass2 = <span class="built_in">type</span>(<span class="string">&#x27;TypeClass2&#x27;</span>, (<span class="built_in">object</span>,), <span class="built_in">dict</span>(typeprinthw = printHW))</span><br><span class="line">typeclass2 = TypeClass2()</span><br><span class="line">typeclass2.typeprinthw()</span><br></pre></td></tr></table></figure>
-<p>type创建类格式为type(‘类名’,(基类1,基类2…), dict(成员函数名=函数名))<br>第一个参数为类名，第二个参数为一个tuple,如果继承的基类只有一个，要注意tuple写法(基类,),第三个参数为dict构造的类成员函数<br>除了可以用type创建类之外，可以用<code>metaclass</code>限制类的行为</p>
+          <p>利用前面学到的文件、正则表达式、urllib的知识，综合运用，爬取糗事百科的段子<br>先用urllib库获取糗事百科热帖第一页的数据。并打开文件进行保存，正好可以熟悉一下之前学过的文件知识。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> urllib <span class="keyword">import</span> request, parse</span><br><span class="line"><span class="keyword">from</span> urllib <span class="keyword">import</span> error</span><br><span class="line">page = <span class="number">1</span></span><br><span class="line">url = <span class="string">&#x27;https://www.qiushibaike.com/hot/page/&#x27;</span>+<span class="built_in">str</span>(page)</span><br><span class="line">user_agent = <span class="string">&#x27;Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.221 Safari/537.36 SE 2.X MetaSr 1.0&#x27;</span></span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">	req = request.Request(url)</span><br><span class="line">	req.add_header(<span class="string">&#x27;User-Agent&#x27;</span>, user_agent)</span><br><span class="line">	response = request.urlopen(req)</span><br><span class="line">	<span class="comment">#bytes变为字符串</span></span><br><span class="line">	content = response.read().decode(<span class="string">&#x27;utf-8&#x27;</span>)</span><br><span class="line">	<span class="built_in">print</span>(<span class="built_in">type</span>(content))</span><br><span class="line">	<span class="comment">#uf-8编码方式打开</span></span><br><span class="line">	file = <span class="built_in">open</span>(<span class="string">&#x27;file.txt&#x27;</span>, <span class="string">&#x27;w&#x27;</span>,encoding=<span class="string">&#x27;utf-8&#x27;</span>)</span><br><span class="line"></span><br><span class="line">	file.write(content)</span><br><span class="line">	</span><br><span class="line"><span class="keyword">except</span> error.URLError <span class="keyword">as</span> e:</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">hasattr</span>(e,<span class="string">&#x27;code&#x27;</span>):</span><br><span class="line">		<span class="built_in">print</span> (e.code)</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">hasattr</span>(e,<span class="string">&#x27;reason&#x27;</span>):</span><br><span class="line">		<span class="built_in">print</span> (e.reason)</span><br><span class="line"><span class="keyword">finally</span>:</span><br><span class="line">	file.close()</span><br></pre></td></tr></table></figure>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/09/07/python10/#more" rel="contents">
+            <a class="btn" href="/2017/12/19/python16/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -434,7 +433,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/09/05/python9/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/12/19/python15/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -453,7 +452,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/09/05/python9/" itemprop="url">python学习(九)网络编程学习--简易网站服务器</a></h1>
+                <a class="post-title-link" href="/2017/12/19/python15/" itemprop="url">python学习(十五)内建模块</a></h1>
         
 
         <div class="post-meta">
@@ -465,8 +464,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-09-05T15:39:49+08:00">
-                2017-09-05
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-12-19T10:42:20+08:00">
+                2017-12-19
               </time>
             
 
@@ -526,11 +525,12 @@
 
       
         
-          <p>python <code>网络编程</code>和其他语言都是一样的，服务器这块步骤为：<br><code>1. 创建套接字</code><br><code>2. 绑定地址</code><br><code>3. 监听该描述符的所有请求</code><br><code>4. 有新的请求到了调用accept处理请求</code></p>
-<p>Python Web服务器网关接口（Python Web Server Gateway Interface，简称<code>“WSGI”</code>），可以保证同一个服务器响应不同应用框架的请求，WSGI的出现，让开发者可以将网络框架与网络服务器的选择分隔开来，例如，你可以使用Gunicorn或Nginx/uWSGI或Waitress服务器来运行Django、Flask或Pyramid应用。下面简单实现一个机遇WSGI协议的服务器。</p>
+          <p>介绍python的几个內建模块</p>
+<h2 id="1-python的时间模块datetime"><a href="#1-python的时间模块datetime" class="headerlink" title="1 python的时间模块datetime"></a>1 python的时间模块datetime</h2><p>取现在时间</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> datetime <span class="keyword">import</span> datetime</span><br><span class="line">now = datetime.now()</span><br><span class="line"><span class="built_in">print</span>(now)</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">type</span>(now))</span><br></pre></td></tr></table></figure>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/09/05/python9/#more" rel="contents">
+            <a class="btn" href="/2017/12/19/python15/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -581,7 +581,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/31/python8/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/12/12/rematch/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -600,7 +600,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/31/python8/" itemprop="url">python学习(八)定制类和枚举</a></h1>
+                <a class="post-title-link" href="/2017/12/12/rematch/" itemprop="url">python学习(十四) 正则表达式</a></h1>
         
 
         <div class="post-meta">
@@ -612,8 +612,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-31T15:39:49+08:00">
-                2017-08-31
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-12-12T16:45:18+08:00">
+                2017-12-12
               </time>
             
 
@@ -673,13 +673,11 @@
 
       
         
-          <h2 id="定制类"><a href="#定制类" class="headerlink" title="定制类"></a>定制类</h2><p><code>python</code>定制类主要是实现特定功能，通过在类中定义特定的函数完成特定的功能。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Student</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, name</span>):</span><br><span class="line">        self.name =name</span><br><span class="line"></span><br><span class="line">student = Student(<span class="string">&quot;lilei&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(student)</span><br></pre></td></tr></table></figure>
-
-<h3 id="str-用法"><a href="#str-用法" class="headerlink" title="__str__用法"></a>__str__用法</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Student</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, name</span>):</span><br><span class="line">        self.name = name</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__str__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">return</span> (<span class="string">&quot;self name is %s&quot;</span> %(self.name))</span><br><span class="line"></span><br><span class="line">student2 = Student(<span class="string">&quot;hanmeimei&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(student2)</span><br></pre></td></tr></table></figure>
+          <h2 id="什么是正则表达式"><a href="#什么是正则表达式" class="headerlink" title="什么是正则表达式"></a>什么是正则表达式</h2><p><code>正则表达式是对字符串操作的一种逻辑公式，就是用事先定义好的一些特定字符、及这些特定字符的组合，组成一个“规则字符串”，这个“规则字符串”用来表达对字符串的一种过滤逻辑</code></p>
+<h2 id="正则表达式规则"><a href="#正则表达式规则" class="headerlink" title="正则表达式规则"></a>正则表达式规则</h2>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/08/31/python8/#more" rel="contents">
+            <a class="btn" href="/2017/12/12/rematch/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -730,7 +728,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/24/hexoblogs/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/12/11/qcbyq/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -749,7 +747,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/24/hexoblogs/" itemprop="url">使用hexo搭建个人博客</a></h1>
+                <a class="post-title-link" href="/2017/12/11/qcbyq/" itemprop="url">冬日清晨不愿起</a></h1>
         
 
         <div class="post-meta">
@@ -761,8 +759,161 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-24T10:46:54+08:00">
-                2017-08-24
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-12-11T17:49:29+08:00">
+                2017-12-11
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/news/" itemprop="url" rel="index">
+                    <span itemprop="name">生活感悟</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>   《冬日清晨不愿起》</p>
+<pre><code>冬日多寒意，
+朦胧不愿起，
+妻子劝我披冬衣。
+铁锅炖鹅肉，
+清晨一杯酒，
+恨不能与天同寿。
+</code></pre>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/12/11/qcbyq/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/12/11/codesrc/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/12/11/codesrc/" itemprop="url">学习资料整理</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-12-11T16:37:54+08:00">
+                2017-12-11
               </time>
             
 
@@ -822,12 +973,10 @@
 
       
         
-          <p>本文讲述如何用<code>hexo</code>搭建个人博客，并托管到<code>github</code>。不需要租赁服务器，可完成网站博客的搭建。</p>
-<h2 id="安装Hexo"><a href="#安装Hexo" class="headerlink" title="安装Hexo"></a>安装Hexo</h2><p>安装hexo之前，要先下载安装Node.js和Git，百度搜索找到下载即可。<br><a target="_blank" rel="noopener" href="https://git-scm.com/downloads">Git下载地址</a><br><a target="_blank" rel="noopener" href="https://nodejs.org/en/">Node.js下载地址</a><br>在本地建立一个文件夹，我的文件夹为D:github/hexotest。<br>接下来可以进入这个文件夹右键Git Bash 或者通过命令号cmd进入这个文件夹<br>输入如下命令：</p>
-<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">npm install hexo-cli -g </span><br><span class="line">#初始化网站  </span><br><span class="line">hexo init    </span><br><span class="line">npm install</span><br><span class="line">#生成或 hexo generate      </span><br><span class="line">hexo g</span><br><span class="line">#启动本地服务器 </span><br><span class="line">hexo s</span><br></pre></td></tr></table></figure>
+          <p>C++ 教程网大并发服务器：<br>链接: <a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1c1YYTCs">大并发服务器</a> 密码: 6edt<br>陈硕网络编程实践：<br>链接: <a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1dFk2jM5">陈硕网络编程实践</a> 密码: 7x1d<br>达内C++学习：<br>链接: <a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1o8f0gKM">达内C++学习</a> 密码: bwj7<br>轩辕LinuxC：<br>链接: <a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1ci6y1S">轩辕LinuxC</a> 密码: 62nt<br>自己总结的python源码和demo：<br>链接：<a target="_blank" rel="noopener" href="https://github.com/secondtonone1/python-">python例子和源码</a><br>精品电子书<br>链接: <a target="_blank" rel="noopener" href="https://pan.baidu.com/s/19A30zrd8k6YcmdvBJEqqYA">精品电子书</a> 密码: 7bd5<br>python3.6爬虫最细教程<br>链接: <a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1wa96NZIGlaFu9p8w2G1glA">python3.6爬虫最细教程</a> 密码: ct27<br>区块链2018教程<br>链接: <a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1PpMLreP440V_YWK6xkrnDQ">区块链2018教程</a> 密码: dqk5<br>基于epoll，select模型封装的服务器模型<br>链接: <a target="_blank" rel="noopener" href="https://github.com/secondtonone1/betternet">基于epoll，select模型封装的服务器模型</a><br>基于libevent网络库封装的服务器模型<br>链接: <a target="_blank" rel="noopener" href="https://github.com/secondtonone1/smartserver">基于libevent网络库封装的服务器模型</a><br>基于boost::asio 封装的异步通信网络模型<br>链接: <a target="_blank" rel="noopener" href="https://github.com/secondtonone1/boostserver">基于boost::asio 封装的异步通信网络模型</a><br>Go 封装的tcp框架，同时集成了websocket，http等。<br>链接: <a target="_blank" rel="noopener" href="https://github.com/secondtonone1/wentby">golang实现的tcp框架wentby</a><br>Go 基于wentby框架封装的游戏服务器wentserver<br>链接: <a target="_blank" rel="noopener" href="https://github.com/secondtonone1/wentserver">golang实现游戏服务器wentserver</a></p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/08/24/hexoblogs/#more" rel="contents">
+            <a class="btn" href="/2017/12/11/codesrc/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -878,7 +1027,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/22/python7/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/11/29/processthread/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -897,7 +1046,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/22/python7/" itemprop="url">python学习笔记(七) 类和pygame实现打飞机游戏</a></h1>
+                <a class="post-title-link" href="/2017/11/29/processthread/" itemprop="url">python学习(十三)进程和线程</a></h1>
         
 
         <div class="post-meta">
@@ -909,8 +1058,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-22T11:33:08+08:00">
-                2017-08-22
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-11-29T18:22:25+08:00">
+                2017-11-29
               </time>
             
 
@@ -970,11 +1119,11 @@
 
       
         
-          <p>python中<code>类声明</code>如下：</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Student</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, name, score</span>):</span><br><span class="line">        self.name = name</span><br><span class="line">        self.score = score</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">printinfo</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;name is %s, score is %d&#x27;</span>%(self.name, self.score))</span><br></pre></td></tr></table></figure>
+          <p>python多进程</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> multiprocessing <span class="keyword">import</span> Process</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">processFunc</span>(<span class="params">name</span>):</span><br><span class="line">	<span class="built_in">print</span>(<span class="string">&quot;child process is %s, pid is %s&quot;</span>  %(name, os.getpid() ) )</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">	<span class="built_in">print</span>(<span class="string">&quot;Parent process is %s.&quot;</span> %(os.getpid() ))</span><br><span class="line">	p = Process(target = processFunc, args = (<span class="string">&#x27;test&#x27;</span>, ))</span><br><span class="line">	<span class="built_in">print</span>(<span class="string">&#x27;Child will start &#x27;</span>)</span><br><span class="line">	p.start()</span><br><span class="line">	p.join()</span><br><span class="line">	<span class="built_in">print</span>(<span class="string">&quot;Child stop&quot;</span>)</span><br></pre></td></tr></table></figure>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/08/22/python7/#more" rel="contents">
+            <a class="btn" href="/2017/11/29/processthread/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -1025,7 +1174,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/22/python6/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/11/14/pythonio/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1044,7 +1193,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/22/python6/" itemprop="url">python学习笔记(六) 函数式编程</a></h1>
+                <a class="post-title-link" href="/2017/11/14/pythonio/" itemprop="url">python文件读写和序列化</a></h1>
         
 
         <div class="post-meta">
@@ -1056,8 +1205,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-22T10:45:54+08:00">
-                2017-08-22
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-11-14T15:47:51+08:00">
+                2017-11-14
               </time>
             
 
@@ -1117,11 +1266,12 @@
 
       
         
-          <h2 id="一-函数对象"><a href="#一-函数对象" class="headerlink" title="一 函数对象"></a>一 <code>函数对象</code></h2><p>函数同样可以作为对象复制给一个变量，如下：</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">f = <span class="built_in">abs</span>;</span><br><span class="line"><span class="built_in">print</span>(f(-<span class="number">10</span>))</span><br><span class="line">f = <span class="string">&#x27;abs&#x27;</span>;</span><br><span class="line"><span class="built_in">print</span>(f)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add</span>(<span class="params">a,b,f</span>):</span><br><span class="line">    <span class="keyword">return</span> f(a) + f(b)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(add(-<span class="number">1</span>,<span class="number">2</span>,f))</span><br></pre></td></tr></table></figure>
+          <p>python 文件读写和序列化学习。</p>
+<h2 id="python文件读写"><a href="#python文件读写" class="headerlink" title="python文件读写"></a>python文件读写</h2><p><code>1 打开并且读取文件</code></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">f = <span class="built_in">open</span>(<span class="string">&#x27;openfile.txt&#x27;</span>,<span class="string">&#x27;r&#x27;</span>)</span><br><span class="line"><span class="built_in">print</span>(f.read())</span><br><span class="line">f.close()</span><br></pre></td></tr></table></figure>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/08/22/python6/#more" rel="contents">
+            <a class="btn" href="/2017/11/14/pythonio/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -1172,7 +1322,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/21/python5/">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/10/18/rbtree/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1191,7 +1341,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/21/python5/" itemprop="url">python学习笔记(五) 200行实现2048小游戏</a></h1>
+                <a class="post-title-link" href="/2017/10/18/rbtree/" itemprop="url">红黑树的原理和实现</a></h1>
         
 
         <div class="post-meta">
@@ -1203,8 +1353,302 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-21T11:31:28+08:00">
-                2017-08-21
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-10-18T15:01:35+08:00">
+                2017-10-18
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/stl/" itemprop="url" rel="index">
+                    <span itemprop="name">数据结构和算法</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>红黑树是高效查找和插入删除的数据结构，用途很广泛，如epoll的消息注册机制，stl中的map都采用了红黑树。</p>
+<h2 id="红黑树的主要特性："><a href="#红黑树的主要特性：" class="headerlink" title="红黑树的主要特性："></a>红黑树的主要特性：</h2><p><code>（1）每个节点或者是黑色，或者是红色。</code><br><code>（2）根节点是黑色。</code><br><code>（3）每个叶子节点（NIL）是黑色。 [注意：这里叶子节点，是指为空的叶子节点！]</code><br><code>（4）如果一个节点是红色的，则它的子节点必须是黑色的。</code><br><code>（5）从一个节点到该节点的子孙节点的所有路径上包含相同数目的黑节点。</code></p>
+<p>定理：<code>一棵含有n个节点的红黑树的高度至多为2log(n+1)。</code></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/10/18/rbtree/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/10/09/searchtree/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/10/09/searchtree/" itemprop="url">二叉搜索树</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-10-09T10:01:43+08:00">
+                2017-10-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/stl/" itemprop="url" rel="index">
+                    <span itemprop="name">数据结构和算法</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>最近复习了二叉搜索树的基础知识，总结下，然后用C++实现二叉搜索树的插入，删除，查找等，也是为了实现红黑树做铺垫。<br>一个二叉搜索树结构如下，父节点做子树都比父节点小，右子树都比父节点大。<br><img src="1.png" alt="1.png"><br>插入节点12后，如下</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/10/09/searchtree/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/09/20/python11/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/09/20/python11/" itemprop="url">python学习(十一)异常处理和测试</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-09-20T16:35:11+08:00">
+                2017-09-20
               </time>
             
 
@@ -1264,464 +1708,13 @@
 
       
         
-          <p>用前文提到的基础知识，和网上流行的2048源码，用python实现该游戏。</p>
-<p>先将用户操作和游戏逻辑绑定。</p>
-<p>WASD分别对应移动方向上、左、下、右</p>
-<p><img src="https://cdn.llfc.club/py051.png" alt="https://cdn.llfc.club/py051.png"><br>然后实现矩阵的转置和逆置，这样只要实现一个方向的移动，通过转置和逆置就可以得到其他方向的移动。</p>
+          <p>最近学习了python的<code>错误处理</code>和几种<code>测试</code>方法</p>
+<h2 id="try-except"><a href="#try-except" class="headerlink" title="try except"></a><code>try except</code></h2><p>可以通过<code>try except</code>方式捕捉异常</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;try...&#x27;</span>)</span><br><span class="line">    r = <span class="number">10</span>/<span class="number">0</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;result is :&#x27;</span>, r)</span><br><span class="line"><span class="keyword">except</span> ZeroDiversionError <span class="keyword">as</span> e:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;except is :&#x27;</span>, e)</span><br><span class="line"><span class="keyword">finally</span>:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;finally ...&#x27;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;END&#x27;</span>)</span><br></pre></td></tr></table></figure>
+<p>可以捕捉不同类型的错误，编写多个except</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/08/21/python5/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/21/python4/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/08/21/python4/" itemprop="url">python学习笔记(四) 思考和准备</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-21T10:46:53+08:00">
-                2017-08-21
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/python/" itemprop="url" rel="index">
-                    <span itemprop="name">python</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="一、zip的坑"><a href="#一、zip的坑" class="headerlink" title="一、zip的坑"></a>一、zip的坑</h2><p>zip()函数接收多个可迭代数列，将数列中的元素重新组合，在3.0中返回迭代器指向</p>
-<p>数列首地址，在3.0以下版本返回List类型的列表数列。我用的是3.5版本python，</p>
-<p>所以zip返回的是指向地址。</p>
-<p>先看几个例子<br><img src="https://cdn.llfc.club/py041.png" alt="https://cdn.llfc.club/py041.png"></p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2017/08/21/python4/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/17/python3/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/08/17/python3/" itemprop="url">python学习笔记(三)高级特性</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-17T16:15:12+08:00">
-                2017-08-17
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/python/" itemprop="url" rel="index">
-                    <span itemprop="name">python</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="一、切片"><a href="#一、切片" class="headerlink" title="一、切片"></a>一、<code>切片</code></h2><p>list、tuple常常截取某一段元素，截取某一段元素的操作很常用 ，所以python提供了切片功能。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">L=[<span class="string">&#x27;a&#x27;</span>,<span class="string">&#x27;b&#x27;</span>,<span class="string">&#x27;c&#x27;</span>,<span class="string">&#x27;d&#x27;</span>,<span class="string">&#x27;e&#x27;</span>,<span class="string">&#x27;f&#x27;</span>]</span><br><span class="line"><span class="comment">#取索引0，到索引3的元素，不包括索引3</span></span><br><span class="line"><span class="built_in">print</span>(L[<span class="number">0</span>:<span class="number">3</span>])</span><br><span class="line"><span class="comment">#开始索引为0可以省略</span></span><br><span class="line"><span class="built_in">print</span>(L[:<span class="number">3</span>])</span><br><span class="line"><span class="comment">#下标1到3</span></span><br><span class="line"><span class="built_in">print</span>(L[<span class="number">1</span>:<span class="number">3</span>])</span><br><span class="line"><span class="comment">#取最后一个元素</span></span><br><span class="line"><span class="built_in">print</span>(L[-<span class="number">1</span>])</span><br><span class="line"><span class="comment">#取倒数后两个元素</span></span><br><span class="line"><span class="built_in">print</span>(L[-<span class="number">2</span>:])</span><br><span class="line"><span class="comment">#取前四个数，每两个取一个</span></span><br><span class="line"><span class="built_in">print</span>(L[:<span class="number">4</span>:<span class="number">2</span>])</span><br><span class="line"><span class="comment">#所有数，每两个取一个</span></span><br><span class="line"><span class="built_in">print</span>(L[::<span class="number">2</span>])</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2017/08/17/python3/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2017/08/17/python2/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/08/17/python2/" itemprop="url">python自学笔记(二)</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-17T15:07:01+08:00">
-                2017-08-17
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/python/" itemprop="url" rel="index">
-                    <span itemprop="name">python</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>通过前文介绍，大体上可以用学过的知识做一些东西了。</p>
-<p>这里简单介绍下python参数解析<code>argparse命令</code>。</p>
-<p>使用<code>argparse</code>需要引用</p>
-<p> <code>import argparse</code></p>
-<p> 然后调用</p>
-<p><code>parser = argparse.ArgumentParser()</code></p>
-<p><code>ArgumentParser()函数可以传一些参数 </code></p>
-<p><code>parser = argparse.ArgumentParser(description=&#39;This is a PyMOTW sample program&#39;)</code></p>
-<p>参数有很多种类型，读者自己查阅，参考资料的链接：</p>
-<p><a target="_blank" rel="noopener" href="https://blog.ixxoo.me/argparse.html">https://blog.ixxoo.me/argparse.html</a></p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2017/08/17/python2/#more" rel="contents">
+            <a class="btn" href="/2017/09/20/python11/#more" rel="contents">
               Read more &raquo;
             </a>
           </div>
@@ -1763,7 +1756,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/29/">&lt;</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/29/">29</a><span class="page-number current">30</span><a class="page-number" href="/page/31/">31</a><span class="space">&hellip;</span><a class="page-number" href="/page/36/">36</a><a class="extend next" rel="next" href="/page/31/">&gt;</a>
+    <a class="extend prev" rel="prev" href="/page/29/">&lt;</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/29/">29</a><span class="page-number current">30</span><a class="page-number" href="/page/31/">31</a><span class="space">&hellip;</span><a class="page-number" href="/page/37/">37</a><a class="extend next" rel="next" href="/page/31/">&gt;</a>
   </nav>
 
 
@@ -1809,7 +1802,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">357</span>
+                  <span class="site-state-item-count">367</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
@@ -1820,7 +1813,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-count">17</span>
                   <span class="site-state-item-name">categories</span>
                 </a>
               </div>
@@ -1831,7 +1824,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">20</span>
+                  <span class="site-state-item-count">21</span>
                   <span class="site-state-item-name">tags</span>
                 </a>
               </div>
@@ -1884,7 +1877,7 @@
 
     <footer id="footer" class="footer">
       <div class="footer-inner">
-        <div class="copyright">&copy; <span itemprop="copyrightYear">2024</span>
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2025</span>
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>

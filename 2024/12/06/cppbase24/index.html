@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++ cppbase," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="引言C++ 提供了多种方式来表示和操作可调用对象，包括传统的函数指针、仿函数（Functors）、Lambda表达式、std::function 和 std::bind 等。这些工具极大地增强了C++的灵活性和表达能力，尤其在处理回调、事件驱动编程和函数式编程时表现尤为出色。 函数指针函数指针是C++中最基本的可调用对象之一，用于指向普通函数和静态成员函数。 定义与使用函数指针的定义涉及到函数的返">
+<meta property="og:type" content="article">
+<meta property="og:title" content="零基础C++(24) 可调用对象function类">
+<meta property="og:url" content="http://www.limerence2017.com/2024/12/06/cppbase24/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="引言C++ 提供了多种方式来表示和操作可调用对象，包括传统的函数指针、仿函数（Functors）、Lambda表达式、std::function 和 std::bind 等。这些工具极大地增强了C++的灵活性和表达能力，尤其在处理回调、事件驱动编程和函数式编程时表现尤为出色。 函数指针函数指针是C++中最基本的可调用对象之一，用于指向普通函数和静态成员函数。 定义与使用函数指针的定义涉及到函数的返">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-12-06T02:57:07.000Z">
+<meta property="article:modified_time" content="2024-12-19T01:17:18.353Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++ cppbase">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2024/12/06/cppbase24/"/>
+
+
+
+
+
+  <title>零基础C++(24) 可调用对象function类 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/12/06/cppbase24/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">零基础C++(24) 可调用对象function类</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-12-06T10:57:07+08:00">
+                2024-12-06
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C-cppbase/" itemprop="url" rel="index">
+                    <span itemprop="name">C++ cppbase</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h2><p>C++ 提供了多种方式来表示和操作可调用对象，包括传统的函数指针、仿函数（Functors）、Lambda表达式、<code>std::function</code> 和 <code>std::bind</code> 等。这些工具极大地增强了C++的灵活性和表达能力，尤其在处理回调、事件驱动编程和函数式编程时表现尤为出色。</p>
+<h2 id="函数指针"><a href="#函数指针" class="headerlink" title="函数指针"></a>函数指针</h2><p>函数指针是C++中最基本的可调用对象之一，用于指向普通函数和静态成员函数。</p>
+<h3 id="定义与使用"><a href="#定义与使用" class="headerlink" title="定义与使用"></a>定义与使用</h3><p>函数指针的定义涉及到函数的返回类型和参数列表。例如，定义一个指向返回 <code>int</code> 且接受两个 <code>int</code> 参数的函数指针：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 定义函数指针类型</span></span><br><span class="line"><span class="built_in">int</span> (*funcPtr)(<span class="type">int</span>, <span class="type">int</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 定义一个普通函数</span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">add</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 给函数指针赋值</span></span><br><span class="line">    funcPtr = &amp;add;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 调用函数</span></span><br><span class="line">    <span class="type">int</span> result = <span class="built_in">funcPtr</span>(<span class="number">3</span>, <span class="number">4</span>);</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;结果: &quot;</span> &lt;&lt; result &lt;&lt; std::endl; <span class="comment">// 输出: 结果: 7</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="优点与局限性"><a href="#优点与局限性" class="headerlink" title="优点与局限性"></a>优点与局限性</h3><p><strong>优点:</strong></p>
+<ul>
+<li>简单直观，适用于简单的回调函数。</li>
+</ul>
+<p><strong>局限性:</strong></p>
+<ul>
+<li>不能捕获上下文（如lambda中的闭包）。</li>
+<li>语法相对复杂，尤其是指针的声明和使用。</li>
+</ul>
+<hr>
+<h2 id="仿函数（Functors）"><a href="#仿函数（Functors）" class="headerlink" title="仿函数（Functors）"></a>仿函数（Functors）</h2><p><strong>仿函数（Functors）</strong>，又称<strong>函数对象（Function Objects）</strong>，是在C++中重载了 <code>operator()</code> 的类或结构体实例。仿函数不仅可以像普通函数一样被调用，还能携带状态，提供更大的灵活性和功能性。</p>
+<h3 id="定义与使用-1"><a href="#定义与使用-1" class="headerlink" title="定义与使用"></a>定义与使用</h3><p>仿函数是通过定义一个类或结构体，并重载其调用运算符 <code>operator()</code> 来实现的。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 定义一个仿函数类</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Adder</span> &#123;</span><br><span class="line">    <span class="type">int</span> to_add;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 构造函数</span></span><br><span class="line">    <span class="built_in">Adder</span>(<span class="type">int</span> value) : <span class="built_in">to_add</span>(value) &#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 重载()运算符</span></span><br><span class="line">    <span class="function"><span class="type">int</span> <span class="title">operator</span><span class="params">()</span><span class="params">(<span class="type">int</span> x)</span> <span class="type">const</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> x + to_add;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="function">Adder <span class="title">add5</span><span class="params">(<span class="number">5</span>)</span></span>; <span class="comment">// 创建一个添加5的仿函数</span></span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;10 + 5 = &quot;</span> &lt;&lt; <span class="built_in">add5</span>(<span class="number">10</span>) &lt;&lt; std::endl; <span class="comment">// 输出: 10 + 5 = 15</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="特点"><a href="#特点" class="headerlink" title="特点"></a>特点</h3><ol>
+<li><strong>携带状态：</strong> 仿函数可以拥有内部状态，通过成员变量存储数据，使其在调用时具备上下文信息。</li>
+<li><strong>灵活性高：</strong> 可以根据需要添加更多的成员函数和变量，扩展功能。</li>
+<li><strong>性能优化：</strong> 编译器可以对仿函数进行优化，例如内联展开，提高执行效率。</li>
+</ol>
+<h3 id="高级示例"><a href="#高级示例" class="headerlink" title="高级示例"></a>高级示例</h3><p>仿函数不仅可以执行简单的计算，还可以进行复杂的操作。例如，实现一个可变的仿函数，用于累加多个值。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 可变累加器仿函数</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Accumulator</span> &#123;</span><br><span class="line">    <span class="type">int</span> sum;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">Accumulator</span>() : <span class="built_in">sum</span>(<span class="number">0</span>) &#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 重载()运算符</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">operator</span><span class="params">()</span><span class="params">(<span class="type">int</span> x)</span> </span>&#123;</span><br><span class="line">        sum += x;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Accumulator acc;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">acc</span>(<span class="number">10</span>);</span><br><span class="line">    <span class="built_in">acc</span>(<span class="number">20</span>);</span><br><span class="line">    <span class="built_in">acc</span>(<span class="number">30</span>);</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;总和: &quot;</span> &lt;&lt; acc.sum &lt;&lt; std::endl; <span class="comment">// 输出: 总和: 60</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="使用仿函数的标准库算法"><a href="#使用仿函数的标准库算法" class="headerlink" title="使用仿函数的标准库算法"></a>使用仿函数的标准库算法</h3><p>许多标准库算法可以接受仿函数作为参数，使得算法的行为更加灵活和可定制。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;algorithm&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 仿函数：判断一个数是否大于某个阈值</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">IsGreaterThan</span> &#123;</span><br><span class="line">    <span class="type">int</span> threshold;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">IsGreaterThan</span>(<span class="type">int</span> t) : <span class="built_in">threshold</span>(t) &#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">operator</span><span class="params">()</span><span class="params">(<span class="type">int</span> x)</span> <span class="type">const</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> x &gt; threshold;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    std::vector&lt;<span class="type">int</span>&gt; numbers = &#123;<span class="number">1</span>, <span class="number">5</span>, <span class="number">10</span>, <span class="number">15</span>, <span class="number">20</span>&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用仿函数进行筛选</span></span><br><span class="line">    <span class="function">IsGreaterThan <span class="title">greaterThan10</span><span class="params">(<span class="number">10</span>)</span></span>;</span><br><span class="line">    <span class="keyword">auto</span> it = std::<span class="built_in">find_if</span>(numbers.<span class="built_in">begin</span>(), numbers.<span class="built_in">end</span>(), greaterThan10);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(it != numbers.<span class="built_in">end</span>()) &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;第一个大于10的数是: &quot;</span> &lt;&lt; *it &lt;&lt; std::endl; <span class="comment">// 输出: 第一个大于10的数是: 15</span></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;没有找到大于10的数。&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="仿函数与模板"><a href="#仿函数与模板" class="headerlink" title="仿函数与模板"></a>仿函数与模板</h3><p>仿函数与模板相结合，可以实现高度通用和可复用的代码。例如，编写一个通用的比较仿函数。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;algorithm&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 通用比较仿函数</span></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Compare</span> &#123;</span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">operator</span><span class="params">()</span><span class="params">(<span class="type">const</span> T&amp; a, <span class="type">const</span> T&amp; b)</span> <span class="type">const</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> a &lt; b;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    std::vector&lt;<span class="type">int</span>&gt; numbers = &#123;<span class="number">5</span>, <span class="number">2</span>, <span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用仿函数进行排序</span></span><br><span class="line">    std::<span class="built_in">sort</span>(numbers.<span class="built_in">begin</span>(), numbers.<span class="built_in">end</span>(), <span class="built_in">Compare</span>&lt;<span class="type">int</span>&gt;());</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;排序后的数字: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">auto</span> num : numbers) &#123;</span><br><span class="line">        std::cout &lt;&lt; num &lt;&lt; <span class="string">&quot; &quot;</span>; <span class="comment">// 输出: 1 2 5 8 9</span></span><br><span class="line">    &#125;</span><br><span class="line">    std::cout &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="仿函数的优势"><a href="#仿函数的优势" class="headerlink" title="仿函数的优势"></a>仿函数的优势</h3><ul>
+<li><strong>可扩展性：</strong> 能够根据需要添加更多功能和状态。</li>
+<li><strong>与Lambda的互补性：</strong> 在需要携带复杂状态或多次调用时，仿函数比Lambda更适合。</li>
+<li><strong>类型安全：</strong> 仿函数是具体的类型，可以在编译期进行类型检查。</li>
+</ul>
+<h3 id="何时使用仿函数"><a href="#何时使用仿函数" class="headerlink" title="何时使用仿函数"></a>何时使用仿函数</h3><ul>
+<li><strong>需要携带状态时：</strong> 当回调函数需要维护内部状态时，仿函数是理想选择。</li>
+<li><strong>复杂操作：</strong> 当简单的函数指针或Lambda难以表达复杂逻辑时。</li>
+<li><strong>性能关键场景：</strong> 由于仿函数可以被编译器优化，适用于性能敏感的代码。</li>
+</ul>
+<hr>
+<h2 id="Lambda表达式"><a href="#Lambda表达式" class="headerlink" title="Lambda表达式"></a>Lambda表达式</h2><p>Lambda表达式是C++11引入的一种轻量级函数对象，允许在代码中定义匿名函数。它们可以捕获周围的变量，具有更强的表达能力。</p>
+<h3 id="基本语法"><a href="#基本语法" class="headerlink" title="基本语法"></a>基本语法</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[captures](parameters) -&gt; return_type &#123;</span><br><span class="line">    <span class="comment">// 函数体</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<ul>
+<li><strong>captures</strong>: 捕获外部变量的方式，可以是值捕获、引用捕获或者混合捕获。</li>
+<li><strong>parameters</strong>: 参数列表。</li>
+<li><strong>return_type</strong>: 返回类型，可以省略，编译器会自动推导。</li>
+<li><strong>函数体</strong>: 实际执行的代码。</li>
+</ul>
+<h3 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;algorithm&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span> threshold = <span class="number">5</span>;</span><br><span class="line">    std::vector&lt;<span class="type">int</span>&gt; numbers = &#123;<span class="number">1</span>, <span class="number">6</span>, <span class="number">3</span>, <span class="number">8</span>, <span class="number">2</span>, <span class="number">7</span>&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用lambda表达式进行过滤</span></span><br><span class="line">    numbers.<span class="built_in">erase</span>(std::<span class="built_in">remove_if</span>(numbers.<span class="built_in">begin</span>(), numbers.<span class="built_in">end</span>(),</span><br><span class="line">        [threshold](<span class="type">int</span> n) -&gt; <span class="type">bool</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> n &lt; threshold;</span><br><span class="line">        &#125;), numbers.<span class="built_in">end</span>());</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 输出结果</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">auto</span> n : numbers) &#123;</span><br><span class="line">        std::cout &lt;&lt; n &lt;&lt; <span class="string">&quot; &quot;</span>; <span class="comment">// 输出: 6 8 7</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="捕获方式"><a href="#捕获方式" class="headerlink" title="捕获方式"></a>捕获方式</h3><ol>
+<li><strong>值捕获 (<code>[=]</code>)</strong>: 捕获所有外部变量的副本。</li>
+<li><strong>引用捕获 (<code>[&amp;]</code>)</strong>: 捕获所有外部变量的引用。</li>
+<li><strong>混合捕获</strong>: 指定部分变量按值捕获，部分按引用捕获，如 <code>[=, &amp;var]</code> 或 <code>[&amp;, var]</code>。</li>
+<li><strong>无捕获 (<code>[]</code>)</strong>: 不捕获任何外部变量。</li>
+</ol>
+<h3 id="可变Lambda"><a href="#可变Lambda" class="headerlink" title="可变Lambda"></a>可变Lambda</h3><p>默认情况下，Lambda表达式是不可变的（<code>const</code>）。通过<code>mutable</code>关键字，可以允许修改捕获的变量副本。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span> count = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> increment = [count]() <span class="keyword">mutable</span> &#123;</span><br><span class="line">        count++;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Count inside Lambda: &quot;</span> &lt;&lt; count &lt;&lt; std::endl;</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">increment</span>(); <span class="comment">// 输出: Count inside Lambda: 1</span></span><br><span class="line">    <span class="built_in">increment</span>(); <span class="comment">// 输出: Count inside Lambda: 2</span></span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Count outside Lambda: &quot;</span> &lt;&lt; count &lt;&lt; std::endl; <span class="comment">// 输出: Count outside Lambda: 0</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="捕获成员函数和类变量"><a href="#捕获成员函数和类变量" class="headerlink" title="捕获成员函数和类变量"></a>捕获成员函数和类变量</h3><p>Lambda表达式可以捕获类的成员变量和成员函数，使其在类的上下文中更加灵活。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;algorithm&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Processor</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">Processor</span>(<span class="type">int</span> threshold) : <span class="built_in">threshold</span>(threshold) &#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">process</span><span class="params">(std::vector&lt;<span class="type">int</span>&gt;&amp; data)</span> </span>&#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;处理前数据: &quot;</span>;</span><br><span class="line">        <span class="keyword">for</span>(<span class="keyword">auto</span> num : data) std::cout &lt;&lt; num &lt;&lt; <span class="string">&quot; &quot;</span>;</span><br><span class="line">        std::cout &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 使用Lambda表达式进行过滤</span></span><br><span class="line">        data.<span class="built_in">erase</span>(std::<span class="built_in">remove_if</span>(data.<span class="built_in">begin</span>(), data.<span class="built_in">end</span>(),</span><br><span class="line">            [<span class="keyword">this</span>](<span class="type">int</span> n) -&gt; <span class="type">bool</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> n &lt; threshold;</span><br><span class="line">            &#125;), data.<span class="built_in">end</span>());</span><br><span class="line"></span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;处理后数据: &quot;</span>;</span><br><span class="line">        <span class="keyword">for</span>(<span class="keyword">auto</span> num : data) std::cout &lt;&lt; num &lt;&lt; <span class="string">&quot; &quot;</span>;</span><br><span class="line">        std::cout &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="type">int</span> threshold;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    std::vector&lt;<span class="type">int</span>&gt; numbers = &#123;<span class="number">1</span>, <span class="number">6</span>, <span class="number">3</span>, <span class="number">8</span>, <span class="number">2</span>, <span class="number">7</span>&#125;;</span><br><span class="line">    <span class="function">Processor <span class="title">proc</span><span class="params">(<span class="number">5</span>)</span></span>;</span><br><span class="line">    proc.<span class="built_in">process</span>(numbers);</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">    输出:</span></span><br><span class="line"><span class="comment">    处理前数据: 1 6 3 8 2 7 </span></span><br><span class="line"><span class="comment">    处理后数据: 6 8 7 </span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="Lambda与标准库算法"><a href="#Lambda与标准库算法" class="headerlink" title="Lambda与标准库算法"></a>Lambda与标准库算法</h3><p>Lambda表达式与标准库算法紧密结合，提供了更简洁和直观的代码书写方式。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;algorithm&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    std::vector&lt;<span class="type">int</span>&gt; numbers = &#123;<span class="number">4</span>, <span class="number">2</span>, <span class="number">5</span>, <span class="number">1</span>, <span class="number">3</span>&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用Lambda表达式进行排序</span></span><br><span class="line">    std::<span class="built_in">sort</span>(numbers.<span class="built_in">begin</span>(), numbers.<span class="built_in">end</span>(),</span><br><span class="line">        [](<span class="type">int</span> a, <span class="type">int</span> b) -&gt; <span class="type">bool</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> a &lt; b;</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;排序后的数字: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">auto</span> num : numbers) &#123;</span><br><span class="line">        std::cout &lt;&lt; num &lt;&lt; <span class="string">&quot; &quot;</span>; <span class="comment">// 输出: 1 2 3 4 5</span></span><br><span class="line">    &#125;</span><br><span class="line">    std::cout &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="Lambda表达式的优势"><a href="#Lambda表达式的优势" class="headerlink" title="Lambda表达式的优势"></a>Lambda表达式的优势</h3><ul>
+<li><strong>简洁性：</strong> 代码更加紧凑，易于理解。</li>
+<li><strong>灵活性：</strong> 能够捕获外部变量，适应更多场景。</li>
+<li><strong>性能优化：</strong> 编译器可以对Lambda进行优化，如内联展开。</li>
+<li><strong>与标准库的良好集成：</strong> 与STL算法无缝结合，简化代码逻辑。</li>
+</ul>
+<hr>
+<h2 id="std-function-对象"><a href="#std-function-对象" class="headerlink" title="std::function 对象"></a><code>std::function</code> 对象</h2><p><code>std::function</code> 是C++11提供的一个通用的可调用包装器，能够封装任何可调用对象，包括普通函数、Lambda表达式、函数对象以及绑定表达式。它实现了类型擦除，使得不同类型的可调用对象可以通过统一的接口进行操作。</p>
+<h3 id="定义与使用-2"><a href="#定义与使用-2" class="headerlink" title="定义与使用"></a>定义与使用</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;functional&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 普通函数</span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">add</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 函数对象</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Multiply</span> &#123;</span><br><span class="line">    <span class="function"><span class="type">int</span> <span class="title">operator</span><span class="params">()</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span> <span class="type">const</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> a * b;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 封装普通函数</span></span><br><span class="line">    std::function&lt;<span class="type">int</span>(<span class="type">int</span>, <span class="type">int</span>)&gt; func1 = add;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Add: &quot;</span> &lt;&lt; <span class="built_in">func1</span>(<span class="number">3</span>, <span class="number">4</span>) &lt;&lt; std::endl; <span class="comment">// 输出: Add: 7</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 封装Lambda表达式</span></span><br><span class="line">    std::function&lt;<span class="type">int</span>(<span class="type">int</span>, <span class="type">int</span>)&gt; func2 = [](<span class="type">int</span> a, <span class="type">int</span> b) -&gt; <span class="type">int</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> a - b;</span><br><span class="line">    &#125;;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Subtract: &quot;</span> &lt;&lt; <span class="built_in">func2</span>(<span class="number">10</span>, <span class="number">4</span>) &lt;&lt; std::endl; <span class="comment">// 输出: Subtract: 6</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 封装函数对象</span></span><br><span class="line">    Multiply multiply;</span><br><span class="line">    std::function&lt;<span class="type">int</span>(<span class="type">int</span>, <span class="type">int</span>)&gt; func3 = multiply;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Multiply: &quot;</span> &lt;&lt; <span class="built_in">func3</span>(<span class="number">3</span>, <span class="number">4</span>) &lt;&lt; std::endl; <span class="comment">// 输出: Multiply: 12</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="特点-1"><a href="#特点-1" class="headerlink" title="特点"></a>特点</h3><ul>
+<li><strong>类型擦除：</strong> 可以存储任何符合签名的可调用对象。</li>
+<li><strong>灵活性：</strong> 支持动态改变存储的可调用对象。</li>
+<li><strong>性能开销：</strong> 相比于直接使用函数指针或Lambda，<code>std::function</code> 可能带来一定的性能开销，尤其是在频繁调用时。</li>
+</ul>
+<h3 id="用法场景"><a href="#用法场景" class="headerlink" title="用法场景"></a>用法场景</h3><ul>
+<li><strong>回调函数的传递。</strong></li>
+<li><strong>事件处理系统。</strong></li>
+<li><strong>策略模式的实现。</strong></li>
+</ul>
+<h3 id="示例：回调机制"><a href="#示例：回调机制" class="headerlink" title="示例：回调机制"></a>示例：回调机制</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;functional&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 定义回调类型</span></span><br><span class="line"><span class="keyword">using</span> Callback = std::function&lt;<span class="built_in">void</span>(<span class="type">int</span>)&gt;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 触发事件的函数</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">triggerEvent</span><span class="params">(Callback cb, <span class="type">int</span> value)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 事件发生，调用回调</span></span><br><span class="line">    <span class="built_in">cb</span>(value);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 使用Lambda作为回调</span></span><br><span class="line">    <span class="built_in">triggerEvent</span>([](<span class="type">int</span> x) &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;事件触发，值为: &quot;</span> &lt;&lt; x &lt;&lt; std::endl;</span><br><span class="line">    &#125;, <span class="number">42</span>); <span class="comment">// 输出: 事件触发，值为: 42</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用仿函数作为回调</span></span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">Printer</span> &#123;</span><br><span class="line">        <span class="function"><span class="type">void</span> <span class="title">operator</span><span class="params">()</span><span class="params">(<span class="type">int</span> x)</span> <span class="type">const</span> </span>&#123;</span><br><span class="line">            std::cout &lt;&lt; <span class="string">&quot;Printer打印值: &quot;</span> &lt;&lt; x &lt;&lt; std::endl;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; printer;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">triggerEvent</span>(printer, <span class="number">100</span>); <span class="comment">// 输出: Printer打印值: 100</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="存储和调用不同类型的可调用对象"><a href="#存储和调用不同类型的可调用对象" class="headerlink" title="存储和调用不同类型的可调用对象"></a>存储和调用不同类型的可调用对象</h3><p><code>std::function</code> 可以在容器中存储各种不同类型的可调用对象，只要它们符合指定的签名。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;functional&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">add</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Multiply</span> &#123;</span><br><span class="line">    <span class="function"><span class="type">int</span> <span class="title">operator</span><span class="params">()</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span> <span class="type">const</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> a * b;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    std::vector&lt;std::function&lt;<span class="type">int</span>(<span class="type">int</span>, <span class="type">int</span>)&gt;&gt; operations;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 添加不同类型的可调用对象</span></span><br><span class="line">    operations.<span class="built_in">emplace_back</span>(add); <span class="comment">// 普通函数</span></span><br><span class="line">    operations.<span class="built_in">emplace_back</span>(<span class="built_in">Multiply</span>()); <span class="comment">// 仿函数</span></span><br><span class="line">    operations.<span class="built_in">emplace_back</span>([](<span class="type">int</span> a, <span class="type">int</span> b) -&gt; <span class="type">int</span> &#123; <span class="keyword">return</span> a - b; &#125;); <span class="comment">// Lambda</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 执行所有操作</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">auto</span>&amp; op : operations) &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="built_in">op</span>(<span class="number">10</span>, <span class="number">5</span>) &lt;&lt; <span class="string">&quot; &quot;</span>; <span class="comment">// 输出: 15 50 5</span></span><br><span class="line">    &#125;</span><br><span class="line">    std::cout &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<hr>
+<h2 id="std-bind-操作"><a href="#std-bind-操作" class="headerlink" title="std::bind 操作"></a><code>std::bind</code> 操作</h2><p><code>std::bind</code> 是C++11中提供的一个函数适配器，用于绑定函数或可调用对象的部分参数，生成一个新的可调用对象。它允许提前固定某些参数，简化函数调用或适应接口需求。</p>
+<h3 id="基本用法"><a href="#基本用法" class="headerlink" title="基本用法"></a>基本用法</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;functional&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 普通函数</span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">add</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 绑定第一个参数为10，生成新的函数对象</span></span><br><span class="line">    <span class="keyword">auto</span> add10 = std::<span class="built_in">bind</span>(add, <span class="number">10</span>, std::placeholders::_1);</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;10 + 5 = &quot;</span> &lt;&lt; <span class="built_in">add10</span>(<span class="number">5</span>) &lt;&lt; std::endl; <span class="comment">// 输出: 10 + 5 = 15</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="占位符-std-placeholders"><a href="#占位符-std-placeholders" class="headerlink" title="占位符 (std::placeholders)"></a>占位符 (<code>std::placeholders</code>)</h3><p><code>std::bind</code> 使用占位符来表示未绑定的参数，这些占位符决定了在生成的新函数对象中如何传递参数。</p>
+<p>常用的占位符包括：</p>
+<ul>
+<li><code>std::placeholders::_1</code></li>
+<li><code>std::placeholders::_2</code></li>
+<li><code>std::placeholders::_3</code></li>
+<li>等等，根据需要传递的参数数量。</li>
+</ul>
+<h3 id="示例-1"><a href="#示例-1" class="headerlink" title="示例"></a>示例</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;functional&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">display</span><span class="params">(<span class="type">const</span> std::string&amp; msg, <span class="type">int</span> count)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">0</span>; i &lt; count; ++i) &#123;</span><br><span class="line">        std::cout &lt;&lt; msg &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 绑定消息为&quot;Hello&quot;，生成新的函数对象，只需要传递次数</span></span><br><span class="line">    <span class="keyword">auto</span> sayHello = std::<span class="built_in">bind</span>(display, <span class="string">&quot;Hello&quot;</span>, std::placeholders::_1);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">sayHello</span>(<span class="number">3</span>);</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">    输出:</span></span><br><span class="line"><span class="comment">    Hello</span></span><br><span class="line"><span class="comment">    Hello</span></span><br><span class="line"><span class="comment">    Hello</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 绑定次数为2，生成新的函数对象，只需要传递消息</span></span><br><span class="line">    <span class="keyword">auto</span> sayTwice = std::<span class="built_in">bind</span>(display, std::placeholders::_1, <span class="number">2</span>);</span><br><span class="line">    <span class="built_in">sayTwice</span>(<span class="string">&quot;Hi&quot;</span>);</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">    输出:</span></span><br><span class="line"><span class="comment">    Hi</span></span><br><span class="line"><span class="comment">    Hi</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="与Lambda表达式的对比"><a href="#与Lambda表达式的对比" class="headerlink" title="与Lambda表达式的对比"></a>与Lambda表达式的对比</h3><p><code>std::bind</code> 曾在C++11中广泛使用，但随着Lambda表达式的普及，很多情况下Lambda更为直观和高效。不过，在某些复杂的参数绑定场景下，<code>std::bind</code> 依然有其独特优势。</p>
+<p><strong>使用 <code>std::bind</code>:</strong></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;functional&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">multiply</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> a * b;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 绑定第一个参数为2，生成新的函数对象</span></span><br><span class="line">    <span class="keyword">auto</span> multiplyBy2 = std::<span class="built_in">bind</span>(multiply, <span class="number">2</span>, std::placeholders::_1);</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;2 * 5 = &quot;</span> &lt;&lt; <span class="built_in">multiplyBy2</span>(<span class="number">5</span>) &lt;&lt; std::endl; <span class="comment">// 输出: 2 * 5 = 10</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>使用 Lambda 表达式:</strong></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;functional&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">multiply</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> a * b;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 使用Lambda表达式绑定第一个参数为2</span></span><br><span class="line">    <span class="keyword">auto</span> multiplyBy2 = [](<span class="type">int</span> b) -&gt; <span class="type">int</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">multiply</span>(<span class="number">2</span>, b);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;2 * 5 = &quot;</span> &lt;&lt; <span class="built_in">multiplyBy2</span>(<span class="number">5</span>) &lt;&lt; std::endl; <span class="comment">// 输出: 2 * 5 = 10</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>总结：</strong></p>
+<ul>
+<li><strong>可读性：</strong> Lambda表达式通常更具可读性，语法更直观。</li>
+<li><strong>灵活性：</strong> Lambda更易于捕获和使用外部变量。</li>
+<li><strong>性能：</strong> Lambda通常比<code>std::bind</code>更高效，因为<code>std::bind</code>可能引入额外的间接层。</li>
+</ul>
+<hr>
+<h2 id="绑定类的成员函数"><a href="#绑定类的成员函数" class="headerlink" title="绑定类的成员函数"></a>绑定类的成员函数</h2><p>在C++中，成员函数与普通函数不同，因为它们需要一个对象实例来调用。使用 <code>std::bind</code> 或Lambda表达式，可以方便地绑定类的成员函数，生成可调用对象。</p>
+<h3 id="使用-std-bind-绑定成员函数"><a href="#使用-std-bind-绑定成员函数" class="headerlink" title="使用 std::bind 绑定成员函数"></a>使用 <code>std::bind</code> 绑定成员函数</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;functional&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Calculator</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="type">int</span> <span class="title">multiply</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span> <span class="type">const</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> a * b;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Calculator calc;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 绑定成员函数multiply，固定第一个参数为5</span></span><br><span class="line">    <span class="keyword">auto</span> multiplyBy5 = std::<span class="built_in">bind</span>(&amp;Calculator::multiply, &amp;calc, <span class="number">5</span>, std::placeholders::_1);</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;5 * 3 = &quot;</span> &lt;&lt; <span class="built_in">multiplyBy5</span>(<span class="number">3</span>) &lt;&lt; std::endl; <span class="comment">// 输出: 5 * 3 = 15</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="使用Lambda表达式绑定成员函数"><a href="#使用Lambda表达式绑定成员函数" class="headerlink" title="使用Lambda表达式绑定成员函数"></a>使用Lambda表达式绑定成员函数</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;functional&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Greeter</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">greet</span><span class="params">(<span class="type">const</span> std::string&amp; name)</span> <span class="type">const</span> </span>&#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Hello, &quot;</span> &lt;&lt; name &lt;&lt; <span class="string">&quot;!&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Greeter greeter;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用Lambda表达式绑定成员函数</span></span><br><span class="line">    <span class="keyword">auto</span> greetFunc = [&amp;greeter](<span class="type">const</span> std::string&amp; name) &#123;</span><br><span class="line">        greeter.<span class="built_in">greet</span>(name);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">greetFunc</span>(<span class="string">&quot;Alice&quot;</span>); <span class="comment">// 输出: Hello, Alice!</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="绑定静态成员函数"><a href="#绑定静态成员函数" class="headerlink" title="绑定静态成员函数"></a>绑定静态成员函数</h3><p>静态成员函数不依赖于类的实例，可以像普通函数一样使用 <code>std::bind</code> 和 <code>std::function</code>。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;functional&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Logger</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="type">static</span> <span class="type">void</span> <span class="title">log</span><span class="params">(<span class="type">const</span> std::string&amp; message)</span> </span>&#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Log: &quot;</span> &lt;&lt; message &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 使用std::bind绑定静态成员函数</span></span><br><span class="line">    <span class="keyword">auto</span> logFunc = std::<span class="built_in">bind</span>(&amp;Logger::log, std::placeholders::_1);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">logFunc</span>(<span class="string">&quot;This is a static log message.&quot;</span>); <span class="comment">// 输出: Log: This is a static log message.</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="绑定带有返回值的成员函数"><a href="#绑定带有返回值的成员函数" class="headerlink" title="绑定带有返回值的成员函数"></a>绑定带有返回值的成员函数</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;functional&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Math</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="type">double</span> <span class="title">power</span><span class="params">(<span class="type">double</span> base, <span class="type">double</span> exponent)</span> <span class="type">const</span> </span>&#123;</span><br><span class="line">        <span class="type">double</span> result = <span class="number">1.0</span>;</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="built_in">static_cast</span>&lt;<span class="type">int</span>&gt;(exponent); ++i) &#123;</span><br><span class="line">            result *= base;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Math mathObj;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 绑定成员函数power，固定基数为2</span></span><br><span class="line">    <span class="keyword">auto</span> powerOf2 = std::<span class="built_in">bind</span>(&amp;Math::power, &amp;mathObj, <span class="number">2.0</span>, std::placeholders::_1);</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;2^3 = &quot;</span> &lt;&lt; <span class="built_in">powerOf2</span>(<span class="number">3</span>) &lt;&lt; std::endl; <span class="comment">// 输出: 2^3 = 8</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h3><ul>
+<li><strong>对象生命周期：</strong> 绑定成员函数时，确保对象在可调用对象使用期间依然存在，以避免悬空指针问题。</li>
+<li><strong>指针与引用：</strong> 可以通过指针或引用传递对象实例给 <code>std::bind</code> 或Lambda表达式。</li>
+<li><strong>捕获方式：</strong> 在使用Lambda表达式时，选择合适的捕获方式（值捕获或引用捕获）以确保对象的正确访问。</li>
+</ul>
+<hr>
+<h2 id="C-可调用对象的总结"><a href="#C-可调用对象的总结" class="headerlink" title="C++ 可调用对象的总结"></a>C++ 可调用对象的总结</h2><p>C++ 提供了多种方式来定义和操作可调用对象，每种方式有其独特的特点和适用场景。</p>
+<table>
+<thead>
+<tr>
+<th>可调用对象</th>
+<th>描述</th>
+<th>示例用法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>函数指针</strong></td>
+<td>指向普通函数或静态成员函数的指针</td>
+<td><code>int (*func)(int) = &amp;funcName;</code></td>
+</tr>
+<tr>
+<td><strong>仿函数（Functors）</strong></td>
+<td>重载了 <code>operator()</code> 的类实例，可以携带状态</td>
+<td><code>struct Foo &#123; void operator()(); &#125;;</code></td>
+</tr>
+<tr>
+<td><strong>Lambda表达式</strong></td>
+<td>定义在表达式中的匿名函数，支持捕获上下文变量</td>
+<td><code>[capture](params) &#123; /* code */ &#125;</code></td>
+</tr>
+<tr>
+<td><strong><code>std::function</code></strong></td>
+<td>通用的可调用对象包装器，能够封装任何符合签名的可调用对象</td>
+<td><code>std::function&lt;void(int)&gt; func;</code></td>
+</tr>
+<tr>
+<td><strong><code>std::bind</code></strong></td>
+<td>绑定函数或可调用对象的部分参数，生成新的可调用对象</td>
+<td><code>auto newFunc = std::bind(func, _1);</code></td>
+</tr>
+</tbody></table>
+<h3 id="选择建议"><a href="#选择建议" class="headerlink" title="选择建议"></a>选择建议</h3><ul>
+<li><strong>简单回调：</strong> 使用函数指针或Lambda表达式。</li>
+<li><strong>需要携带状态或更复杂逻辑：</strong> 使用Lambda表达式或仿函数（Functors）。</li>
+<li><strong>接口要求 <code>std::function</code>：</strong> 使用 <code>std::function</code>，不过要注意可能的性能开销。</li>
+<li><strong>参数预绑定：</strong> 使用 <code>std::bind</code>，但在现代C++中，许多情况下Lambda表达式能达到相同效果且更直观。</li>
+</ul>
+<hr>
+<h2 id="完整示例代码"><a href="#完整示例代码" class="headerlink" title="完整示例代码"></a>完整示例代码</h2><p>以下是一个综合示例，展示了函数指针、仿函数（Functors）、Lambda表达式、<code>std::function</code>、<code>std::bind</code> 以及绑定类成员函数的使用。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;functional&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;algorithm&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 1. 普通函数</span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">add</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 仿函数（Functors）</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Multiply</span> &#123;</span><br><span class="line">    <span class="function"><span class="type">int</span> <span class="title">operator</span><span class="params">()</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span> <span class="type">const</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> a * b;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. Lambda表达式</span></span><br><span class="line"><span class="keyword">auto</span> subtract = [](<span class="type">int</span> a, <span class="type">int</span> b) -&gt; <span class="type">int</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> a - b;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 4. 类定义</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Calculator</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="type">int</span> <span class="title">subtract</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span> <span class="type">const</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> a - b;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">displayOperation</span><span class="params">(<span class="type">const</span> std::string&amp; op, <span class="type">int</span> result)</span> <span class="type">const</span> </span>&#123;</span><br><span class="line">        std::cout &lt;&lt; op &lt;&lt; <span class="string">&quot;结果: &quot;</span> &lt;&lt; result &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 5. 静态成员函数</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Logger</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="type">static</span> <span class="type">void</span> <span class="title">log</span><span class="params">(<span class="type">const</span> std::string&amp; message)</span> </span>&#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Log: &quot;</span> &lt;&lt; message &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 1. 函数指针</span></span><br><span class="line">    <span class="built_in">int</span> (*funcPtr)(<span class="type">int</span>, <span class="type">int</span>) = &amp;add;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Add (Function Pointer): &quot;</span> &lt;&lt; <span class="built_in">funcPtr</span>(<span class="number">10</span>, <span class="number">5</span>) &lt;&lt; std::endl; <span class="comment">// 输出: 15</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2. 仿函数（Functors）</span></span><br><span class="line">    Multiply multiply;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Multiply (Functors): &quot;</span> &lt;&lt; <span class="built_in">multiply</span>(<span class="number">10</span>, <span class="number">5</span>) &lt;&lt; std::endl; <span class="comment">// 输出: 50</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3. Lambda表达式</span></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Subtract (Lambda): &quot;</span> &lt;&lt; <span class="built_in">subtract</span>(<span class="number">10</span>, <span class="number">5</span>) &lt;&lt; std::endl; <span class="comment">// 输出: 5</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 4. std::function 封装不同可调用对象</span></span><br><span class="line">    std::function&lt;<span class="type">int</span>(<span class="type">int</span>, <span class="type">int</span>)&gt; funcAdd = add;</span><br><span class="line">    std::function&lt;<span class="type">int</span>(<span class="type">int</span>, <span class="type">int</span>)&gt; funcSubtract = subtract;</span><br><span class="line">    std::function&lt;<span class="type">int</span>(<span class="type">int</span>, <span class="type">int</span>)&gt; funcMultiply = multiply;</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Add (std::function): &quot;</span> &lt;&lt; <span class="built_in">funcAdd</span>(<span class="number">20</span>, <span class="number">10</span>) &lt;&lt; std::endl; <span class="comment">// 输出: 30</span></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Subtract (std::function): &quot;</span> &lt;&lt; <span class="built_in">funcSubtract</span>(<span class="number">20</span>, <span class="number">4</span>) &lt;&lt; std::endl; <span class="comment">// 输出: 16</span></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Multiply (std::function): &quot;</span> &lt;&lt; <span class="built_in">funcMultiply</span>(<span class="number">4</span>, <span class="number">5</span>) &lt;&lt; std::endl; <span class="comment">// 输出: 20</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 5. std::bind 绑定部分参数</span></span><br><span class="line">    <span class="keyword">auto</span> add5 = std::<span class="built_in">bind</span>(add, <span class="number">5</span>, std::placeholders::_1);</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;5 + 10 = &quot;</span> &lt;&lt; <span class="built_in">add5</span>(<span class="number">10</span>) &lt;&lt; std::endl; <span class="comment">// 输出: 15</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> multiplyBy2 = std::<span class="built_in">bind</span>(multiply, <span class="number">2</span>, std::placeholders::_1);</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;2 * 10 = &quot;</span> &lt;&lt; <span class="built_in">multiplyBy2</span>(<span class="number">10</span>) &lt;&lt; std::endl; <span class="comment">// 输出: 20</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 6. 绑定类成员函数</span></span><br><span class="line">    Calculator calc;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用 std::bind 绑定成员函数 subtract</span></span><br><span class="line">    <span class="keyword">auto</span> boundSubtract = std::<span class="built_in">bind</span>(&amp;Calculator::subtract, &amp;calc, <span class="number">15</span>, <span class="number">5</span>);</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;15 - 5 = &quot;</span> &lt;&lt; <span class="built_in">boundSubtract</span>() &lt;&lt; std::endl; <span class="comment">// 输出: 10</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用 std::bind 绑定成员函数 displayOperation</span></span><br><span class="line">    <span class="keyword">auto</span> displayAdd = std::<span class="built_in">bind</span>(&amp;Calculator::displayOperation, &amp;calc, <span class="string">&quot;Add&quot;</span>, std::placeholders::_1);</span><br><span class="line">    <span class="keyword">auto</span> displayResult = funcAdd;</span><br><span class="line">    <span class="type">int</span> addResult = <span class="built_in">displayResult</span>(<span class="number">7</span>, <span class="number">8</span>); <span class="comment">// 15</span></span><br><span class="line">    <span class="built_in">displayAdd</span>(addResult); <span class="comment">// 输出: Add结果: 15</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 7. 绑定静态成员函数</span></span><br><span class="line">    <span class="keyword">auto</span> logFunc = std::<span class="built_in">bind</span>(&amp;Logger::log, std::placeholders::_1);</span><br><span class="line">    <span class="built_in">logFunc</span>(<span class="string">&quot;This is a static log message.&quot;</span>); <span class="comment">// 输出: Log: This is a static log message.</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 8. 使用 std::function 存储混合可调用对象</span></span><br><span class="line">    std::vector&lt;std::function&lt;<span class="type">void</span>()&gt;&gt; operations;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 添加不同的操作到容器</span></span><br><span class="line">    operations.<span class="built_in">emplace_back</span>([&amp;]() &#123; std::cout &lt;&lt; <span class="string">&quot;Lambda Operation&quot;</span> &lt;&lt; std::endl; &#125;);</span><br><span class="line">    operations.<span class="built_in">emplace_back</span>(std::<span class="built_in">bind</span>(&amp;Calculator::displayOperation, &amp;calc, <span class="string">&quot;Multiply&quot;</span>, <span class="number">30</span>));</span><br><span class="line">    operations.<span class="built_in">emplace_back</span>([&amp;]() &#123; std::cout &lt;&lt; <span class="string">&quot;Add5(10): &quot;</span> &lt;&lt; <span class="built_in">add5</span>(<span class="number">10</span>) &lt;&lt; std::endl; &#125;);</span><br><span class="line">    operations.<span class="built_in">emplace_back</span>([&amp;]() &#123; Logger::<span class="built_in">log</span>(<span class="string">&quot;Lambda-based log message.&quot;</span>); &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 执行所有操作</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">auto</span>&amp; op : operations) &#123;</span><br><span class="line">        <span class="built_in">op</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">    输出:</span></span><br><span class="line"><span class="comment">    Lambda Operation</span></span><br><span class="line"><span class="comment">    Multiply结果: 30</span></span><br><span class="line"><span class="comment">    Add5(10): 15</span></span><br><span class="line"><span class="comment">    Log: Lambda-based log message.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>解释:</strong></p>
+<ol>
+<li><strong>函数指针:</strong> 定义并使用了指向 <code>add</code> 函数的函数指针 <code>funcPtr</code>。</li>
+<li><strong>仿函数（Functors）:</strong> 定义了 <code>Multiply</code> 结构体，并使用其实例 <code>multiply</code> 进行乘法运算。</li>
+<li><strong>Lambda表达式:</strong> 定义了一个用于减法的Lambda <code>subtract</code>。</li>
+<li><strong><code>std::function</code>:</strong> 封装了不同类型的可调用对象，包括普通函数、Lambda和仿函数。</li>
+<li><strong><code>std::bind</code>:</strong> 绑定 <code>add</code> 和 <code>multiply</code> 函数的部分参数，生成新的可调用对象 <code>add5</code> 和 <code>multiplyBy2</code>。</li>
+<li><strong>绑定类成员函数:</strong> 使用 <code>std::bind</code> 绑定 <code>Calculator</code> 类的成员函数 <code>subtract</code> 和 <code>displayOperation</code>。</li>
+<li><strong>绑定静态成员函数:</strong> 使用 <code>std::bind</code> 绑定 <code>Logger</code> 类的静态成员函数 <code>log</code>。</li>
+<li><strong>混合可调用对象容器:</strong> 使用 <code>std::function</code> 和 <code>std::vector</code> 存储并执行不同类型的可调用对象，包括Lambda、绑定成员函数和静态成员函数。</li>
+</ol>
+<hr>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>通过本教案，学生应能够理解并运用C++中的各种可调用对象，包括传统的函数指针、仿函数（Functors）、Lambda表达式、<code>std::function</code> 和 <code>std::bind</code> 等。掌握这些工具不仅有助于编写更灵活和可维护的代码，还为进一步学习函数式编程和设计模式奠定了坚实的基础。在实际编程中，合理选择和组合这些可调用对象，可以大大提升代码的效率和表达力。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C-cppbase/" rel="tag"># C++ cppbase</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2024/12/05/cppbase22/" rel="next" title="零基础C++(22) 内存管理">
+                <i class="fa fa-chevron-left"></i> 零基础C++(22) 内存管理
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2024/12/06/cppbase23/" rel="prev" title="零基础C++(23) 智能指针">
+                零基础C++(23) 智能指针 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">367</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">21</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%95%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">引言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E6%8C%87%E9%92%88"><span class="nav-number">2.</span> <span class="nav-text">函数指针</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89%E4%B8%8E%E4%BD%BF%E7%94%A8"><span class="nav-number">2.1.</span> <span class="nav-text">定义与使用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BC%98%E7%82%B9%E4%B8%8E%E5%B1%80%E9%99%90%E6%80%A7"><span class="nav-number">2.2.</span> <span class="nav-text">优点与局限性</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%BF%E5%87%BD%E6%95%B0%EF%BC%88Functors%EF%BC%89"><span class="nav-number">3.</span> <span class="nav-text">仿函数（Functors）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89%E4%B8%8E%E4%BD%BF%E7%94%A8-1"><span class="nav-number">3.1.</span> <span class="nav-text">定义与使用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%89%B9%E7%82%B9"><span class="nav-number">3.2.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%AB%98%E7%BA%A7%E7%A4%BA%E4%BE%8B"><span class="nav-number">3.3.</span> <span class="nav-text">高级示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E4%BB%BF%E5%87%BD%E6%95%B0%E7%9A%84%E6%A0%87%E5%87%86%E5%BA%93%E7%AE%97%E6%B3%95"><span class="nav-number">3.4.</span> <span class="nav-text">使用仿函数的标准库算法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%BF%E5%87%BD%E6%95%B0%E4%B8%8E%E6%A8%A1%E6%9D%BF"><span class="nav-number">3.5.</span> <span class="nav-text">仿函数与模板</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%BF%E5%87%BD%E6%95%B0%E7%9A%84%E4%BC%98%E5%8A%BF"><span class="nav-number">3.6.</span> <span class="nav-text">仿函数的优势</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%95%E6%97%B6%E4%BD%BF%E7%94%A8%E4%BB%BF%E5%87%BD%E6%95%B0"><span class="nav-number">3.7.</span> <span class="nav-text">何时使用仿函数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F"><span class="nav-number">4.</span> <span class="nav-text">Lambda表达式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E8%AF%AD%E6%B3%95"><span class="nav-number">4.1.</span> <span class="nav-text">基本语法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B"><span class="nav-number">4.2.</span> <span class="nav-text">示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8D%95%E8%8E%B7%E6%96%B9%E5%BC%8F"><span class="nav-number">4.3.</span> <span class="nav-text">捕获方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%AF%E5%8F%98Lambda"><span class="nav-number">4.4.</span> <span class="nav-text">可变Lambda</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8D%95%E8%8E%B7%E6%88%90%E5%91%98%E5%87%BD%E6%95%B0%E5%92%8C%E7%B1%BB%E5%8F%98%E9%87%8F"><span class="nav-number">4.5.</span> <span class="nav-text">捕获成员函数和类变量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Lambda%E4%B8%8E%E6%A0%87%E5%87%86%E5%BA%93%E7%AE%97%E6%B3%95"><span class="nav-number">4.6.</span> <span class="nav-text">Lambda与标准库算法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E7%9A%84%E4%BC%98%E5%8A%BF"><span class="nav-number">4.7.</span> <span class="nav-text">Lambda表达式的优势</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#std-function-%E5%AF%B9%E8%B1%A1"><span class="nav-number">5.</span> <span class="nav-text">std::function 对象</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89%E4%B8%8E%E4%BD%BF%E7%94%A8-2"><span class="nav-number">5.1.</span> <span class="nav-text">定义与使用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-1"><span class="nav-number">5.2.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%A8%E6%B3%95%E5%9C%BA%E6%99%AF"><span class="nav-number">5.3.</span> <span class="nav-text">用法场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B%EF%BC%9A%E5%9B%9E%E8%B0%83%E6%9C%BA%E5%88%B6"><span class="nav-number">5.4.</span> <span class="nav-text">示例：回调机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%98%E5%82%A8%E5%92%8C%E8%B0%83%E7%94%A8%E4%B8%8D%E5%90%8C%E7%B1%BB%E5%9E%8B%E7%9A%84%E5%8F%AF%E8%B0%83%E7%94%A8%E5%AF%B9%E8%B1%A1"><span class="nav-number">5.5.</span> <span class="nav-text">存储和调用不同类型的可调用对象</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#std-bind-%E6%93%8D%E4%BD%9C"><span class="nav-number">6.</span> <span class="nav-text">std::bind 操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95"><span class="nav-number">6.1.</span> <span class="nav-text">基本用法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%A0%E4%BD%8D%E7%AC%A6-std-placeholders"><span class="nav-number">6.2.</span> <span class="nav-text">占位符 (std::placeholders)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B-1"><span class="nav-number">6.3.</span> <span class="nav-text">示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8ELambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E7%9A%84%E5%AF%B9%E6%AF%94"><span class="nav-number">6.4.</span> <span class="nav-text">与Lambda表达式的对比</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%91%E5%AE%9A%E7%B1%BB%E7%9A%84%E6%88%90%E5%91%98%E5%87%BD%E6%95%B0"><span class="nav-number">7.</span> <span class="nav-text">绑定类的成员函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8-std-bind-%E7%BB%91%E5%AE%9A%E6%88%90%E5%91%98%E5%87%BD%E6%95%B0"><span class="nav-number">7.1.</span> <span class="nav-text">使用 std::bind 绑定成员函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E7%BB%91%E5%AE%9A%E6%88%90%E5%91%98%E5%87%BD%E6%95%B0"><span class="nav-number">7.2.</span> <span class="nav-text">使用Lambda表达式绑定成员函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%91%E5%AE%9A%E9%9D%99%E6%80%81%E6%88%90%E5%91%98%E5%87%BD%E6%95%B0"><span class="nav-number">7.3.</span> <span class="nav-text">绑定静态成员函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%91%E5%AE%9A%E5%B8%A6%E6%9C%89%E8%BF%94%E5%9B%9E%E5%80%BC%E7%9A%84%E6%88%90%E5%91%98%E5%87%BD%E6%95%B0"><span class="nav-number">7.4.</span> <span class="nav-text">绑定带有返回值的成员函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="nav-number">7.5.</span> <span class="nav-text">注意事项</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#C-%E5%8F%AF%E8%B0%83%E7%94%A8%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%80%BB%E7%BB%93"><span class="nav-number">8.</span> <span class="nav-text">C++ 可调用对象的总结</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%89%E6%8B%A9%E5%BB%BA%E8%AE%AE"><span class="nav-number">8.1.</span> <span class="nav-text">选择建议</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E7%A4%BA%E4%BE%8B%E4%BB%A3%E7%A0%81"><span class="nav-number">9.</span> <span class="nav-text">完整示例代码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B0%8F%E7%BB%93"><span class="nav-number">10.</span> <span class="nav-text">小结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++ cppbase," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="现有 SimpleSharedPtr 的线程安全性分析在多线程环境下，确保智能指针的线程安全性主要涉及以下几个方面：  引用计数管理：多个线程可能会同时拷贝、移动或销毁智能指针实例，导致引用计数的修改。若引用计数不是原子操作，则会引发数据竞争和未定义行为。 指针和控制块的访问：多个线程可能会同时访问或修改同一个智能指针实例的 ptr 和 control 成员，这需要同步机制来保护。  当前 Sim">
+<meta property="og:type" content="article">
+<meta property="og:title" content="手写线程安全智能指针">
+<meta property="og:url" content="http://www.limerence2017.com/2024/12/27/cppbase27/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="现有 SimpleSharedPtr 的线程安全性分析在多线程环境下，确保智能指针的线程安全性主要涉及以下几个方面：  引用计数管理：多个线程可能会同时拷贝、移动或销毁智能指针实例，导致引用计数的修改。若引用计数不是原子操作，则会引发数据竞争和未定义行为。 指针和控制块的访问：多个线程可能会同时访问或修改同一个智能指针实例的 ptr 和 control 成员，这需要同步机制来保护。  当前 Sim">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-12-27T06:11:08.000Z">
+<meta property="article:modified_time" content="2024-12-27T06:18:05.029Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="C++ cppbase">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2024/12/27/cppbase27/"/>
+
+
+
+
+
+  <title>手写线程安全智能指针 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2024/12/27/cppbase27/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">手写线程安全智能指针</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-12-27T14:11:08+08:00">
+                2024-12-27
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C-cppbase/" itemprop="url" rel="index">
+                    <span itemprop="name">C++ cppbase</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="现有-SimpleSharedPtr-的线程安全性分析"><a href="#现有-SimpleSharedPtr-的线程安全性分析" class="headerlink" title="现有 SimpleSharedPtr 的线程安全性分析"></a>现有 <code>SimpleSharedPtr</code> 的线程安全性分析</h2><p>在多线程环境下，确保智能指针的线程安全性主要涉及以下几个方面：</p>
+<ol>
+<li><strong>引用计数管理</strong>：多个线程可能会同时拷贝、移动或销毁智能指针实例，导致引用计数的修改。若引用计数不是原子操作，则会引发数据竞争和未定义行为。</li>
+<li><strong>指针和控制块的访问</strong>：多个线程可能会同时访问或修改同一个智能指针实例的 <code>ptr</code> 和 <code>control</code> 成员，这需要同步机制来保护。</li>
+</ol>
+<p><strong>当前 <code>SimpleSharedPtr</code> 的问题：</strong></p>
+<ul>
+<li><strong>引用计数非原子</strong>：<code>ControlBlock::ref_count</code> 是普通的 <code>int</code> 类型，当多个线程同时修改 <code>ref_count</code> 时，会引发竞态条件。</li>
+<li><strong>缺乏同步机制</strong>：<code>SimpleSharedPtr</code> 的成员函数（如拷贝构造、赋值操作符等）在修改 <code>ptr</code> 和 <code>control</code> 时没有任何同步机制，导致多个线程同时操作同一个 <code>SimpleSharedPtr</code> 实例时不安全。</li>
+</ul>
+<hr>
+<h2 id="实现线程安全的-SimpleSharedPtr"><a href="#实现线程安全的-SimpleSharedPtr" class="headerlink" title="实现线程安全的 SimpleSharedPtr"></a>实现线程安全的 <code>SimpleSharedPtr</code></h2><p>为了解决上述问题，可以从以下几个方面入手：</p>
+<h3 id="方法一：使用-std-atomic-管理引用计数"><a href="#方法一：使用-std-atomic-管理引用计数" class="headerlink" title="方法一：使用 std::atomic 管理引用计数"></a>方法一：使用 <code>std::atomic</code> 管理引用计数</h3><p>将 <code>ControlBlock::ref_count</code> 从普通的 <code>int</code> 替换为 <code>std::atomic&lt;int&gt;</code>，以确保引用计数的线程安全递增和递减。</p>
+<p><strong>优点：</strong></p>
+<ul>
+<li>简单高效，避免使用互斥锁带来的性能开销。</li>
+<li>类似于标准库中 <code>std::shared_ptr</code> 实现的引用计数管理。</li>
+</ul>
+<p><strong>缺点：</strong></p>
+<ul>
+<li>只能保证引用计数本身的线程安全，无法保护 <code>ptr</code> 和 <code>control</code> 的同步访问。</li>
+</ul>
+<h3 id="方法二：引入互斥锁保护指针操作"><a href="#方法二：引入互斥锁保护指针操作" class="headerlink" title="方法二：引入互斥锁保护指针操作"></a>方法二：引入互斥锁保护指针操作</h3><p>在 <code>SimpleSharedPtr</code> 中引入 <code>std::mutex</code>，在所有可能修改 <code>ptr</code> 和 <code>control</code> 的操作中加锁。</p>
+<p><strong>优点：</strong></p>
+<ul>
+<li>确保 <code>ptr</code> 和 <code>control</code> 在多线程访问时的一致性。</li>
+<li>提供更全面的线程安全保障。</li>
+</ul>
+<p><strong>缺点：</strong></p>
+<ul>
+<li>引入锁机制，可能带来性能开销，特别是在高并发场景下。</li>
+</ul>
+<h3 id="方法三：组合使用-std-atomic-和互斥锁"><a href="#方法三：组合使用-std-atomic-和互斥锁" class="headerlink" title="方法三：组合使用 std::atomic 和互斥锁"></a>方法三：组合使用 <code>std::atomic</code> 和互斥锁</h3><p>结合使用 <code>std::atomic&lt;int&gt;</code> 进行引用计数的管理，并使用 <code>std::mutex</code> 保护指针和控制块的访问。</p>
+<p><strong>优点：</strong></p>
+<ul>
+<li>引用计数管理高效且线程安全。</li>
+<li>指针和控制块的访问得到完全的同步保护。</li>
+</ul>
+<p><strong>缺点：</strong></p>
+<ul>
+<li>复杂性较高，需要同时管理原子操作和互斥锁。</li>
+</ul>
+<hr>
+<h2 id="完整线程安全的-ThreadSafeSharedPtr-实现"><a href="#完整线程安全的-ThreadSafeSharedPtr-实现" class="headerlink" title="完整线程安全的 ThreadSafeSharedPtr 实现"></a>完整线程安全的 <code>ThreadSafeSharedPtr</code> 实现</h2><p>结合上述方法二和方法一，我们可以实现一个名为 <code>ThreadSafeSharedPtr</code> 的类模板，确保在多线程环境下的安全性。以下是具体实现：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;atomic&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;mutex&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;thread&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 控制块结构</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">ControlBlock</span> &#123;</span><br><span class="line">    std::atomic&lt;<span class="type">int</span>&gt; ref_count;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">ControlBlock</span>() : <span class="built_in">ref_count</span>(<span class="number">1</span>) &#123;&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 线程安全的 shared_ptr 实现</span></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">ThreadSafeSharedPtr</span> &#123;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    T* ptr;                 <span class="comment">// 指向管理的对象</span></span><br><span class="line">    ControlBlock* control;  <span class="comment">// 指向控制块</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 互斥锁，用于保护 ptr 和 control</span></span><br><span class="line">    <span class="keyword">mutable</span> std::mutex mtx;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 释放当前资源</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">release</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (control) &#123;</span><br><span class="line">            <span class="comment">// 原子递减引用计数</span></span><br><span class="line">            <span class="keyword">if</span> (--(control-&gt;ref_count) == <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="keyword">delete</span> ptr;</span><br><span class="line">                <span class="keyword">delete</span> control;</span><br><span class="line">                std::cout &lt;&lt; <span class="string">&quot;Resource and ControlBlock destroyed.&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                std::cout &lt;&lt; <span class="string">&quot;Decremented ref_count to &quot;</span> &lt;&lt; control-&gt;ref_count.<span class="built_in">load</span>() &lt;&lt; std::endl;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        ptr = <span class="literal">nullptr</span>;</span><br><span class="line">        control = <span class="literal">nullptr</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="comment">// 默认构造函数</span></span><br><span class="line">    <span class="built_in">ThreadSafeSharedPtr</span>() : <span class="built_in">ptr</span>(<span class="literal">nullptr</span>), <span class="built_in">control</span>(<span class="literal">nullptr</span>) &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Default constructed ThreadSafeSharedPtr (nullptr).&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 参数化构造函数</span></span><br><span class="line">    <span class="function"><span class="keyword">explicit</span> <span class="title">ThreadSafeSharedPtr</span><span class="params">(T* p)</span> : ptr(p) &#123;</span></span><br><span class="line">        <span class="keyword">if</span> (p) &#123;</span><br><span class="line">            control = <span class="keyword">new</span> <span class="built_in">ControlBlock</span>();</span><br><span class="line">            std::cout &lt;&lt; <span class="string">&quot;Constructed ThreadSafeSharedPtr, ref_count = &quot;</span> &lt;&lt; control-&gt;ref_count.<span class="built_in">load</span>() &lt;&lt; std::endl;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            control = <span class="literal">nullptr</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 拷贝构造函数</span></span><br><span class="line">    <span class="built_in">ThreadSafeSharedPtr</span>(<span class="type">const</span> ThreadSafeSharedPtr&amp; other) &#123;</span><br><span class="line">        <span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(other.mtx)</span></span>;</span><br><span class="line">        ptr = other.ptr;</span><br><span class="line">        control = other.control;</span><br><span class="line">        <span class="keyword">if</span> (control) &#123;</span><br><span class="line">            control-&gt;ref_count++;</span><br><span class="line">            std::cout &lt;&lt; <span class="string">&quot;Copied ThreadSafeSharedPtr, ref_count = &quot;</span> &lt;&lt; control-&gt;ref_count.<span class="built_in">load</span>() &lt;&lt; std::endl;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 拷贝赋值操作符</span></span><br><span class="line">    ThreadSafeSharedPtr&amp; <span class="keyword">operator</span>=(<span class="type">const</span> ThreadSafeSharedPtr&amp; other) &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span> != &amp;other) &#123;</span><br><span class="line">            <span class="comment">// 为避免死锁，使用 std::scoped_lock 同时锁定两个互斥锁</span></span><br><span class="line">            std::scoped_lock <span class="built_in">lock</span>(mtx, other.mtx);</span><br><span class="line">            <span class="built_in">release</span>();</span><br><span class="line">            ptr = other.ptr;</span><br><span class="line">            control = other.control;</span><br><span class="line">            <span class="keyword">if</span> (control) &#123;</span><br><span class="line">                control-&gt;ref_count++;</span><br><span class="line">                std::cout &lt;&lt; <span class="string">&quot;Assigned ThreadSafeSharedPtr, ref_count = &quot;</span> &lt;&lt; control-&gt;ref_count.<span class="built_in">load</span>() &lt;&lt; std::endl;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 移动构造函数</span></span><br><span class="line">    <span class="built_in">ThreadSafeSharedPtr</span>(ThreadSafeSharedPtr&amp;&amp; other) <span class="keyword">noexcept</span> &#123;</span><br><span class="line">        <span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(other.mtx)</span></span>;</span><br><span class="line">        ptr = other.ptr;</span><br><span class="line">        control = other.control;</span><br><span class="line">        other.ptr = <span class="literal">nullptr</span>;</span><br><span class="line">        other.control = <span class="literal">nullptr</span>;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Moved ThreadSafeSharedPtr.&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 移动赋值操作符</span></span><br><span class="line">    ThreadSafeSharedPtr&amp; <span class="keyword">operator</span>=(ThreadSafeSharedPtr&amp;&amp; other) <span class="keyword">noexcept</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span> != &amp;other) &#123;</span><br><span class="line">            <span class="comment">// 为避免死锁，使用 std::scoped_lock 同时锁定两个互斥锁</span></span><br><span class="line">            std::scoped_lock <span class="built_in">lock</span>(mtx, other.mtx);</span><br><span class="line">            <span class="built_in">release</span>();</span><br><span class="line">            ptr = other.ptr;</span><br><span class="line">            control = other.control;</span><br><span class="line">            other.ptr = <span class="literal">nullptr</span>;</span><br><span class="line">            other.control = <span class="literal">nullptr</span>;</span><br><span class="line">            std::cout &lt;&lt; <span class="string">&quot;Move-assigned ThreadSafeSharedPtr.&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 析构函数</span></span><br><span class="line">    ~<span class="built_in">ThreadSafeSharedPtr</span>() &#123;</span><br><span class="line">        <span class="built_in">release</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 解引用操作符</span></span><br><span class="line">    T&amp; <span class="keyword">operator</span>*() <span class="type">const</span> &#123;</span><br><span class="line">        <span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx)</span></span>;</span><br><span class="line">        <span class="keyword">return</span> *ptr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 箭头操作符</span></span><br><span class="line">    T* <span class="keyword">operator</span>-&gt;() <span class="type">const</span> &#123;</span><br><span class="line">        <span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx)</span></span>;</span><br><span class="line">        <span class="keyword">return</span> ptr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 获取引用计数</span></span><br><span class="line">    <span class="function"><span class="type">int</span> <span class="title">use_count</span><span class="params">()</span> <span class="type">const</span> </span>&#123;</span><br><span class="line">        <span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx)</span></span>;</span><br><span class="line">        <span class="keyword">return</span> control ? control-&gt;ref_count.<span class="built_in">load</span>() : <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 获取裸指针</span></span><br><span class="line">    <span class="function">T* <span class="title">get</span><span class="params">()</span> <span class="type">const</span> </span>&#123;</span><br><span class="line">        <span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx)</span></span>;</span><br><span class="line">        <span class="keyword">return</span> ptr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 重置指针</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">reset</span><span class="params">(T* p = <span class="literal">nullptr</span>)</span> </span>&#123;</span><br><span class="line">        <span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx)</span></span>;</span><br><span class="line">        <span class="built_in">release</span>();</span><br><span class="line">        ptr = p;</span><br><span class="line">        <span class="keyword">if</span> (p) &#123;</span><br><span class="line">            control = <span class="keyword">new</span> <span class="built_in">ControlBlock</span>();</span><br><span class="line">            std::cout &lt;&lt; <span class="string">&quot;Reset ThreadSafeSharedPtr, ref_count = &quot;</span> &lt;&lt; control-&gt;ref_count.<span class="built_in">load</span>() &lt;&lt; std::endl;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            control = <span class="literal">nullptr</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 测试类</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">Test</span>(<span class="type">int</span> val) : <span class="built_in">value</span>(val) &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Test Constructor: &quot;</span> &lt;&lt; value &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">    ~<span class="built_in">Test</span>() &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Test Destructor: &quot;</span> &lt;&lt; value &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">show</span><span class="params">()</span> <span class="type">const</span> </span>&#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Value: &quot;</span> &lt;&lt; value &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="type">int</span> value;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="关键改动说明"><a href="#关键改动说明" class="headerlink" title="关键改动说明"></a>关键改动说明</h3><ol>
+<li><p><strong>引用计数原子化</strong>：</p>
+<ul>
+<li><p>将</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ControlBlock::ref_count</span><br></pre></td></tr></table></figure>
+
+<p>从普通的</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">int</span><br></pre></td></tr></table></figure>
+
+<p>改为</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">std::atomic&lt;int&gt;</span><br></pre></td></tr></table></figure>
+
+<p>：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">std::atomic&lt;<span class="type">int</span>&gt; ref_count;</span><br></pre></td></tr></table></figure></li>
+<li><p>使用原子操作管理引用计数，确保多线程下的安全递增和递减：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">control-&gt;ref_count++;</span><br><span class="line"><span class="keyword">if</span> (--(control-&gt;ref_count) == <span class="number">0</span>) &#123; ... &#125;</span><br></pre></td></tr></table></figure></li>
+<li><p>使用 <code>ref_count.load()</code> 获取当前引用计数的值。</p>
+</li>
+</ul>
+</li>
+<li><p><strong>引入互斥锁</strong>：</p>
+<ul>
+<li><p>在</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ThreadSafeSharedPtr</span><br></pre></td></tr></table></figure>
+
+<p>中引入</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">std::mutex mtx</span><br></pre></td></tr></table></figure>
+
+<p>，用于保护</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ptr</span><br></pre></td></tr></table></figure>
+
+<p>和</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">control</span><br></pre></td></tr></table></figure>
+
+<p>的访问：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">mutable</span> std::mutex mtx;</span><br></pre></td></tr></table></figure></li>
+<li><p>在所有可能修改或访问</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ptr</span><br></pre></td></tr></table></figure>
+
+<p>和</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">control</span><br></pre></td></tr></table></figure>
+
+<p>的成员函数中加锁，确保同步：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx)</span></span>;</span><br></pre></td></tr></table></figure></li>
+<li><p>在拷贝构造函数和拷贝赋值操作符中，为避免死锁，使用</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">std::scoped_lock</span><br></pre></td></tr></table></figure>
+
+<p>同时锁定两个互斥锁：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::scoped_lock <span class="title">lock</span><span class="params">(mtx, other.mtx)</span></span>;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p><strong>线程安全的成员函数</strong>：</p>
+<ul>
+<li>对于 <code>operator*</code> 和 <code>operator-&gt;</code>，在返回前锁定互斥锁，确保在多线程环境中的安全访问。</li>
+<li>其他成员函数如 <code>use_count</code>、<code>get</code> 和 <code>reset</code> 同样在访问共享资源前加锁。</li>
+</ul>
+</li>
+</ol>
+<h3 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h3><ul>
+<li><strong>避免死锁</strong>：在需要同时锁定多个互斥锁时，使用 <code>std::scoped_lock</code>（C++17 引入）可以同时锁定多个互斥锁，避免死锁风险。</li>
+<li><strong>性能开销</strong>：引入互斥锁会带来一定的性能开销，尤其是在高并发场景下。根据实际需求，权衡线程安全性和性能之间的关系。</li>
+</ul>
+<hr>
+<h2 id="测试线程安全的-ThreadSafeSharedPtr"><a href="#测试线程安全的-ThreadSafeSharedPtr" class="headerlink" title="测试线程安全的 ThreadSafeSharedPtr"></a>测试线程安全的 <code>ThreadSafeSharedPtr</code></h2><p>为了验证 <code>ThreadSafeSharedPtr</code> 的线程安全性，我们可以编写一个多线程程序，让多个线程同时拷贝、赋值和销毁智能指针。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;thread&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;ThreadSafeSharedPtr.h&quot;</span> <span class="comment">// 假设将上述代码保存为该头文件</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 测试类</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">Test</span>(<span class="type">int</span> val) : <span class="built_in">value</span>(val) &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Test Constructor: &quot;</span> &lt;&lt; value &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">    ~<span class="built_in">Test</span>() &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Test Destructor: &quot;</span> &lt;&lt; value &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">show</span><span class="params">()</span> <span class="type">const</span> </span>&#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Value: &quot;</span> &lt;&lt; value &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="type">int</span> value;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">thread_func_copy</span><span class="params">(ThreadSafeSharedPtr&lt;Test&gt; sptr, <span class="type">int</span> thread_id)</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Thread &quot;</span> &lt;&lt; thread_id &lt;&lt; <span class="string">&quot; is copying shared_ptr.&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    ThreadSafeSharedPtr&lt;Test&gt; local_sptr = sptr;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Thread &quot;</span> &lt;&lt; thread_id &lt;&lt; <span class="string">&quot; copied shared_ptr, use_count = &quot;</span> &lt;&lt; local_sptr.<span class="built_in">use_count</span>() &lt;&lt; std::endl;</span><br><span class="line">    local_sptr-&gt;<span class="built_in">show</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">thread_func_reset</span><span class="params">(ThreadSafeSharedPtr&lt;Test&gt;&amp; sptr, <span class="type">int</span> new_val, <span class="type">int</span> thread_id)</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Thread &quot;</span> &lt;&lt; thread_id &lt;&lt; <span class="string">&quot; is resetting shared_ptr.&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    sptr.<span class="built_in">reset</span>(<span class="keyword">new</span> <span class="built_in">Test</span>(new_val));</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Thread &quot;</span> &lt;&lt; thread_id &lt;&lt; <span class="string">&quot; reset shared_ptr, use_count = &quot;</span> &lt;&lt; sptr.<span class="built_in">use_count</span>() &lt;&lt; std::endl;</span><br><span class="line">    sptr-&gt;<span class="built_in">show</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Creating ThreadSafeSharedPtr with Test(100).&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    <span class="function">ThreadSafeSharedPtr&lt;Test&gt; <span class="title">sptr</span><span class="params">(<span class="keyword">new</span> Test(<span class="number">100</span>))</span></span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Initial use_count: &quot;</span> &lt;&lt; sptr.<span class="built_in">use_count</span>() &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 创建多个线程进行拷贝操作</span></span><br><span class="line">    <span class="type">const</span> <span class="type">int</span> num_threads = <span class="number">5</span>;</span><br><span class="line">    std::vector&lt;std::thread&gt; threads_copy;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">0</span>; i &lt; num_threads; ++i) &#123;</span><br><span class="line">        threads_copy.<span class="built_in">emplace_back</span>(thread_func_copy, sptr, i);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">auto</span>&amp; t : threads_copy) &#123;</span><br><span class="line">        t.<span class="built_in">join</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;After copy threads, use_count: &quot;</span> &lt;&lt; sptr.<span class="built_in">use_count</span>() &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 创建多个线程进行 reset 操作</span></span><br><span class="line">    std::vector&lt;std::thread&gt; threads_reset;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">0</span>; i &lt; num_threads; ++i) &#123;</span><br><span class="line">        threads_reset.<span class="built_in">emplace_back</span>(thread_func_reset, std::<span class="built_in">ref</span>(sptr), <span class="number">200</span> + i, i);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">auto</span>&amp; t : threads_reset) &#123;</span><br><span class="line">        t.<span class="built_in">join</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;After reset threads, final use_count: &quot;</span> &lt;&lt; sptr.<span class="built_in">use_count</span>() &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Exiting main.&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>预期输出示例（具体顺序可能因线程调度而异）：</strong></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">Creating</span> <span class="string">ThreadSafeSharedPtr</span> <span class="string">with</span> <span class="string">Test(100).</span></span><br><span class="line"><span class="attr">Test Constructor:</span> <span class="number">100</span></span><br><span class="line"><span class="string">Constructed</span> <span class="string">ThreadSafeSharedPtr,</span> <span class="string">ref_count</span> <span class="string">=</span> <span class="number">1</span></span><br><span class="line"><span class="attr">Initial use_count:</span> <span class="number">1</span></span><br><span class="line"><span class="string">Thread</span> <span class="number">0</span> <span class="string">is</span> <span class="string">copying</span> <span class="string">shared_ptr.</span></span><br><span class="line"><span class="string">Copied</span> <span class="string">ThreadSafeSharedPtr,</span> <span class="string">ref_count</span> <span class="string">=</span> <span class="number">2</span></span><br><span class="line"><span class="string">Thread</span> <span class="number">0</span> <span class="string">copied</span> <span class="string">shared_ptr,</span> <span class="string">use_count</span> <span class="string">=</span> <span class="number">2</span></span><br><span class="line"><span class="attr">Value:</span> <span class="number">100</span></span><br><span class="line"><span class="string">Thread</span> <span class="number">1</span> <span class="string">is</span> <span class="string">copying</span> <span class="string">shared_ptr.</span></span><br><span class="line"><span class="string">Copied</span> <span class="string">ThreadSafeSharedPtr,</span> <span class="string">ref_count</span> <span class="string">=</span> <span class="number">3</span></span><br><span class="line"><span class="string">Thread</span> <span class="number">1</span> <span class="string">copied</span> <span class="string">shared_ptr,</span> <span class="string">use_count</span> <span class="string">=</span> <span class="number">3</span></span><br><span class="line"><span class="attr">Value:</span> <span class="number">100</span></span><br><span class="line"><span class="string">...</span></span><br><span class="line"><span class="string">After</span> <span class="string">copy</span> <span class="string">threads,</span> <span class="attr">use_count:</span> <span class="number">6</span></span><br><span class="line"><span class="string">Thread</span> <span class="number">0</span> <span class="string">is</span> <span class="string">resetting</span> <span class="string">shared_ptr.</span></span><br><span class="line"><span class="string">Decremented</span> <span class="string">ref_count</span> <span class="string">to</span> <span class="number">5</span></span><br><span class="line"><span class="string">Resource</span> <span class="string">and</span> <span class="string">ControlBlock</span> <span class="string">destroyed.</span></span><br><span class="line"><span class="attr">Test Constructor:</span> <span class="number">200</span></span><br><span class="line"><span class="string">Reset</span> <span class="string">ThreadSafeSharedPtr,</span> <span class="string">ref_count</span> <span class="string">=</span> <span class="number">1</span></span><br><span class="line"><span class="attr">Value:</span> <span class="number">200</span></span><br><span class="line"><span class="string">...</span></span><br><span class="line"><span class="string">After</span> <span class="string">reset</span> <span class="string">threads,</span> <span class="attr">final use_count:</span> <span class="number">1</span></span><br><span class="line"><span class="string">Exiting</span> <span class="string">main.</span></span><br><span class="line"><span class="attr">Test Destructor:</span> <span class="number">200</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>说明：</strong></p>
+<ul>
+<li>多个线程同时拷贝 <code>sptr</code>，引用计数正确递增。</li>
+<li>多个线程同时重置 <code>sptr</code>，确保引用计数和资源管理的正确性。</li>
+<li>最终，只有最新分配的对象存在，引用计数为 <code>1</code>。</li>
+</ul>
+<hr>
+<h2 id="注意事项和最佳实践"><a href="#注意事项和最佳实践" class="headerlink" title="注意事项和最佳实践"></a>注意事项和最佳实践</h2><ol>
+<li><strong>引用计数的原子性</strong>：<ul>
+<li>使用 <code>std::atomic&lt;int&gt;</code> 来保证引用计数的线程安全递增和递减。</li>
+<li>避免使用普通的 <code>int</code>，因为在多线程环境下会导致数据竞争。</li>
+</ul>
+</li>
+<li><strong>互斥锁的使用</strong>：<ul>
+<li>使用 <code>std::mutex</code> 来保护 <code>ptr</code> 和 <code>control</code> 的访问，防止多个线程同时修改智能指针实例。</li>
+<li>尽量缩小锁的范围，避免在互斥锁保护的临界区内执行耗时操作，以减少性能开销。</li>
+</ul>
+</li>
+<li><strong>避免死锁</strong>：<ul>
+<li>在需要同时锁定多个互斥锁时，使用 <code>std::scoped_lock</code> 来一次性锁定，确保锁的顺序一致，避免死锁风险。</li>
+</ul>
+</li>
+<li><strong>尽量遵循 RAII 原则</strong>：<ul>
+<li>使用 <code>std::lock_guard</code> 或 <code>std::scoped_lock</code> 等 RAII 机制来管理互斥锁，确保在异常抛出时自动释放锁，防止死锁。</li>
+</ul>
+</li>
+<li><strong>避免多重管理</strong>：<ul>
+<li>确保不通过裸指针绕过智能指针的引用计数管理，避免资源泄漏或重复释放。</li>
+</ul>
+</li>
+<li><strong>性能考虑</strong>：<ul>
+<li>在高并发场景下，频繁的锁操作可能成为性能瓶颈。根据实际需求，可以考虑使用更轻量级的同步机制，如 <code>std::shared_mutex</code>（C++17）用于读多写少的场景。</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>通过将 <code>ControlBlock::ref_count</code> 改为 <code>std::atomic&lt;int&gt;</code>，并在 <code>ThreadSafeSharedPtr</code> 中引入互斥锁来保护 <code>ptr</code> 和 <code>control</code> 的访问，可以实现一个<strong>线程安全的智能指针</strong>。这种实现确保了在多线程环境下，多个线程可以安全地拷贝、赋值和销毁智能指针，同时正确管理引用计数和资源。</p>
+<p><strong>关键点总结：</strong></p>
+<ul>
+<li><strong>引用计数的原子性</strong>：使用 <code>std::atomic&lt;int&gt;</code> 保证引用计数操作的线程安全。</li>
+<li><strong>互斥锁保护</strong>：使用 <code>std::mutex</code> 保护智能指针实例的内部状态，防止多个线程同时修改。</li>
+<li><strong>RAII 机制</strong>：利用 <code>std::lock_guard</code> 和 <code>std::scoped_lock</code> 等 RAII 机制，确保锁的正确管理和释放。</li>
+<li><strong>避免死锁</strong>：在需要同时锁定多个互斥锁时，使用 <code>std::scoped_lock</code> 以避免死锁风险。</li>
+<li><strong>性能优化</strong>：平衡线程安全性和性能，避免不必要的锁竞争。</li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C-cppbase/" rel="tag"># C++ cppbase</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2024/12/27/cppbase26/" rel="next" title="手写双端队列">
+                <i class="fa fa-chevron-left"></i> 手写双端队列
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2025/01/14/cppbase29/" rel="prev" title="unorderedmap以及手写无序map">
+                unorderedmap以及手写无序map <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">367</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">21</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%B0%E6%9C%89-SimpleSharedPtr-%E7%9A%84%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8%E6%80%A7%E5%88%86%E6%9E%90"><span class="nav-number">1.</span> <span class="nav-text">现有 SimpleSharedPtr 的线程安全性分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8%E7%9A%84-SimpleSharedPtr"><span class="nav-number">2.</span> <span class="nav-text">实现线程安全的 SimpleSharedPtr</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%B9%E6%B3%95%E4%B8%80%EF%BC%9A%E4%BD%BF%E7%94%A8-std-atomic-%E7%AE%A1%E7%90%86%E5%BC%95%E7%94%A8%E8%AE%A1%E6%95%B0"><span class="nav-number">2.1.</span> <span class="nav-text">方法一：使用 std::atomic 管理引用计数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%B9%E6%B3%95%E4%BA%8C%EF%BC%9A%E5%BC%95%E5%85%A5%E4%BA%92%E6%96%A5%E9%94%81%E4%BF%9D%E6%8A%A4%E6%8C%87%E9%92%88%E6%93%8D%E4%BD%9C"><span class="nav-number">2.2.</span> <span class="nav-text">方法二：引入互斥锁保护指针操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%B9%E6%B3%95%E4%B8%89%EF%BC%9A%E7%BB%84%E5%90%88%E4%BD%BF%E7%94%A8-std-atomic-%E5%92%8C%E4%BA%92%E6%96%A5%E9%94%81"><span class="nav-number">2.3.</span> <span class="nav-text">方法三：组合使用 std::atomic 和互斥锁</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8%E7%9A%84-ThreadSafeSharedPtr-%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.</span> <span class="nav-text">完整线程安全的 ThreadSafeSharedPtr 实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B3%E9%94%AE%E6%94%B9%E5%8A%A8%E8%AF%B4%E6%98%8E"><span class="nav-number">3.1.</span> <span class="nav-text">关键改动说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="nav-number">3.2.</span> <span class="nav-text">注意事项</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8%E7%9A%84-ThreadSafeSharedPtr"><span class="nav-number">4.</span> <span class="nav-text">测试线程安全的 ThreadSafeSharedPtr</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9%E5%92%8C%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5"><span class="nav-number">5.</span> <span class="nav-text">注意事项和最佳实践</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">6.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

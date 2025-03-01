@@ -74,6 +74,8 @@
 
 
 
+  <link rel="alternate" href="/atom.xml" title="恋恋风辰的个人博客" type="application/atom+xml" />
+
 
 
 
@@ -272,6 +274,371 @@
           <div id="content" class="content">
             
   <section id="posts" class="posts-expand">
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/08/20/concpp03/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2023/08/20/concpp03/" itemprop="url">C++ 并发(3) 互斥与死锁</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-08-20T10:46:40+08:00">
+                2023-08-20
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文介绍如何使用互斥量保证共享数据的安全，并讲述死锁的相关处理方案。</p>
+<h2 id="锁的使用"><a href="#锁的使用" class="headerlink" title="锁的使用"></a>锁的使用</h2><p>我们可以通过mutex对共享数据进行夹所，防止多线程访问共享区造成数据不一致问题。如下，我们初始化一个共享变量<code>shared_data</code>，然后定义了一个互斥量<code>std::mutex</code>，接下来启动了两个线程，分别执行<code>use_lock</code>增加数据，和一个lambda表达式减少数据。<br>结果可以看到两个线程对于共享数据的访问是独占的，单位时间片只有一个线程访问并输出日志。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">std::mutex  mtx1;</span><br><span class="line"><span class="type">int</span> shared_data = <span class="number">100</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_lock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">		mtx1.<span class="built_in">lock</span>();</span><br><span class="line">		shared_data++;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;current thread is &quot;</span> &lt;&lt; std::this_thread::<span class="built_in">get_id</span>() &lt;&lt; std::endl;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;sharad data is &quot;</span> &lt;&lt; shared_data &lt;&lt; std::endl;</span><br><span class="line">		mtx1.<span class="built_in">unlock</span>();</span><br><span class="line">		std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">microseconds</span>(<span class="number">10</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_lock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="function">std::thread <span class="title">t1</span><span class="params">(use_lock)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">t2</span><span class="params">([]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			mtx1.lock();</span></span></span><br><span class="line"><span class="params"><span class="function">			shared_data--;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::cout &lt;&lt; <span class="string">&quot;current thread is &quot;</span> &lt;&lt; std::this_thread::get_id() &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::cout &lt;&lt; <span class="string">&quot;sharad data is &quot;</span> &lt;&lt; shared_data &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">			mtx1.unlock();</span></span></span><br><span class="line"><span class="params"><span class="function">			std::this_thread::sleep_for(std::chrono::microseconds(<span class="number">10</span>));</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	t1.<span class="built_in">join</span>();</span><br><span class="line">	t2.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="lock-guard的使用"><a href="#lock-guard的使用" class="headerlink" title="lock_guard的使用"></a>lock_guard的使用</h2><p>当然我们可以用<code>lock_guard</code>自动加锁和解锁,比如上面的函数可以等价简化为</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_lock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(mtx1)</span></span>;</span><br><span class="line">		shared_data++;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;current thread is &quot;</span> &lt;&lt; std::this_thread::<span class="built_in">get_id</span>() &lt;&lt; std::endl;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;sharad data is &quot;</span> &lt;&lt; shared_data &lt;&lt; std::endl;</span><br><span class="line">		std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">microseconds</span>(<span class="number">10</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>lock_guard</code>在作用域结束时自动调用其析构函数解锁，这么做的一个好处是简化了一些特殊情况从函数中返回的写法，比如异常或者条件不满足时，函数内部直接return，锁也会自动解开。</p>
+<h2 id="如何保证数据安全"><a href="#如何保证数据安全" class="headerlink" title="如何保证数据安全"></a>如何保证数据安全</h2><p>有时候我们可以将对共享数据的访问和修改聚合到一个函数，在函数内加锁保证数据的安全性。但是对于读取类型的操作，即使读取函数是线程安全的，但是返回值抛给外边使用，存在不安全性。比如一个栈对象，我们要保证其在多线程访问的时候是安全的，可以在判断栈是否为空，判断操作内部我们可以加锁，但是判断结束后返回值就不在加锁了，就会存在线程安全问题。</p>
+<p>比如我定义了如下栈, 对于多线程访问时判断栈是否为空，此后两个线程同时出栈，可能会造成崩溃。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">threadsafe_stack1</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	std::stack&lt;T&gt; data;</span><br><span class="line">	<span class="keyword">mutable</span> std::mutex m;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">threadsafe_stack1</span>() &#123;&#125;</span><br><span class="line">	<span class="built_in">threadsafe_stack1</span>(<span class="type">const</span> threadsafe_stack1&amp; other)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(other.m)</span></span>;</span><br><span class="line">		<span class="comment">//①在构造函数的函数体（constructor body）内进行复制操作</span></span><br><span class="line">		data = other.data;</span><br><span class="line">	&#125;</span><br><span class="line">	threadsafe_stack1&amp; <span class="keyword">operator</span>=(<span class="type">const</span> threadsafe_stack1&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">push</span><span class="params">(T new_value)</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(m)</span></span>;</span><br><span class="line">		data.<span class="built_in">push</span>(std::<span class="built_in">move</span>(new_value));</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//问题代码</span></span><br><span class="line">	<span class="function">T <span class="title">pop</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(m)</span></span>;</span><br><span class="line">		<span class="keyword">auto</span> element = data.<span class="built_in">top</span>();</span><br><span class="line">		data.<span class="built_in">pop</span>();</span><br><span class="line">		<span class="keyword">return</span> element;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">bool</span> <span class="title">empty</span><span class="params">()</span> <span class="type">const</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(m)</span></span>;</span><br><span class="line">		<span class="keyword">return</span> data.<span class="built_in">empty</span>();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>如下, 线程1和线程2先后判断栈都不为空，之后执行出战操作，会造成崩溃。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_threadsafe_stack1</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	threadsafe_stack1&lt;<span class="type">int</span>&gt; safe_stack;</span><br><span class="line">	safe_stack.<span class="built_in">push</span>(<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">t1</span><span class="params">([&amp;safe_stack]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">if</span> (!safe_stack.empty()) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::this_thread::sleep_for(std::chrono::seconds(<span class="number">1</span>));</span></span></span><br><span class="line"><span class="params"><span class="function">			safe_stack.pop();</span></span></span><br><span class="line"><span class="params"><span class="function">			&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">t2</span><span class="params">([&amp;safe_stack]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">if</span> (!safe_stack.empty()) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::this_thread::sleep_for(std::chrono::seconds(<span class="number">1</span>));</span></span></span><br><span class="line"><span class="params"><span class="function">			safe_stack.pop();</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">	&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	t1.<span class="built_in">join</span>();</span><br><span class="line">	t2.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>解决这个问题我们可以用抛出异常的方式，比如定义一个空栈的异常</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">empty_stack</span> : std::exception</span><br><span class="line">&#123;</span><br><span class="line">	<span class="function"><span class="type">const</span> <span class="type">char</span>* <span class="title">what</span><span class="params">()</span> <span class="type">const</span> <span class="title">throw</span><span class="params">()</span></span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>然后实现我们的出栈函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">T <span class="title">pop</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(m)</span></span>;</span><br><span class="line">	<span class="keyword">if</span> (data.<span class="built_in">empty</span>()) <span class="keyword">throw</span> <span class="built_in">empty_stack</span>();</span><br><span class="line">	<span class="keyword">auto</span> element = data.<span class="built_in">top</span>();</span><br><span class="line">	data.<span class="built_in">pop</span>();</span><br><span class="line">	<span class="keyword">return</span> element;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这么做就需要在外层使用的时候捕获异常。这是C++ 并发编程中提及的建议。但是我觉得可以在函数pop内部再次判断栈是否为空，若为空则返回一个非法数据，这样比抛出异常好一些。但是如果T是一个复杂类型，我们很难定义一个非法值给外界知晓，这一点可以通过智能指针进行优化。之后我们再介绍更优化的方案，因为现在这个<code>pop</code>函数仍存在问题，比如<code>T</code>是一个<code>vector&lt;int&gt;</code>类型，那么在<code>pop</code>函数内部<code>element</code>就是<code>vector&lt;int&gt;</code>类型，开始<code>element</code>存储了一些int值，程序没问题，函数执行pop操作， 假设此时程序内存暴增，导致当程序使用的内存足够大时，可用的有效空间不够， 函数返回<code>element</code>时，就会就会存在<code>vector</code>做拷贝赋值时造成失败。即使我们捕获异常，释放部分空间但也会导致栈元素已经出栈，数据丢失了。这其实是内存管理不当造成的，但是C++ 并发编程一书中给出了优化方案。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">empty_stack</span> : std::exception</span><br><span class="line">&#123;</span><br><span class="line">	<span class="function"><span class="type">const</span> <span class="type">char</span>* <span class="title">what</span><span class="params">()</span> <span class="type">const</span> <span class="title">throw</span><span class="params">()</span></span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">threadsafe_stack</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	std::stack&lt;T&gt; data;</span><br><span class="line">	<span class="keyword">mutable</span> std::mutex m;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">threadsafe_stack</span>() &#123;&#125;</span><br><span class="line">	<span class="built_in">threadsafe_stack</span>(<span class="type">const</span> threadsafe_stack&amp; other)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(other.m)</span></span>;</span><br><span class="line">		<span class="comment">//①在构造函数的函数体（constructor body）内进行复制操作</span></span><br><span class="line">		data = other.data;   </span><br><span class="line">	&#125;</span><br><span class="line">	threadsafe_stack&amp; <span class="keyword">operator</span>=(<span class="type">const</span> threadsafe_stack&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">push</span><span class="params">(T new_value)</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(m)</span></span>;</span><br><span class="line">		data.<span class="built_in">push</span>(std::<span class="built_in">move</span>(new_value));</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function">std::shared_ptr&lt;T&gt; <span class="title">pop</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(m)</span></span>;</span><br><span class="line">		<span class="comment">//②试图弹出前检查是否为空栈</span></span><br><span class="line">		<span class="keyword">if</span> (data.<span class="built_in">empty</span>()) <span class="keyword">throw</span> <span class="built_in">empty_stack</span>();</span><br><span class="line">		<span class="comment">//③改动栈容器前设置返回值</span></span><br><span class="line">			<span class="function">std::shared_ptr&lt;T&gt; <span class="type">const</span> <span class="title">res</span><span class="params">(std::make_shared&lt;T&gt;(data.top()))</span></span>;    </span><br><span class="line">			data.<span class="built_in">pop</span>();</span><br><span class="line">		<span class="keyword">return</span> res;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">pop</span><span class="params">(T&amp; value)</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(m)</span></span>;</span><br><span class="line">		<span class="keyword">if</span> (data.<span class="built_in">empty</span>()) <span class="keyword">throw</span> <span class="built_in">empty_stack</span>();</span><br><span class="line">		value = data.<span class="built_in">top</span>();</span><br><span class="line">		data.<span class="built_in">pop</span>();</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="type">bool</span> <span class="title">empty</span><span class="params">()</span> <span class="type">const</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(m)</span></span>;</span><br><span class="line">		<span class="keyword">return</span> data.<span class="built_in">empty</span>();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>我们提供了两个版本的<code>pop</code>操作，一个是带引用类型的参数的，一个是直接<code>pop</code>出智能指针类型，这样在<code>pop</code>函数内部减少了数据的拷贝，防止内存溢出，其实这两种做法确实是相比之前直接<code>pop</code>固定类型的值更节省内存，运行效率也好很多。我们也完全可以基于之前的思想，在<code>pop</code>时如果队列为空则返回空指针，这样比抛出异常更有好一些</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::shared_ptr&lt;T&gt; <span class="title">pop</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">lock</span><span class="params">(m)</span></span>;</span><br><span class="line">	<span class="comment">//②试图弹出前检查是否为空栈</span></span><br><span class="line">	<span class="keyword">if</span> (data.<span class="built_in">empty</span>()) <span class="keyword">return</span> <span class="literal">nullptr</span>;</span><br><span class="line">	<span class="comment">//③改动栈容器前设置返回值</span></span><br><span class="line">	<span class="function">std::shared_ptr&lt;T&gt; <span class="type">const</span> <span class="title">res</span><span class="params">(std::make_shared&lt;T&gt;(data.top()))</span></span>;    </span><br><span class="line">	data.<span class="built_in">pop</span>();</span><br><span class="line">	<span class="keyword">return</span> res;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="死锁怎么造成的"><a href="#死锁怎么造成的" class="headerlink" title="死锁怎么造成的"></a>死锁怎么造成的</h2><p>死锁一般是由于调运顺序不一致导致的，比如两个线程循环调用。当线程1先加锁A，再加锁B，而线程2先加锁B，再加锁A。那么在某一时刻就可能造成死锁。比如线程1对A已经加锁，线程2对B已经加锁，那么他们都希望彼此占有对方的锁，又不释放自己占有的锁导致了死锁。<br>举个例子</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">std::mutex  t_lock1;</span><br><span class="line">std::mutex  t_lock2;</span><br><span class="line"><span class="type">int</span> m_1 = <span class="number">0</span>;</span><br><span class="line"><span class="type">int</span> m_2 = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">dead_lock1</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;dead_lock1 begin &quot;</span> &lt;&lt; std::endl;</span><br><span class="line">		t_lock1.<span class="built_in">lock</span>();</span><br><span class="line">		m_1 = <span class="number">1024</span>;</span><br><span class="line">		t_lock2.<span class="built_in">lock</span>();</span><br><span class="line">		m_2 = <span class="number">2048</span>;</span><br><span class="line">		t_lock2.<span class="built_in">unlock</span>();</span><br><span class="line">		t_lock1.<span class="built_in">unlock</span>();</span><br><span class="line">		std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">milliseconds</span>(<span class="number">5</span>));</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;dead_lock2 end &quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">dead_lock2</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;dead_lock2 begin &quot;</span> &lt;&lt; std::endl;</span><br><span class="line">		t_lock2.<span class="built_in">lock</span>();</span><br><span class="line">		m_2 = <span class="number">2048</span>;</span><br><span class="line">		t_lock1.<span class="built_in">lock</span>();</span><br><span class="line">		m_1 = <span class="number">1024</span>;</span><br><span class="line">		t_lock1.<span class="built_in">unlock</span>();</span><br><span class="line">		t_lock2.<span class="built_in">unlock</span>();</span><br><span class="line">		std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">milliseconds</span>(<span class="number">5</span>));</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;dead_lock2 end &quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>然后我们启动两个线程</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_dead_lock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="function">std::thread <span class="title">t1</span><span class="params">(dead_lock1)</span></span>;</span><br><span class="line">	<span class="function">std::thread <span class="title">t2</span><span class="params">(dead_lock2)</span></span>;</span><br><span class="line">	t1.<span class="built_in">join</span>();</span><br><span class="line">	t2.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这样运行之后在某一个时刻一定会导致死锁。<br>实际工作中避免死锁的一个方式就是将加锁和解锁的功能封装为独立的函数，<br>这样能保证在独立的函数里执行完操作后就解锁，不会导致一个函数里使用多个锁的情况</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//加锁和解锁作为原子操作解耦合，各自只管理自己的功能</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">atomic_lock1</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;lock1 begin lock&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	t_lock1.<span class="built_in">lock</span>();</span><br><span class="line">	m_1 = <span class="number">1024</span>;</span><br><span class="line">	t_lock1.<span class="built_in">unlock</span>();</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;lock1 end lock&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">atomic_lock2</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;lock2 begin lock&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	t_lock2.<span class="built_in">lock</span>();</span><br><span class="line">	m_2 = <span class="number">2048</span>;</span><br><span class="line">	t_lock2.<span class="built_in">unlock</span>();</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;lock2 end lock&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">safe_lock1</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">		<span class="built_in">atomic_lock1</span>();</span><br><span class="line">		<span class="built_in">atomic_lock2</span>();</span><br><span class="line">		std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">milliseconds</span>(<span class="number">5</span>));</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">safe_lock2</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">		<span class="built_in">atomic_lock2</span>();</span><br><span class="line">		<span class="built_in">atomic_lock1</span>();</span><br><span class="line">		std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">milliseconds</span>(<span class="number">5</span>));</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_safe_lock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="function">std::thread <span class="title">t1</span><span class="params">(safe_lock1)</span></span>;</span><br><span class="line">	<span class="function">std::thread <span class="title">t2</span><span class="params">(safe_lock2)</span></span>;</span><br><span class="line">	t1.<span class="built_in">join</span>();</span><br><span class="line">	t2.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="同时加锁"><a href="#同时加锁" class="headerlink" title="同时加锁"></a>同时加锁</h2><p>当我们无法避免在一个函数内部使用两个互斥量，并且都要解锁的情况，那我们可以采取同时加锁的方式。我们先定义一个类,假设这个类不推荐拷贝构造，但我们也提供了这个类的拷贝构造和移动构造</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">som_big_object</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">som_big_object</span>(<span class="type">int</span> data) :_data(data) &#123;&#125;</span><br><span class="line">	<span class="comment">//拷贝构造</span></span><br><span class="line">	<span class="built_in">som_big_object</span>(<span class="type">const</span> som_big_object&amp; b2) :_data(b2._data) &#123;</span><br><span class="line">		_data = b2._data;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//移动构造</span></span><br><span class="line">	<span class="built_in">som_big_object</span>(som_big_object&amp;&amp; b2) :_data(std::<span class="built_in">move</span>(b2._data)) &#123;</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//重载输出运算符</span></span><br><span class="line">	<span class="keyword">friend</span> std::ostream&amp; <span class="keyword">operator</span> &lt;&lt; (std::ostream&amp; os, <span class="type">const</span> som_big_object&amp; big_obj) &#123;</span><br><span class="line">		os &lt;&lt; big_obj._data;</span><br><span class="line">		<span class="keyword">return</span> os;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//重载赋值运算符</span></span><br><span class="line">	som_big_object&amp; <span class="keyword">operator</span> = (<span class="type">const</span> som_big_object&amp; b2) &#123;</span><br><span class="line">		<span class="keyword">if</span> (<span class="keyword">this</span> == &amp;b2) &#123;</span><br><span class="line">			<span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		_data = b2._data;</span><br><span class="line">		<span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//交换数据</span></span><br><span class="line">	<span class="function"><span class="keyword">friend</span> <span class="type">void</span> <span class="title">swap</span><span class="params">(som_big_object&amp; b1, som_big_object&amp; b2)</span> </span>&#123;</span><br><span class="line">		som_big_object temp = std::<span class="built_in">move</span>(b1);</span><br><span class="line">		b1 = std::<span class="built_in">move</span>(b2);</span><br><span class="line">		b2 = std::<span class="built_in">move</span>(temp);</span><br><span class="line">	&#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	<span class="type">int</span> _data;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>接下来我们定义一个类对上面的类做管理，为防止多线程情况下数据混乱， 包含了一个互斥量。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">big_object_mgr</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">big_object_mgr</span>(<span class="type">int</span> data = <span class="number">0</span>) :_obj(data) &#123;&#125;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">printinfo</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		std::cout &lt;&lt; <span class="string">&quot;current obj data is &quot;</span> &lt;&lt; _obj &lt;&lt; std::endl;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="keyword">friend</span> <span class="type">void</span> <span class="title">danger_swap</span><span class="params">(big_object_mgr&amp; objm1, big_object_mgr&amp; objm2)</span></span>;</span><br><span class="line">	<span class="function"><span class="keyword">friend</span> <span class="type">void</span> <span class="title">safe_swap</span><span class="params">(big_object_mgr&amp; objm1, big_object_mgr&amp; objm2)</span></span>;</span><br><span class="line">	<span class="function"><span class="keyword">friend</span> <span class="type">void</span> <span class="title">safe_swap_scope</span><span class="params">(big_object_mgr&amp; objm1, big_object_mgr&amp; objm2)</span></span>;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	std::mutex _mtx;</span><br><span class="line">	som_big_object _obj;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>为了方便演示哪些交换是安全的，哪些是危险的，所以写了三个函数。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">danger_swap</span><span class="params">(big_object_mgr&amp; objm1, big_object_mgr&amp; objm2)</span> </span>&#123;</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;thread [ &quot;</span> &lt;&lt; std::this_thread::<span class="built_in">get_id</span>() &lt;&lt; <span class="string">&quot; ] begin&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	<span class="keyword">if</span> (&amp;objm1 == &amp;objm2) &#123;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	std::lock_guard &lt;std::mutex&gt; <span class="built_in">gurad1</span>(objm1._mtx);</span><br><span class="line">	<span class="comment">//此处为了故意制造死锁，我们让线程小睡一会</span></span><br><span class="line">	std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">1</span>));</span><br><span class="line">	<span class="function">std::lock_guard&lt;std::mutex&gt; <span class="title">guard2</span><span class="params">(objm2._mtx)</span></span>;</span><br><span class="line">	<span class="built_in">swap</span>(objm1._obj, objm2._obj);</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;thread [ &quot;</span> &lt;&lt; std::this_thread::<span class="built_in">get_id</span>() &lt;&lt; <span class="string">&quot; ] end&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>danger_swap</code>是危险的交换方式。比如如下调用</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span>  <span class="title">test_danger_swap</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="function">big_object_mgr <span class="title">objm1</span><span class="params">(<span class="number">5</span>)</span></span>;</span><br><span class="line">	<span class="function">big_object_mgr <span class="title">objm2</span><span class="params">(<span class="number">100</span>)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">t1</span><span class="params">(danger_swap, std::ref(objm1), std::ref(objm2))</span></span>;</span><br><span class="line">	<span class="function">std::thread <span class="title">t2</span><span class="params">(danger_swap, std::ref(objm2), std::ref(objm1))</span></span>;</span><br><span class="line">	t1.<span class="built_in">join</span>();</span><br><span class="line">	t2.<span class="built_in">join</span>();</span><br><span class="line"></span><br><span class="line">	objm1.<span class="built_in">printinfo</span>();</span><br><span class="line">	objm2.<span class="built_in">printinfo</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这种调用方式存在隐患，因为<code>danger_swap</code>函数在两个线程中使用会造成互相竞争加锁的情况。<br>那就需要用锁同时锁住两个锁。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">safe_swap</span><span class="params">(big_object_mgr&amp; objm1, big_object_mgr&amp; objm2)</span> </span>&#123;</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;thread [ &quot;</span> &lt;&lt; std::this_thread::<span class="built_in">get_id</span>() &lt;&lt; <span class="string">&quot; ] begin&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	<span class="keyword">if</span> (&amp;objm1 == &amp;objm2) &#123;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	std::<span class="built_in">lock</span>(objm1._mtx, objm2._mtx);</span><br><span class="line">	<span class="comment">//领养锁管理它自动释放</span></span><br><span class="line">	std::lock_guard &lt;std::mutex&gt; <span class="built_in">gurad1</span>(objm1._mtx, std::adopt_lock);</span><br><span class="line"></span><br><span class="line">	<span class="comment">//此处为了故意制造死锁，我们让线程小睡一会</span></span><br><span class="line">	std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">1</span>));</span><br><span class="line"></span><br><span class="line">	std::lock_guard &lt;std::mutex&gt; <span class="built_in">gurad2</span>(objm2._mtx, std::adopt_lock);</span><br><span class="line"></span><br><span class="line">	<span class="built_in">swap</span>(objm1._obj, objm2._obj);</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;thread [ &quot;</span> &lt;&lt; std::this_thread::<span class="built_in">get_id</span>() &lt;&lt; <span class="string">&quot; ] end&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>比如下面的调用就是合理的</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_safe_swap</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="function">big_object_mgr <span class="title">objm1</span><span class="params">(<span class="number">5</span>)</span></span>;</span><br><span class="line">	<span class="function">big_object_mgr <span class="title">objm2</span><span class="params">(<span class="number">100</span>)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">t1</span><span class="params">(safe_swap, std::ref(objm1), std::ref(objm2))</span></span>;</span><br><span class="line">	<span class="function">std::thread <span class="title">t2</span><span class="params">(safe_swap, std::ref(objm2), std::ref(objm1))</span></span>;</span><br><span class="line">	t1.<span class="built_in">join</span>();</span><br><span class="line">	t2.<span class="built_in">join</span>();</span><br><span class="line"></span><br><span class="line">	objm1.<span class="built_in">printinfo</span>();</span><br><span class="line">	objm2.<span class="built_in">printinfo</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当然上面加锁的方式可以简化，C++17 <code>scope_lock</code>可以对多个互斥量同时加锁，并且自动释放</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//上述代码可以简化为以下方式</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">safe_swap_scope</span><span class="params">(big_object_mgr&amp; objm1, big_object_mgr&amp; objm2)</span> </span>&#123;</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;thread [ &quot;</span> &lt;&lt; std::this_thread::<span class="built_in">get_id</span>() &lt;&lt; <span class="string">&quot; ] begin&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">	<span class="keyword">if</span> (&amp;objm1 == &amp;objm2) &#123;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::scoped_lock  <span class="title">guard</span><span class="params">(objm1._mtx, objm2._mtx)</span></span>;</span><br><span class="line">	<span class="comment">//等价于</span></span><br><span class="line">	<span class="comment">//std::scoped_lock&lt;std::mutex, std::mutex&gt; guard(objm1._mtx, objm2._mtx);</span></span><br><span class="line">	<span class="built_in">swap</span>(objm1._obj, objm2._obj);</span><br><span class="line">	std::cout &lt;&lt; <span class="string">&quot;thread [ &quot;</span> &lt;&lt; std::this_thread::<span class="built_in">get_id</span>() &lt;&lt; <span class="string">&quot; ] end&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="层级锁"><a href="#层级锁" class="headerlink" title="层级锁"></a>层级锁</h2><p>现实开发中常常很难规避同一个函数内部加多个锁的情况，我们要尽可能避免循环加锁，所以可以自定义一个层级锁，保证实际项目中对多个互斥量加锁时是有序的。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//层级锁</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">hierarchical_mutex</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="function"><span class="keyword">explicit</span> <span class="title">hierarchical_mutex</span><span class="params">(<span class="type">unsigned</span> <span class="type">long</span> value)</span> :_hierarchy_value(value),</span></span><br><span class="line"><span class="function">		_previous_hierarchy_value(<span class="number">0</span>) &#123;</span>&#125;</span><br><span class="line">	<span class="built_in">hierarchical_mutex</span>(<span class="type">const</span> hierarchical_mutex&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	hierarchical_mutex&amp; <span class="keyword">operator</span>=(<span class="type">const</span> hierarchical_mutex&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">lock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="built_in">check_for_hierarchy_violation</span>();</span><br><span class="line">		_internal_mutex.<span class="built_in">lock</span>();</span><br><span class="line">		<span class="built_in">update_hierarchy_value</span>();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">unlock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">if</span> (_this_thread_hierarchy_value != _hierarchy_value) &#123;</span><br><span class="line">			<span class="keyword">throw</span> std::<span class="built_in">logic_error</span>(<span class="string">&quot;mutex hierarchy violated&quot;</span>);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		_this_thread_hierarchy_value = _previous_hierarchy_value;</span><br><span class="line">		_internal_mutex.<span class="built_in">unlock</span>();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">bool</span> <span class="title">try_lock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="built_in">check_for_hierarchy_violation</span>();</span><br><span class="line">		<span class="keyword">if</span> (!_internal_mutex.<span class="built_in">try_lock</span>()) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="built_in">update_hierarchy_value</span>();</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	std::mutex  _internal_mutex;</span><br><span class="line">	<span class="comment">//当前层级值</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> _hierarchy_value;</span><br><span class="line">	<span class="comment">//上一次层级值</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> _previous_hierarchy_value;</span><br><span class="line">	<span class="comment">//本线程记录的层级值</span></span><br><span class="line">	<span class="type">static</span> <span class="keyword">thread_local</span>  <span class="type">unsigned</span> <span class="type">long</span>  _this_thread_hierarchy_value;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">check_for_hierarchy_violation</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">if</span> (_this_thread_hierarchy_value &lt;= _hierarchy_value) &#123;</span><br><span class="line">			<span class="keyword">throw</span>  std::<span class="built_in">logic_error</span>(<span class="string">&quot;mutex  hierarchy violated&quot;</span>);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="type">void</span>  <span class="title">update_hierarchy_value</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		_previous_hierarchy_value = _this_thread_hierarchy_value;</span><br><span class="line">		_this_thread_hierarchy_value = _hierarchy_value;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">thread_local</span> <span class="type">unsigned</span> <span class="type">long</span> hierarchical_mutex::_this_thread_hierarchy_value(ULONG_MAX);</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">test_hierarchy_lock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="function">hierarchical_mutex  <span class="title">hmtx1</span><span class="params">(<span class="number">1000</span>)</span></span>;</span><br><span class="line">	<span class="function">hierarchical_mutex  <span class="title">hmtx2</span><span class="params">(<span class="number">500</span>)</span></span>;</span><br><span class="line">	<span class="function">std::thread <span class="title">t1</span><span class="params">([&amp;hmtx1, &amp;hmtx2]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		hmtx1.lock();</span></span></span><br><span class="line"><span class="params"><span class="function">		hmtx2.lock();</span></span></span><br><span class="line"><span class="params"><span class="function">		hmtx2.unlock();</span></span></span><br><span class="line"><span class="params"><span class="function">		hmtx1.unlock();</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="function">std::thread <span class="title">t2</span><span class="params">([&amp;hmtx1, &amp;hmtx2]() &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		hmtx2.lock();</span></span></span><br><span class="line"><span class="params"><span class="function">		hmtx1.lock();</span></span></span><br><span class="line"><span class="params"><span class="function">		hmtx1.unlock();</span></span></span><br><span class="line"><span class="params"><span class="function">		hmtx2.unlock();</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">	t1.<span class="built_in">join</span>();</span><br><span class="line">	t2.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>层级锁能保证我们每个线程加锁时，一定是先加权重高的锁。<br>并且释放时也保证了顺序。<br>主要原理就是将当前锁的权重保存在线程变量中，这样该线程再次加锁时判断线程变量的权重和锁的权重是否大于，如果满足条件则继续加锁。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了线程互斥的常见问题和基本处理方案，在实际开发中，根据具体情境具体分析。</p>
+<p>视频链接<a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290">https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290</a></p>
+<p>源码链接<a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn">https://gitee.com/secondtonone1/boostasio-learn</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/08/12/concpp02/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2023/08/12/concpp02/" itemprop="url">C++ 并发(2) 线程管控</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-08-12T13:17:54+08:00">
+                2023-08-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cpp/" itemprop="url" rel="index">
+                    <span itemprop="name">C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本节介绍C++线程管控，包括移交线程的归属权，线程并发数量控制以及获取线程id等基本操作。</p>
+<h2 id="线程归属权"><a href="#线程归属权" class="headerlink" title="线程归属权"></a>线程归属权</h2><p>我们之前介绍了线程可以通过detach在后台运行或者让开辟这个线程的父线程等待该线程完成。<br>但每个线程都应该有其归属权，也就是归属给某个变量管理。比如</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">some_function</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function">std::thread <span class="title">t1</span><span class="params">(some_function)</span></span>;  </span><br></pre></td></tr></table></figure>
+<p>t1是一个线程变量，管理一个线程，该线程执行<code>some_function()</code><br>对于<code>std::thread</code> C++ 不允许其执行拷贝构造和拷贝赋值, 所以只能通过移动和局部变量返回的方式将线程变量管理的线程转移给其他变量管理。<br>C++ 中类似的类型还有<code>std::mutex</code>, <code>std::ifstream</code>, <code>std::unique_ptr</code>。<br>比如下面，我们说明了线程归属权的转移方式</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">some_function</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">        std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">1</span>));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">some_other_function</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">		std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">1</span>));</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//t1 绑定some_function</span></span><br><span class="line"><span class="function">std::thread <span class="title">t1</span><span class="params">(some_function)</span></span>; </span><br><span class="line"><span class="comment">//2 转移t1管理的线程给t2，转移后t1无效</span></span><br><span class="line">std::thread t2 =  std::<span class="built_in">move</span>(t1);</span><br><span class="line"><span class="comment">//3 t1 可继续绑定其他线程,执行some_other_function</span></span><br><span class="line">t1 = std::<span class="built_in">thread</span>(some_other_function);</span><br><span class="line"><span class="comment">//4  创建一个线程变量t3</span></span><br><span class="line">std::thread t3;</span><br><span class="line"><span class="comment">//5  转移t2管理的线程给t3</span></span><br><span class="line">t3 = std::<span class="built_in">move</span>(t2);</span><br><span class="line"><span class="comment">//6  转移t3管理的线程给t1</span></span><br><span class="line">t1 = std::<span class="built_in">move</span>(t3);</span><br><span class="line">std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">2000</span>));</span><br></pre></td></tr></table></figure>
+<p>上面的代码会引发崩溃，是因为步骤6造成的崩溃。<br>让主函数睡眠2000秒，是为了告诉规避主函数退出引发崩溃的问题，因为我们在之前给大家演示过，如果线程不detach或者join，主线程退出时会引发崩溃，而我们这些线程没有join和detach，为了给大家演示是因为步骤6引发的崩溃，所以让主线程睡眠2000秒暂时不退出，但是程序仍然会崩溃，说明是步骤6导致的崩溃。</p>
+<p>上面代码将t2管理的线程交给t3<br>之后将t3管理的线程交给t1，此时t1管理线程运行着 <code>some_function</code><br>步骤6导致崩溃的原因就是将t3管理的线程交给t1，而此时t1正在管理线程运行<code>some_other_function</code>。<br>所以我们可以得出一个结论，就是不要将一个线程的管理权交给一个已经绑定线程的变量，否则会触发线程的terminate函数引发崩溃。</p>
+<p>和<code>std::unique_ptr</code>一样，我们可以在函数内部返回一个局部的<code>std::thread</code>变量。如下:</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::thread  <span class="title">f</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> std::<span class="built_in">thread</span>(some_function);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">param_function</span><span class="params">(<span class="type">int</span> a)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">		std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">1</span>));</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function">std::thread <span class="title">g</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="function">std::thread <span class="title">t</span><span class="params">(param_function, <span class="number">43</span>)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>因为C++ 在返回局部变量时，会优先寻找这个类的拷贝构造函数，如果没有就会使用这个类的移动构造函数。</p>
+<h2 id="joining-thread"><a href="#joining-thread" class="headerlink" title="joining_thread"></a>joining_thread</h2><p>曾经有一份C++17标准的备选提案，主张引入新的类joining_thread，它与std::thread类似，但只要其执行析构函数，线程即能自动汇合，这点与scoped_thread非常像。可惜C++标准委员会未能达成共识，结果C++17标准没有引入这个类，后来它改名为std::jthread，依然进入了C++20标准的议程（现已被正式纳入C++20标准）。除去这些，实际上joining_thread类的代码相对容易编写</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">joining_thread</span> &#123;</span><br><span class="line">    std::thread  <span class="type">_t</span>;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">joining_thread</span>() <span class="keyword">noexcept</span> = <span class="keyword">default</span>;</span><br><span class="line">    <span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Callable, <span class="keyword">typename</span> ...  Args&gt;</span></span><br><span class="line"><span class="function">    <span class="keyword">explicit</span>  <span class="title">joining_thread</span><span class="params">(Callable&amp;&amp; func, Args&amp;&amp; ...args)</span>:</span></span><br><span class="line"><span class="function">        t(std::forward&lt;Callable&gt;(func),  std::forward&lt;Args&gt;(args)...)&#123;</span>&#125;</span><br><span class="line">    <span class="function"><span class="keyword">explicit</span> <span class="title">joining_thread</span><span class="params">(std::thread  t)</span> <span class="keyword">noexcept</span>: _t(std::move(t))&#123;</span>&#125;</span><br><span class="line">    <span class="built_in">joining_thread</span>(joining_thread&amp;&amp; other) <span class="keyword">noexcept</span>: <span class="type">_t</span>(std::<span class="built_in">move</span>(other.<span class="type">_t</span>))&#123;&#125;</span><br><span class="line">    joining_thread&amp; <span class="keyword">operator</span>=(joining_thread&amp;&amp; other) <span class="keyword">noexcept</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">//如果当前线程可汇合，则汇合等待线程完成再赋值</span></span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">joinable</span>()) &#123;</span><br><span class="line">            <span class="built_in">join</span>();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="type">_t</span> = std::<span class="built_in">move</span>(other.<span class="type">_t</span>);</span><br><span class="line">        <span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">	joining_thread&amp; <span class="keyword">operator</span>=(joining_thread other) <span class="keyword">noexcept</span></span><br><span class="line">	&#123;</span><br><span class="line">		<span class="comment">//如果当前线程可汇合，则汇合等待线程完成再赋值</span></span><br><span class="line">		<span class="keyword">if</span> (<span class="built_in">joinable</span>()) &#123;</span><br><span class="line">			<span class="built_in">join</span>();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="type">_t</span> = std::<span class="built_in">move</span>(other.<span class="type">_t</span>);</span><br><span class="line">		<span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    ~<span class="built_in">joining_thread</span>() <span class="keyword">noexcept</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">joinable</span>()) &#123;</span><br><span class="line">            <span class="built_in">join</span>();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">swap</span><span class="params">(joining_thread&amp; other)</span> <span class="keyword">noexcept</span> </span>&#123;</span><br><span class="line">        <span class="type">_t</span>.<span class="built_in">swap</span>(other.<span class="type">_t</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    std::<span class="function">thread::id   <span class="title">get_id</span><span class="params">()</span> <span class="type">const</span> <span class="keyword">noexcept</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="type">_t</span>.<span class="built_in">get_id</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">joinable</span><span class="params">()</span> <span class="type">const</span> <span class="keyword">noexcept</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="type">_t</span>.<span class="built_in">joinable</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">join</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="type">_t</span>.<span class="built_in">join</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">detach</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="type">_t</span>.<span class="built_in">detach</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function">std::thread&amp; <span class="title">as_thread</span><span class="params">()</span> <span class="keyword">noexcept</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="type">_t</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="type">const</span> std::thread&amp; <span class="title">as_thread</span><span class="params">()</span> <span class="type">const</span> <span class="keyword">noexcept</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="type">_t</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>使用起来比较简单，我们直接构造一个joining_thread对象即可。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_jointhread</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">//1 根据线程构造函数构造joiningthread</span></span><br><span class="line">	<span class="function">joining_thread <span class="title">j1</span><span class="params">([](<span class="type">int</span> maxindex) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; maxindex; i++) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::cout &lt;&lt; <span class="string">&quot;in thread id &quot;</span> &lt;&lt; std::this_thread::get_id()</span></span></span><br><span class="line"><span class="params"><span class="function">				&lt;&lt; <span class="string">&quot; cur index is &quot;</span> &lt;&lt; i &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::this_thread::sleep_for(std::chrono::seconds(<span class="number">1</span>));</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;, <span class="number">10</span>)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//2 根据thread构造joiningthread</span></span><br><span class="line">	<span class="function">joining_thread <span class="title">j2</span><span class="params">(std::thread([](<span class="type">int</span> maxindex) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; maxindex; i++) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::cout &lt;&lt; <span class="string">&quot;in thread id &quot;</span> &lt;&lt; std::this_thread::get_id()</span></span></span><br><span class="line"><span class="params"><span class="function">				&lt;&lt; <span class="string">&quot; cur index is &quot;</span> &lt;&lt; i &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::this_thread::sleep_for(std::chrono::seconds(<span class="number">1</span>));</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;, <span class="number">10</span>))</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//3 根据thread构造j3</span></span><br><span class="line">	<span class="function">joining_thread <span class="title">j3</span><span class="params">(std::thread([](<span class="type">int</span> maxindex) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; maxindex; i++) &#123;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::cout &lt;&lt; <span class="string">&quot;in thread id &quot;</span> &lt;&lt; std::this_thread::get_id()</span></span></span><br><span class="line"><span class="params"><span class="function">				&lt;&lt; <span class="string">&quot; cur index is &quot;</span> &lt;&lt; i &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">			std::this_thread::sleep_for(std::chrono::seconds(<span class="number">1</span>));</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;</span></span></span><br><span class="line"><span class="params"><span class="function">		&#125;, <span class="number">10</span>))</span></span>;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	<span class="comment">//4 把j3赋值给j1，joining_thread内部会等待j1汇合结束后</span></span><br><span class="line">	<span class="comment">//再将j3赋值给j1</span></span><br><span class="line">    j1 = std::<span class="built_in">move</span>(j3);</span><br><span class="line">ervice</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="容器存储"><a href="#容器存储" class="headerlink" title="容器存储"></a>容器存储</h2><p>容器存储线程时，比如<code>vector</code>,如果用<code>push_back</code>操作势必会调用<code>std::thread</code>，这样会引发编译错误，因为<code>std::thread</code>没有拷贝构造函数。我们在之前网络编程实现IOServicePool或者IOThreadPool时初始化了多个线程存储在vector中, 采用的时emplace方式，可以直接根据线程构造函数需要的参数构造，这样就避免了调用thread的拷贝构造函数。 类似于这种</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_vector</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    std::vector&lt;std::thread&gt; threads;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">unsigned</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; ++i) &#123;</span><br><span class="line">        threads.<span class="built_in">emplace_back</span>(param_function, i);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">auto</span>&amp; entry : threads) &#123;</span><br><span class="line">        entry.<span class="built_in">join</span>();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="选择运行数量"><a href="#选择运行数量" class="headerlink" title="选择运行数量"></a>选择运行数量</h2><p>借用C++标准库的<code>std::thread::hardware_concurrency()</code>函数，它的返回值是一个指标，表示程序在各次运行中可真正并发的线程数量.<br>我们可以模拟实现一个并行计算的功能，计算容器内所有元素的和</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Iterator, <span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function">T <span class="title">parallel_accumulate</span><span class="params">(Iterator first, Iterator last, T init)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> length = std::<span class="built_in">distance</span>(first, last);</span><br><span class="line">	<span class="keyword">if</span> (!length)</span><br><span class="line">		<span class="keyword">return</span> init;    <span class="comment">//⇽-- - ①</span></span><br><span class="line">		<span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> min_per_thread = <span class="number">25</span>;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> max_threads =</span><br><span class="line">		(length + min_per_thread - <span class="number">1</span>) / min_per_thread;    <span class="comment">//⇽-- - ②</span></span><br><span class="line">		<span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> hardware_threads =</span><br><span class="line">		std::thread::<span class="built_in">hardware_concurrency</span>();</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> num_threads =</span><br><span class="line">		std::<span class="built_in">min</span>(hardware_threads != <span class="number">0</span> ? hardware_threads : <span class="number">2</span>, max_threads);    <span class="comment">//⇽-- - ③</span></span><br><span class="line">		<span class="type">unsigned</span> <span class="type">long</span> <span class="type">const</span> block_size = length / num_threads;    <span class="comment">//⇽-- - ④</span></span><br><span class="line">		<span class="function">std::vector&lt;T&gt; <span class="title">results</span><span class="params">(num_threads)</span></span>;</span><br><span class="line">	<span class="function">std::vector&lt;std::thread&gt;  <span class="title">threads</span><span class="params">(num_threads - <span class="number">1</span>)</span></span>;   <span class="comment">// ⇽-- - ⑤</span></span><br><span class="line">		Iterator block_start = first;</span><br><span class="line">	<span class="keyword">for</span> (<span class="type">unsigned</span> <span class="type">long</span> i = <span class="number">0</span>; i &lt; (num_threads - <span class="number">1</span>); ++i)</span><br><span class="line">	&#123;</span><br><span class="line">		Iterator block_end = block_start;</span><br><span class="line">		std::<span class="built_in">advance</span>(block_end, block_size);    <span class="comment">//⇽-- - ⑥</span></span><br><span class="line">			threads[i] = std::<span class="built_in">thread</span>(<span class="comment">//⇽-- - ⑦</span></span><br><span class="line">				<span class="built_in">accumulate_block</span>&lt;Iterator, T&gt;(),</span><br><span class="line">				block_start, block_end, std::<span class="built_in">ref</span>(results[i]));</span><br><span class="line">		block_start = block_end;    <span class="comment">//⇽-- - ⑧</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">accumulate_block</span>&lt;Iterator, T&gt;()(</span><br><span class="line">		block_start, last, results[num_threads - <span class="number">1</span>]);    <span class="comment">//⇽-- - ⑨</span></span><br><span class="line"></span><br><span class="line">		<span class="keyword">for</span> (<span class="keyword">auto</span>&amp; entry : threads)</span><br><span class="line">			entry.<span class="built_in">join</span>();    <span class="comment">//⇽-- - ⑩</span></span><br><span class="line">			<span class="keyword">return</span> std::<span class="built_in">accumulate</span>(results.<span class="built_in">begin</span>(), results.<span class="built_in">end</span>(), init);    <span class="comment">//⇽-- - ⑪</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">use_parallel_acc</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    std::vector &lt;<span class="type">int</span>&gt; <span class="built_in">vec</span>(<span class="number">10000</span>);</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10000</span>; i++) &#123;</span><br><span class="line">        vec.<span class="built_in">push_back</span>(i);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">int</span> sum = <span class="number">0</span>;</span><br><span class="line">    sum = parallel_accumulate&lt;std::vector&lt;<span class="type">int</span>&gt;::iterator, <span class="type">int</span>&gt;(vec.<span class="built_in">begin</span>(), </span><br><span class="line">        vec.<span class="built_in">end</span>(), sum);</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;sum is &quot;</span> &lt;&lt; sum &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面的代码1处判断要计算的容器内元素为0个则返回。</p>
+<p>2处计算最大开辟的线程数，我们预估每个线程计算25个数据长度。</p>
+<p>但是我们可以通过<code>std::thread::hardware_concurrency</code>返回cpu的核数，我们期待的是开辟的线</p>
+<p>程数小于等于cpu核数，这样才不会造成线程过多时间片切换开销。</p>
+<p>所以3处计算了适合开辟线程数的最小值。</p>
+<p>4处计算了步长，根据步长移动迭代器然后开辟线程计算。</p>
+<p>5处初始化了线程数-1个大小的vector，因为主线程也参与计算，所以这里-1.</p>
+<p>6处移动步长，7处开辟线程，8处更新起始位置。</p>
+<p>9处为主线程计算。</p>
+<p>10 处让所有线程join</p>
+<p>11 处最后将所有计算结果再次调用std的accumulate算出结果。</p>
+<h2 id="识别线程"><a href="#识别线程" class="headerlink" title="识别线程"></a>识别线程</h2><p>所谓识别线程就是获取线程id，可以根据线程id是否相同判断是否同一个线程。<br>比如我们启动了一个线程,我们可以通过线程变量的<code>get_id()</code>获取线程id</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::thread <span class="title">t</span><span class="params">([]()&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">	std::cout &lt;&lt; <span class="string">&quot;thread start&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">&#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">t.<span class="built_in">get_id</span>();</span><br></pre></td></tr></table></figure>
+<p>但是如果我们想在线程的运行函数中区分线程，或者判断哪些是主线程或者子线程，可以通过这总方式</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::thread <span class="title">t</span><span class="params">([]()&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">	std::cout &lt;&lt; <span class="string">&quot;in thread id &quot;</span> &lt;&lt; </span></span></span><br><span class="line"><span class="params"><span class="function">	std::this_thread::get_id() &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">	std::cout &lt;&lt; <span class="string">&quot;thread start&quot;</span> &lt;&lt; std::endl;</span></span></span><br><span class="line"><span class="params"><span class="function">&#125;)</span></span>;</span><br></pre></td></tr></table></figure>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了线程管控相关的知识，包括线程的join,detach，以及识别线程，归属权转移，如何管理等等。</p>
+<p>本文介绍了<code>std::thread</code>的基本操作，具体视频可以去B站看看我的C++视频讲解</p>
+<p><a target="_blank" rel="noopener" href="https://space.bilibili.com/271469206/channel/collectiondetail?sid=313101&ctype=0">https://space.bilibili.com/271469206/channel/collectiondetail?sid=313101&amp;ctype=0</a></p>
+<p>代码链接</p>
+<p>源码链接<a target="_blank" rel="noopener" href="https://gitee.com/secondtonone1/boostasio-learn">https://gitee.com/secondtonone1/boostasio-learn</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
     
       
 
@@ -1584,298 +1951,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/16/asio21/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2023/06/16/asio21/" itemprop="url">利用asio协程调度实现并发服务器</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-16T10:41:26+08:00">
-                2023-06-16
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/cpp/" itemprop="url" rel="index">
-                    <span itemprop="name">C++</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>之前介绍了asio服务器并发编程的几种模型，包括单线程，多线程IOServicePool，多线程IOThreadPool等，今天带着大家利用asio协程实现并发服务器。利用协程实现并发程序有两个好处<br>1 &emsp; 将回调函数改写为顺序调用，提高开发效率。<br>2 &emsp; 协程调度比线程调度更轻量化，因为协程是运行在用户空间的，线程切换需要在用户空间和内核空间切换。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2023/06/16/asio21/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2023/06/07/asio20/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="恋恋风辰的个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2023/06/07/asio20/" itemprop="url">asio多线程模型IOThreadPool</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2023-06-07T08:59:25+08:00">
-                2023-06-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/cpp/" itemprop="url" rel="index">
-                    <span itemprop="name">C++</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>今天给大家介绍asio多线程模式的第二种，之前我们介绍了IOServicePool的方式，一个IOServicePool开启n个线程和n个iocontext，每个线程内独立运行iocontext, 各个iocontext监听各自绑定的socket是否就绪，如果就绪就在各自线程里触发回调函数。为避免线程安全问题，我们将网络数据封装为逻辑包投递给逻辑系统，逻辑系统有一个单独线程处理，这样将网络IO和逻辑处理解耦合，极大的提高了服务器IO层面的吞吐率。这一次介绍的另一种多线程模式IOThreadPool，我们只初始化一个iocontext用来监听服务器的读写事件，包括新连接到来的监听也用这个iocontext。只是我们让<code>iocontext.run</code>在多个线程中调用，这样回调函数就会被不同的线程触发，从这个角度看回调函数被并发调用了。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2023/06/07/asio20/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1926,7 +2001,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">368</span>
+                  <span class="site-state-item-count">370</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
@@ -1956,6 +2031,13 @@
 
           </nav>
 
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
           
 
           <div class="links-of-author motion-element">

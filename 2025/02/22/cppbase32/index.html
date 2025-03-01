@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="零基础C++," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="恋恋风辰的个人博客" type="application/atom+xml" />
+
+
+
+
+
+
+<meta name="description" content="1. 左值与右值1.1 定义与分类左值（lvalue）和右值（rvalue）是C++中用于描述表达式值类别的重要概念。  左值（lvalue）： 表示具有持久存储的对象。 可以出现在赋值语句的左侧。 可以被取地址（即，可以使用&amp;运算符）。 示例：变量名、引用等。   右值（rvalue）： 表示临时对象或没有持久存储的值。 通常出现在赋值语句的右侧。 不能被取地址。 示例：字面量、临时对象">
+<meta property="og:type" content="article">
+<meta property="og:title" content="引用折叠和原样转发">
+<meta property="og:url" content="http://www.limerence2017.com/2025/02/22/cppbase32/index.html">
+<meta property="og:site_name" content="恋恋风辰的个人博客">
+<meta property="og:description" content="1. 左值与右值1.1 定义与分类左值（lvalue）和右值（rvalue）是C++中用于描述表达式值类别的重要概念。  左值（lvalue）： 表示具有持久存储的对象。 可以出现在赋值语句的左侧。 可以被取地址（即，可以使用&amp;运算符）。 示例：变量名、引用等。   右值（rvalue）： 表示临时对象或没有持久存储的值。 通常出现在赋值语句的右侧。 不能被取地址。 示例：字面量、临时对象">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-02-22T01:56:32.000Z">
+<meta property="article:modified_time" content="2025-02-28T02:07:25.247Z">
+<meta property="article:author" content="恋恋风辰">
+<meta property="article:tag" content="零基础C++">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Muse',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.limerence2017.com/2025/02/22/cppbase32/"/>
+
+
+
+
+
+  <title>引用折叠和原样转发 | 恋恋风辰的个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">恋恋风辰的个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            Search
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="Searching..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.limerence2017.com/2025/02/22/cppbase32/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="恋恋风辰的个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">引用折叠和原样转发</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2025-02-22T09:56:32+08:00">
+                2025-02-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/cppbase/" itemprop="url" rel="index">
+                    <span itemprop="name">零基础C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="1-左值与右值"><a href="#1-左值与右值" class="headerlink" title="1. 左值与右值"></a>1. 左值与右值</h2><h3 id="1-1-定义与分类"><a href="#1-1-定义与分类" class="headerlink" title="1.1 定义与分类"></a>1.1 定义与分类</h3><p><strong>左值（lvalue）</strong>和<strong>右值（rvalue）</strong>是C++中用于描述表达式值类别的重要概念。</p>
+<ul>
+<li><strong>左值（lvalue）</strong>：<ul>
+<li>表示具有持久存储的对象。</li>
+<li>可以出现在赋值语句的左侧。</li>
+<li>可以被取地址（即，可以使用<code>&amp;</code>运算符）。</li>
+<li>示例：变量名、引用等。</li>
+</ul>
+</li>
+<li><strong>右值（rvalue）</strong>：<ul>
+<li>表示临时对象或没有持久存储的值。</li>
+<li>通常出现在赋值语句的右侧。</li>
+<li>不能被取地址。</li>
+<li>示例：字面量、临时对象、表达式结果等。</li>
+</ul>
+</li>
+</ul>
+<p>C++11进一步细化了右值的分类：</p>
+<ul>
+<li><strong>纯右值（prvalues）</strong>：表示临时对象或字面量，如<code>42</code>、<code>3.14</code>。</li>
+<li><strong>将亡值（xvalues，expiring values）</strong>：表示即将被移动的对象，如<code>std::move</code>的结果。</li>
+</ul>
+<span id="more"></span>
+
+<h3 id="1-2-示例代码"><a href="#1-2-示例代码" class="headerlink" title="1.2 示例代码"></a>1.2 示例代码</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;utility&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span> a = <span class="number">10</span>;           <span class="comment">// a是一个左值</span></span><br><span class="line">    <span class="type">int</span>&amp; b = a;           <span class="comment">// b是a的左值引用</span></span><br><span class="line">    <span class="type">int</span>&amp;&amp; c = <span class="number">20</span>;         <span class="comment">// c是一个右值引用，绑定到临时右值20</span></span><br><span class="line">    <span class="type">int</span> d = a + <span class="number">5</span>;        <span class="comment">// (a + 5)是一个纯右值</span></span><br><span class="line"></span><br><span class="line">    std::string s1 = <span class="string">&quot;Hello&quot;</span>;                   <span class="comment">// s1是一个左值</span></span><br><span class="line">    std::string s2 = std::<span class="built_in">string</span>(<span class="string">&quot;World&quot;</span>);      <span class="comment">// std::string(&quot;World&quot;)是一个纯右值</span></span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;a: &quot;</span> &lt;&lt; a &lt;&lt; <span class="string">&quot;, d: &quot;</span> &lt;&lt; d &lt;&lt; std::endl;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;s1: &quot;</span> &lt;&lt; s1 &lt;&lt; <span class="string">&quot;, s2: &quot;</span> &lt;&lt; s2 &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 检查类型</span></span><br><span class="line">    std::cout &lt;&lt; std::boolalpha;</span><br><span class="line">    <span class="comment">// 使用 decltype((a)) 获取 a 的类型，包括引用</span></span><br><span class="line">    <span class="comment">// `(a)` 是一个左值表达式，所以 decltype((a)) 是 `int&amp;`</span></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;a 是左值: &quot;</span> &lt;&lt; std::is_lvalue_reference&lt;<span class="keyword">decltype</span>((a))&gt;::value &lt;&lt; std::endl;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;c 是右值引用: &quot;</span> &lt;&lt; std::is_rvalue_reference&lt;<span class="keyword">decltype</span>(c)&gt;::value &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>输出：</strong></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">a:</span> <span class="number">10</span><span class="string">,</span> <span class="attr">d:</span> <span class="number">15</span></span><br><span class="line"><span class="attr">s1:</span> <span class="string">Hello,</span> <span class="attr">s2:</span> <span class="string">World</span></span><br><span class="line"><span class="string">a</span> <span class="string">是左值:</span> <span class="literal">true</span></span><br><span class="line"><span class="string">c</span> <span class="string">是右值引用:</span> <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="1-3-类型判断工具"><a href="#1-3-类型判断工具" class="headerlink" title="1.3 类型判断工具"></a>1.3 类型判断工具</h3><p>C++标准库提供了几个类型特性（type traits）用于判断表达式的值类别：</p>
+<ul>
+<li><code>std::is_lvalue_reference&lt;T&gt;</code>：判断类型<code>T</code>是否为左值引用。</li>
+<li><code>std::is_rvalue_reference&lt;T&gt;</code>：判断类型<code>T</code>是否为右值引用。</li>
+<li><code>std::is_lvalue&lt;T&gt;</code>（C++20起）：判断表达式是否为左值。</li>
+<li><code>std::is_rvalue&lt;T&gt;</code>（C++20起）：判断表达式是否为右值。</li>
+</ul>
+<p><strong>示例：</strong></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;type_traits&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">func</span><span class="params">(<span class="type">int</span>&amp; x)</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;func(int&amp;)&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">func</span><span class="params">(<span class="type">int</span>&amp;&amp; x)</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;func(int&amp;&amp;)&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span> a = <span class="number">5</span>;</span><br><span class="line">    <span class="type">const</span> <span class="type">int</span>&amp; ref = a;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 判断类型</span></span><br><span class="line">    std::cout &lt;&lt; std::boolalpha;</span><br><span class="line">    <span class="comment">// 使用 decltype((a)) 获取 a 的类型，包括引用</span></span><br><span class="line">    <span class="comment">// `(a)` 是一个左值表达式，所以 decltype((a)) 是 `int&amp;`</span></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;a 是左值: &quot;</span> &lt;&lt; std::is_lvalue_reference&lt;<span class="keyword">decltype</span>((a))&gt;::value &lt;&lt; std::endl;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;ref 是左值引用: &quot;</span> &lt;&lt; std::is_lvalue_reference&lt;<span class="keyword">decltype</span>(ref)&gt;::value &lt;&lt; std::endl;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 调用函数</span></span><br><span class="line">    <span class="built_in">func</span>(a);          <span class="comment">// 调用func(int&amp;)</span></span><br><span class="line">    <span class="built_in">func</span>(<span class="number">10</span>);         <span class="comment">// 调用func(int&amp;&amp;)</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>输出：</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">a 是左值: <span class="literal">true</span></span><br><span class="line">ref 是左值引用: <span class="literal">true</span></span><br><span class="line"><span class="function"><span class="keyword">func</span><span class="params">(<span class="type">int</span>&amp;)</span></span></span><br><span class="line"><span class="function"><span class="keyword">func</span><span class="params">(<span class="type">int</span>&amp;&amp;)</span></span></span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="1-4-应用场景"><a href="#1-4-应用场景" class="headerlink" title="1.4 应用场景"></a>1.4 应用场景</h3><p>理解左值与右值的区别是实现<strong>移动语义</strong>、<strong>完美转发</strong>以及高效内存管理的基础。在编写高性能C++代码时，合理利用右值引用和移动语义可以显著提升程序的效率。</p>
+<hr>
+<h2 id="2-模板万能引用（转发引用）"><a href="#2-模板万能引用（转发引用）" class="headerlink" title="2. 模板万能引用（转发引用）"></a>2. 模板万能引用（转发引用）</h2><h3 id="2-1-定义与特性"><a href="#2-1-定义与特性" class="headerlink" title="2.1 定义与特性"></a>2.1 定义与特性</h3><p><strong>模板万能引用</strong>（也称为<strong>转发引用</strong>，英文为<strong>forwarding references</strong>）是C++11引入的一种引用类型，具有以下特点：</p>
+<ul>
+<li>表现形式为<code>T&amp;&amp;</code>，其中<code>T</code>是模板参数。</li>
+<li>在特定条件下，编译器会将其解析为左值引用或右值引用。</li>
+<li>能够统一处理左值和右值，适用于泛型编程中的参数传递。</li>
+</ul>
+<p><strong>重要特性</strong>：</p>
+<ul>
+<li>当模板参数<code>T</code>被推导为普通类型时，<code>T&amp;&amp;</code>是右值引用。</li>
+<li>当模板参数<code>T</code>被推导为引用类型时，<code>T&amp;&amp;</code>会根据引用折叠规则解析为左值引用。</li>
+</ul>
+<h3 id="2-2-引用折叠规则"><a href="#2-2-引用折叠规则" class="headerlink" title="2.2 引用折叠规则"></a>2.2 引用折叠规则</h3><p>引用折叠是C++中的一项规则，用于处理引用类型的嵌套。主要规则如下：</p>
+<ul>
+<li><code>&amp; &amp;</code>、<code>&amp; &amp;&amp;</code>、<code>&amp;&amp; &amp;</code> 都折叠为 <code>&amp;</code>（左值引用）。</li>
+<li><code>&amp;&amp; &amp;&amp;</code> 折叠为 <code>&amp;&amp;</code>（右值引用）。</li>
+</ul>
+<p><strong>示例：</strong></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;type_traits&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">check_referenc</span><span class="params">(T&amp;&amp; x)</span></span>&#123;</span><br><span class="line">    std::cout &lt;&lt; std::boolalpha;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;T is lvalue reference: &quot;</span> &lt;&lt; std::is_lvalue_reference&lt;T&gt;::value &lt;&lt; std::endl;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;T is rvalue reference: &quot;</span> &lt;&lt; std::is_rvalue_reference&lt;T&gt;::value &lt;&lt; std::endl;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;T is rvalue : &quot;</span> &lt;&lt; std::is_rvalue_reference&lt;T&amp;&amp;&gt; ::value &lt;&lt; std::endl;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;x is lvalue reference: &quot;</span> &lt;&lt; std::is_lvalue_reference&lt;<span class="keyword">decltype</span>(x)&gt;::value &lt;&lt; std::endl;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;x is rvalue reference: &quot;</span> &lt;&lt; std::is_rvalue_reference&lt;<span class="keyword">decltype</span>(x)&gt;::value &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span> a = <span class="number">10</span>;</span><br><span class="line">    <span class="built_in">check_reference</span>(a);          <span class="comment">// T被推导为 int&amp;， 因此 T&amp;&amp; -&gt; int&amp; &amp;&amp; -&gt; int&amp;</span></span><br><span class="line">    <span class="built_in">check_reference</span>(<span class="number">20</span>);         <span class="comment">// T被推导为 int，  T&amp;&amp; -&gt; int&amp;&amp;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>输出：</strong></p>
+<figure class="highlight vbnet"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">T <span class="built_in">is</span> lvalue reference: <span class="literal">true</span></span><br><span class="line">T <span class="built_in">is</span> rvalue reference: <span class="literal">false</span></span><br><span class="line">T <span class="built_in">is</span> rvalue : <span class="literal">false</span></span><br><span class="line">x <span class="built_in">is</span> lvalue reference: <span class="literal">true</span></span><br><span class="line">x <span class="built_in">is</span> rvalue reference: <span class="literal">false</span></span><br><span class="line">T <span class="built_in">is</span> lvalue reference: <span class="literal">false</span></span><br><span class="line">T <span class="built_in">is</span> rvalue reference: <span class="literal">false</span></span><br><span class="line">T <span class="built_in">is</span> rvalue : <span class="literal">true</span></span><br><span class="line">x <span class="built_in">is</span> lvalue reference: <span class="literal">false</span></span><br><span class="line">x <span class="built_in">is</span> rvalue reference: <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<p>但是要注意，如果如果我这样调用</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> &amp;&amp;c = <span class="number">100</span>;</span><br><span class="line"><span class="built_in">check_referenc</span>(c);</span><br></pre></td></tr></table></figure>
+
+<p>输出的却是</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">T is lvalue reference: <span class="literal">true</span></span><br><span class="line">T is rvalue reference: <span class="literal">false</span></span><br><span class="line">T is rvalue : <span class="literal">false</span></span><br><span class="line">x is lvalue reference: <span class="literal">true</span></span><br><span class="line">x is rvalue reference: <span class="literal">false</span></span><br></pre></td></tr></table></figure>
+
+<p>然而，实际中 <code>T</code> 被推导为 <code>int&amp;</code>，这是因为 <strong>命名的右值引用变量在表达式中被视为左值</strong>。</p>
+<h4 id="关键点："><a href="#关键点：" class="headerlink" title="关键点："></a>关键点：</h4><ol>
+<li><strong>变量的值类别（Value Category）</strong>：<ul>
+<li><strong>左值（lvalue）</strong>：有名称，可以出现在赋值的左侧。</li>
+<li><strong>右值（rvalue）</strong>：临时的、没有名称的值，一般不能出现在赋值的左侧。</li>
+</ul>
+</li>
+<li><strong>命名的右值引用变量是左值</strong>：<ul>
+<li>虽然 <code>c</code> 的类型是 <code>int&amp;&amp;</code>，但作为一个变量名，它本身是一个左值。</li>
+<li>这意味着在表达式中使用 <code>c</code> 时，<code>c</code> 被视为左值，而不是右值。</li>
+</ul>
+</li>
+<li><strong>类型推导规则</strong>：<ul>
+<li>当模板参数使用<code>T&amp;&amp;</code>（被称为转发引用或万能引用）时，类型推导遵循特定规则：<ul>
+<li><strong>如果传入的是左值</strong>，<code>T</code> 被推导为 <code>T&amp;</code>。</li>
+<li><strong>如果传入的是右值</strong>，<code>T</code> 被推导为 <code>T</code>（非引用类型）。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<ul>
+<li><strong>传入左值（<code>c</code>）</strong>：<ul>
+<li><code>c</code> 是一个命名的右值引用变量，但作为表达式它是左值。</li>
+<li>因此，<code>T</code> 被推导为 <code>int&amp;</code>。</li>
+<li><code>T&amp;&amp;</code> 则根据引用折叠规则（<code>int&amp; &amp;&amp;</code> =&gt; <code>int&amp;</code>）。</li>
+</ul>
+</li>
+</ul>
+<p>为了让 <code>T</code> 被推导为右值引用，我们需要传递一个 <strong>真正的右值</strong>。这可以通过使用 <code>std::move</code> 来实现：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// std::move(c) 是右值，T 被推导为 int</span></span><br><span class="line"><span class="built_in">check_reference</span>(std::<span class="built_in">move</span>(c));</span><br></pre></td></tr></table></figure>
+
+<p>输出</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">T is lvalue reference: <span class="literal">false</span></span><br><span class="line">T is rvalue reference: <span class="literal">false</span></span><br><span class="line">T is rvalue : <span class="literal">true</span></span><br><span class="line">x is lvalue reference: <span class="literal">false</span></span><br><span class="line">x is rvalue reference: <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>**传递右值 <code>std::move(c)</code>**：<ul>
+<li><code>std::move(c)</code> 将 <code>c</code> 转换为 <code>int&amp;&amp;</code>（右值）。</li>
+<li><code>T</code> 被推导为 <code>int</code>（非引用类型）。</li>
+<li><code>std::is_lvalue_reference&lt;T&gt;::value</code> 为 <code>false</code>。</li>
+<li><code>std::is_rvalue_reference&lt;T&gt;::value</code> 为 <code>false</code>。</li>
+<li><code>std::is_rvalue_reference&lt;T&amp;&amp;&gt;::value</code> 相当于 <code>std::is_rvalue_reference&lt;int&amp;&amp;&gt;::value</code>，为 <code>true</code>。</li>
+<li><code>decltype(x)</code> 相当于 <code>int&amp;&amp;</code>，所以 <code>x</code> 被识别为右值引用。</li>
+</ul>
+</li>
+<li><strong>为什么T被实例化为int而不是int&amp;&amp;</strong></li>
+</ol>
+<p>在模板参数中，当一个类型参数 <code>T</code> 以 <code>T&amp;&amp;</code> 的形式出现，并且 <code>T</code> 是模板参数时，<code>T&amp;&amp;</code> 被称为 <strong>转发引用</strong>（有时称为<strong>万能引用</strong>）。转发引用具有特殊的类型推导规则：</p>
+<ul>
+<li><strong>如果传递的是左值</strong>，<code>T</code> 被推导为 <code>T&amp;</code>。</li>
+<li><strong>如果传递的是右值</strong>，<code>T</code> 被推导为 <code>T</code>（<strong>不带引用</strong>）。</li>
+</ul>
+<p> <strong>模板类型推导的具体规则</strong></p>
+<p>根据 <strong>C++ 标准</strong>（C++17 标准草案）：</p>
+<blockquote>
+<p>如果 P 是 <code>T&amp;&amp;</code>，并且 A（实参类型）是一个非引用类型的表达式，则 <code>T</code> 被推导为 A 的类型。</p>
+<p>如果 P 是 <code>T&amp;&amp;</code>，并且 A 是一个引用类型的表达式，则去除引用后的类型用于推导。</p>
+</blockquote>
+<p>具体到我们的例子：</p>
+<ul>
+<li><strong>传递 <code>c</code>（一个左值，类型 <code>int&amp;&amp;</code>）：</strong><ul>
+<li>表达式 <code>c</code> 是一个 <strong>左值</strong>。</li>
+<li>当传递左值给 <code>T&amp;&amp;</code> 时，<code>T</code> 被推导为 <code>int&amp;</code>（即 <code>int</code> 加上引用）。</li>
+<li>因此，参数类型 <code>T&amp;&amp;</code> 实际上是 <code>int&amp; &amp;&amp;</code>，根据引用折叠规则，<code>int&amp; &amp;&amp;</code> 合并为 <code>int&amp;</code>。</li>
+</ul>
+</li>
+<li><strong>传递 <code>std::move(c)</code>（一个右值，类型 <code>int&amp;&amp;</code>）：</strong><ul>
+<li>表达式 <code>std::move(c)</code> 是一个 <strong>右值</strong>。</li>
+<li>当传递右值给 <code>T&amp;&amp;</code> 时，<code>T</code> 被推导为 <code>int</code>（不带引用）。</li>
+<li>因此，参数类型 <code>T&amp;&amp;</code> 是 <code>int&amp;&amp;</code>。</li>
+</ul>
+</li>
+</ul>
+<p><strong>也可以采用原样转发，达到和move相同的效果</strong></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">check_referenc</span>(std::forward&lt;<span class="type">int</span>&amp;&amp;&gt;(c));</span><br></pre></td></tr></table></figure>
+
+<p>输出</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">T is lvalue reference: <span class="literal">false</span></span><br><span class="line">T is rvalue reference: <span class="literal">false</span></span><br><span class="line">T is rvalue : <span class="literal">true</span></span><br><span class="line">x is lvalue reference: <span class="literal">false</span></span><br><span class="line">x is rvalue reference: <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="2-3-示例代码"><a href="#2-3-示例代码" class="headerlink" title="2.3 示例代码"></a>2.3 示例代码</h3><p>以下示例展示了如何使用模板万能引用编写能够接受任意类型参数的函数，并通过转发保持参数的原有值类别。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;utility&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 目标函数，分别有左值和右值的重载</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">process</span><span class="params">(<span class="type">int</span>&amp;x)</span></span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;process(int&amp;)&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">process</span><span class="params">(<span class="type">int</span>&amp;&amp; x)</span></span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;process(int&amp;&amp;)&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 通用的包装函数，使用转发引用</span></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">wrapper</span><span class="params">(T&amp;&amp; arg)</span> </span>&#123;</span><br><span class="line">    <span class="built_in">process</span>(std::forward&lt;T&gt;(arg)); <span class="comment">// 原样转发</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span> a = <span class="number">10</span>;</span><br><span class="line">    <span class="built_in">wrapper</span>(a);          <span class="comment">// 传递左值，调用process(int&amp;)</span></span><br><span class="line">    <span class="built_in">wrapper</span>(<span class="number">20</span>);         <span class="comment">// 传递右值，调用process(int&amp;&amp;)</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>输出：</strong></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">process(int&amp;)</span></span><br><span class="line"><span class="string">process(int&amp;&amp;)</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>在上述代码中，<code>wrapper</code>函数使用模板万能引用<code>T&amp;&amp;</code>接收参数，通过<code>std::forward&lt;T&gt;(arg)</code>实现原样转发，确保传递给<code>process</code>函数的参数保持其原有的值类别。</p>
+<p>如果我们把wrapper改为</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 通用的包装函数，使用转发引用</span></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">wrapper</span><span class="params">(T&amp;&amp; arg)</span> </span>&#123;</span><br><span class="line">    <span class="built_in">process</span>(arg); <span class="comment">// 原样转发</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span> a = <span class="number">10</span>;</span><br><span class="line">    <span class="built_in">wrapper</span>(a);          <span class="comment">// 传递左值，调用process(int&amp;)</span></span><br><span class="line">    <span class="built_in">wrapper</span>(<span class="number">20</span>);         <span class="comment">// 传递右值，调用process(int&amp;&amp;)</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>则输出</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">process(int&amp;)</span><br><span class="line">process(int&amp;)</span><br></pre></td></tr></table></figure>
+
+<p>因为虽然wrapper(20)调用时会将T实例化为int类型, arg变为<code>int &amp;&amp;</code> 类型，但是arg本身是一个左值, 所以调用process会选择左值引用版本</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 目标函数</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">process</span><span class="params">(<span class="type">int</span>&amp;x)</span></span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;process(int&amp;)&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<hr>
+<h2 id="3-类型推导（Type-Deduction）"><a href="#3-类型推导（Type-Deduction）" class="headerlink" title="3. 类型推导（Type Deduction）"></a>3. 类型推导（Type Deduction）</h2><h3 id="3-1-类型推导规则"><a href="#3-1-类型推导规则" class="headerlink" title="3.1 类型推导规则"></a>3.1 类型推导规则</h3><p>在C++模板编程中，<strong>类型推导</strong>是指编译器根据传入的实参自动推导模板参数的类型。类型推导遵循以下基本规则：</p>
+<ol>
+<li><strong>模板参数的推导</strong>：<ul>
+<li>当模板参数与函数参数进行匹配时，编译器会根据实参类型推导出模板参数类型<code>T</code>。</li>
+</ul>
+</li>
+<li><strong>引用的处理</strong>：<ul>
+<li>如果函数参数采用右值引用（如<code>T&amp;&amp;</code>），且传递的是左值，则<code>T</code>会被推导为左值引用类型。</li>
+<li>如果传递的是右值，则<code>T</code>会被推导为非引用类型。</li>
+</ul>
+</li>
+<li><strong>cv限定符的去除</strong>：<ul>
+<li>类型推导会去除顶层的<code>const</code>和<code>volatile</code>修饰。</li>
+</ul>
+</li>
+</ol>
+<h3 id="3-2-与引用的关系"><a href="#3-2-与引用的关系" class="headerlink" title="3.2 与引用的关系"></a>3.2 与引用的关系</h3><p>在模板参数中使用引用类型时，类型推导会涉及引用折叠规则。例如，当一个模板函数参数为<code>T&amp;</code>或<code>T&amp;&amp;</code>时，传入参数的值类别会影响<code>T</code>的推导结果。</p>
+<p><strong>示例：</strong></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;type_traits&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">deduce_type</span><span class="params">(T&amp;&amp;)</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; std::boolalpha;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Is T an lvalue reference? &quot;</span> &lt;&lt; std::is_lvalue_reference&lt;T&gt;::value &lt;&lt; std::endl;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Is T an rvalue reference? &quot;</span> &lt;&lt; std::is_rvalue_reference&lt;T&amp;&amp;&gt;::value &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span> a = <span class="number">5</span>;</span><br><span class="line">    <span class="type">const</span> <span class="type">int</span>&amp; ref = a;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">deduce_type</span>(a);            <span class="comment">// T被推导为 int&amp;</span></span><br><span class="line">    <span class="built_in">deduce_type</span>(<span class="number">10</span>);           <span class="comment">// T被推导为 int</span></span><br><span class="line">    <span class="built_in">deduce_type</span>(ref);          <span class="comment">// T被推导为 const int&amp;</span></span><br><span class="line">    <span class="built_in">deduce_type</span>(std::<span class="built_in">move</span>(a)); <span class="comment">// T被推导为 int</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>输出：</strong></p>
+<figure class="highlight vbnet"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Is</span> T an lvalue reference? <span class="literal">true</span></span><br><span class="line"><span class="built_in">Is</span> T an rvalue reference? <span class="literal">false</span></span><br><span class="line"><span class="built_in">Is</span> T an lvalue reference? <span class="literal">false</span></span><br><span class="line"><span class="built_in">Is</span> T an rvalue reference? <span class="literal">true</span></span><br><span class="line"><span class="built_in">Is</span> T an lvalue reference? <span class="literal">true</span></span><br><span class="line"><span class="built_in">Is</span> T an rvalue reference? <span class="literal">false</span></span><br><span class="line"><span class="built_in">Is</span> T an lvalue reference? <span class="literal">false</span></span><br><span class="line"><span class="built_in">Is</span> T an rvalue reference? <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="3-3-示例代码"><a href="#3-3-示例代码" class="headerlink" title="3.3 示例代码"></a>3.3 示例代码</h3><p>以下示例展示了不同情况下模板参数<code>T</code>的推导结果，以及如何利用类型推导编写通用函数。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;type_traits&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">display_type</span><span class="params">(T&amp;&amp; param)</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Type of T: &quot;</span> </span><br><span class="line">              &lt;&lt; (std::is_lvalue_reference&lt;T&gt;::value ? <span class="string">&quot;lvalue reference&quot;</span> : <span class="string">&quot;rvalue reference&quot;</span>) </span><br><span class="line">              &lt;&lt; <span class="string">&quot;, &quot;</span></span><br><span class="line">              &lt;&lt; (std::is_integral&lt;<span class="keyword">typename</span> std::remove_reference&lt;T&gt;::type&gt;::value ? <span class="string">&quot;Integral&quot;</span> : <span class="string">&quot;Non-Integral&quot;</span>)</span><br><span class="line">              &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span> x = <span class="number">10</span>;</span><br><span class="line">    <span class="type">const</span> <span class="type">int</span>&amp; y = x;</span><br><span class="line">    <span class="built_in">display_type</span>(x);            <span class="comment">// T被推导为 int&amp;</span></span><br><span class="line">    <span class="built_in">display_type</span>(<span class="number">20</span>);           <span class="comment">// T被推导为 int&amp;&amp;</span></span><br><span class="line">    <span class="built_in">display_type</span>(y);            <span class="comment">// T被推导为 const int&amp;</span></span><br><span class="line">    <span class="built_in">display_type</span>(std::<span class="built_in">move</span>(x)); <span class="comment">// T被推导为 int&amp;&amp;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>输出：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Type of T: lvalue reference, Integral</span><br><span class="line">Type of T: rvalue reference, Integral</span><br><span class="line">Type of T: lvalue reference, Integral</span><br><span class="line">Type of T: rvalue reference, Integral</span><br></pre></td></tr></table></figure>
+
+
+
+<p>在此示例中，通过模板函数<code>display_type</code>，我们可以观察到不同参数传递方式下，模板参数<code>T</code>的推导结果。</p>
+<hr>
+<h2 id="4-原样转发（Perfect-Forwarding）"><a href="#4-原样转发（Perfect-Forwarding）" class="headerlink" title="4. 原样转发（Perfect Forwarding）"></a>4. 原样转发（Perfect Forwarding）</h2><h3 id="4-1-定义与作用"><a href="#4-1-定义与作用" class="headerlink" title="4.1 定义与作用"></a>4.1 定义与作用</h3><p><strong>原样转发</strong>（Perfect Forwarding）是指在模板函数中，将接收到的参数以其原有的值类别（左值或右值）传递给另一个函数。这项技术确保了泛型代码能够像手写特定代码那样高效和正确地处理参数。</p>
+<p><strong>作用</strong>：</p>
+<ul>
+<li>保持参数的值类别，确保正确调用函数重载。</li>
+<li>利用移动语义，避免不必要的拷贝，提升性能。</li>
+<li>编写通用、复用性强的代码。</li>
+</ul>
+<h3 id="4-2-实现原理"><a href="#4-2-实现原理" class="headerlink" title="4.2 实现原理"></a>4.2 实现原理</h3><p>原样转发通常结合<strong>模板万能引用</strong>（转发引用）和<code>std::forward</code>来实现。具体流程如下：</p>
+<ol>
+<li><p>使用模板万能引用（<code>T&amp;&amp;</code>）接收参数。</p>
+</li>
+<li><p>使用</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">std::forward&lt;T&gt;(arg)</span><br></pre></td></tr></table></figure>
+
+<p>将参数转发给目标函数。</p>
+<ul>
+<li><code>std::forward</code>根据<code>T</code>的类型，将参数转换为左值或右值。</li>
+<li>如果参数原本是左值，<code>std::forward</code>返回左值引用。</li>
+<li>如果参数原本是右值，<code>std::forward</code>返回右值引用。</li>
+</ul>
+</li>
+</ol>
+<h3 id="4-3-为什么需要原样转发"><a href="#4-3-为什么需要原样转发" class="headerlink" title="4.3 为什么需要原样转发"></a>4.3 为什么需要原样转发</h3><p>在泛型编程中，函数模板可能需要将接收到的参数传递给其他函数。若不使用原样转发，参数会失去原有的值类别信息，可能导致以下问题：</p>
+<ul>
+<li>右值参数被当作左值处理，无法利用移动语义，导致性能下降。</li>
+<li>无法正确调用目标函数的重载版本。</li>
+<li>增加不必要的拷贝开销，影响程序性能。</li>
+</ul>
+<p>通过原样转发，可以确保参数在传递过程中保持其原有的左值或右值特性，提升代码的效率和灵活性。</p>
+<h3 id="4-4-示例代码"><a href="#4-4-示例代码" class="headerlink" title="4.4 示例代码"></a>4.4 示例代码</h3><p>以下示例展示了如何实现一个通用的<code>wrapper</code>函数，通过原样转发将参数传递给目标函数，同时保留参数的值类别。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;utility&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 目标函数，分别有左值和右值的重载</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">process</span><span class="params">(<span class="type">const</span> std::string&amp; s)</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Processing lvalue: &quot;</span> &lt;&lt; s &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">process</span><span class="params">(std::string&amp;&amp; s)</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Processing rvalue: &quot;</span> &lt;&lt; s &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 通用的包装函数，实现原样转发</span></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">wrapper</span><span class="params">(T&amp;&amp; arg)</span> </span>&#123;</span><br><span class="line">    <span class="built_in">process</span>(std::forward&lt;T&gt;(arg));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    std::string name = <span class="string">&quot;Alice&quot;</span>;</span><br><span class="line">    <span class="built_in">wrapper</span>(name);                     <span class="comment">// 传递左值，调用process(const std::string&amp;)</span></span><br><span class="line">    <span class="built_in">wrapper</span>(<span class="string">&quot;Bob&quot;</span>);                    <span class="comment">// 传递右值，调用process(std::string&amp;&amp;)</span></span><br><span class="line">    <span class="built_in">wrapper</span>(std::<span class="built_in">move</span>(name));          <span class="comment">// 传递右值，调用process(std::string&amp;&amp;)</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>输出：</strong></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">Processing lvalue:</span> <span class="string">Alice</span></span><br><span class="line"><span class="attr">Processing rvalue:</span> <span class="string">Bob</span></span><br><span class="line"><span class="attr">Processing rvalue:</span> <span class="string">Alice</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>在上述代码中：</p>
+<ul>
+<li><code>wrapper(name)</code>传递的是左值，<code>T</code>被推导为<code>std::string&amp;</code>，<code>std::forward</code>保持其为左值引用，调用<code>process(const std::string&amp;)</code>。</li>
+<li><code>wrapper(&quot;Bob&quot;)</code>传递的是右值，<code>T</code>被推导为<code>const char*</code>，在<code>process</code>函数重载的选择上，这里简单化处理为调用接收右值的版本（视具体实现而定）。</li>
+<li><code>wrapper(std::move(name))</code>传递的是右值，<code>T</code>被推导为<code>std::string</code>，<code>std::forward</code>将其转换为右值引用，调用<code>process(std::string&amp;&amp;)</code>。</li>
+</ul>
+<h3 id="4-5-泛型工厂函数示例"><a href="#4-5-泛型工厂函数示例" class="headerlink" title="4.5 泛型工厂函数示例"></a>4.5 泛型工厂函数示例</h3><p>以下示例展示了如何使用原样转发实现一个泛型工厂函数，完美转发构造函数的参数，以高效创建对象。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;utility&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 类的定义</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Person</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    std::string name;</span><br><span class="line">    <span class="type">int</span> age;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 左值引用构造函数</span></span><br><span class="line">    <span class="built_in">Person</span>(<span class="type">const</span> std::string&amp; n, <span class="type">int</span> a) : <span class="built_in">name</span>(n), <span class="built_in">age</span>(a) &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Constructed Person(const std::string&amp;, int)&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 右值引用构造函数</span></span><br><span class="line">    <span class="built_in">Person</span>(std::string&amp;&amp; n, <span class="type">int</span> a) : <span class="built_in">name</span>(std::<span class="built_in">move</span>(n)), <span class="built_in">age</span>(a) &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;Constructed Person(std::string&amp;&amp;, int)&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 工厂函数，使用原样转发构造函数参数</span></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T, <span class="keyword">typename</span>... Args&gt;</span></span><br><span class="line"><span class="function">T <span class="title">create</span><span class="params">(Args&amp;&amp;... args)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">T</span>(std::forward&lt;Args&gt;(args)...);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    std::string name = <span class="string">&quot;Alice&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 传递左值</span></span><br><span class="line">    Person p1 = <span class="built_in">create</span>&lt;Person&gt;(name, <span class="number">30</span>); </span><br><span class="line">    <span class="comment">// 传递右值</span></span><br><span class="line">    Person p2 = <span class="built_in">create</span>&lt;Person&gt;(std::<span class="built_in">string</span>(<span class="string">&quot;Bob&quot;</span>), <span class="number">25</span>); </span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>输出：</strong></p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">Constructed <span class="title">Person</span>(<span class="params"><span class="keyword">const</span> std::<span class="built_in">string</span>&amp;, <span class="built_in">int</span></span>)</span></span><br><span class="line"><span class="function">Constructed <span class="title">Person</span>(<span class="params">std::<span class="built_in">string</span>&amp;&amp;, <span class="built_in">int</span></span>)</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>在此示例中：</p>
+<ul>
+<li><code>create&lt;Person&gt;(name, 30)</code>传递的是左值，调用<code>Person(const std::string&amp;, int)</code>构造函数。</li>
+<li><code>create&lt;Person&gt;(std::string(&quot;Bob&quot;), 25)</code>传递的是右值，调用<code>Person(std::string&amp;&amp;, int)</code>构造函数。</li>
+</ul>
+<p>通过原样转发，<code>create</code>函数能够根据传入参数的值类别，调用相应的构造函数，实现高效的对象创建。</p>
+<h3 id="4-6-避免不必要的拷贝"><a href="#4-6-避免不必要的拷贝" class="headerlink" title="4.6 避免不必要的拷贝"></a>4.6 避免不必要的拷贝</h3><p>以下示例展示了如果不使用原样转发，可能导致的多次拷贝问题。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 类的定义</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">BigObject</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    std::string data;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">BigObject</span>(<span class="type">const</span> std::string&amp; d) : <span class="built_in">data</span>(d) &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;BigObject constructed with lvalue&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">BigObject</span>(std::string&amp;&amp; d) : <span class="built_in">data</span>(std::<span class="built_in">move</span>(d)) &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;BigObject constructed with rvalue&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 处理函数，左值和右值的重载</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">process</span><span class="params">(<span class="type">const</span> BigObject&amp; obj)</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Processing lvalue BigObject&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">process</span><span class="params">(BigObject&amp;&amp; obj)</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Processing rvalue BigObject&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 包装函数，不使用原样转发</span></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">bad_wrapper</span><span class="params">(T&amp;&amp; obj)</span> </span>&#123;</span><br><span class="line">    <span class="built_in">process</span>(obj); <span class="comment">// 始终以左值形式传递</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 包装函数，使用原样转发</span></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">good_wrapper</span><span class="params">(T&amp;&amp; obj)</span> </span>&#123;</span><br><span class="line">    <span class="built_in">process</span>(std::forward&lt;T&gt;(obj)); <span class="comment">// 原样转发</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    std::string s = <span class="string">&quot;Sample data&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用bad_wrapper</span></span><br><span class="line">    BigObject bo1 = <span class="built_in">BigObject</span>(s);              <span class="comment">// 使用lvalue构造</span></span><br><span class="line">    BigObject bo2 = <span class="built_in">BigObject</span>(std::<span class="built_in">move</span>(s));   <span class="comment">// 使用rvalue构造</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">bad_wrapper</span>(bo1); <span class="comment">// 始终作为左值处理</span></span><br><span class="line">    <span class="built_in">bad_wrapper</span>(<span class="built_in">BigObject</span>(<span class="string">&quot;Temp&quot;</span>)); <span class="comment">// 作为左值处理，浪费移动语义</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用good_wrapper</span></span><br><span class="line">    <span class="built_in">good_wrapper</span>(bo1); <span class="comment">// 作为左值处理</span></span><br><span class="line">    <span class="built_in">good_wrapper</span>(<span class="built_in">BigObject</span>(<span class="string">&quot;Temp&quot;</span>)); <span class="comment">// 作为右值处理，利用移动语义</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>输出：</strong></p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">BigObject constructed <span class="keyword">with</span> lvalue</span><br><span class="line">BigObject constructed <span class="keyword">with</span> rvalue</span><br><span class="line">Processing lvalue BigObject</span><br><span class="line">Processing lvalue BigObject</span><br><span class="line">BigObject constructed <span class="keyword">with</span> rvalue</span><br><span class="line">Processing rvalue BigObject</span><br></pre></td></tr></table></figure>
+
+
+
+<p>在此示例中：</p>
+<ul>
+<li><code>bad_wrapper</code>函数不使用<code>std::forward</code>，导致即使传递的是右值，<code>process</code>函数也以左值形式接收，无法利用移动语义。</li>
+<li><code>good_wrapper</code>函数使用<code>std::forward</code>，正确保持参数的值类别，允许<code>process</code>函数调用右值重载，从而利用移动语义，提高性能。</li>
+</ul>
+<hr>
+<h2 id="5-forward源码剖析"><a href="#5-forward源码剖析" class="headerlink" title="5. forward源码剖析"></a>5. forward源码剖析</h2><p><code>std::forward</code>之所以能进行原样转发，我们来看一下源码，<code>std::forward</code>实现了两个版本</p>
+<p><strong>返回左值引用版本</strong></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> _Tp&gt;</span></span><br><span class="line"><span class="function">    _GLIBCXX_NODISCARD</span></span><br><span class="line"><span class="function">    <span class="keyword">constexpr</span> _Tp&amp;&amp;</span></span><br><span class="line"><span class="function">    <span class="title">forward</span><span class="params">(<span class="keyword">typename</span> std::remove_reference&lt;_Tp&gt;::type&amp; <span class="type">__t</span>)</span> <span class="keyword">noexcept</span></span></span><br><span class="line"><span class="function">    </span>&#123; <span class="keyword">return</span> <span class="built_in">static_cast</span>&lt;_Tp&amp;&amp;&gt;(<span class="type">__t</span>); &#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="重点解释"><a href="#重点解释" class="headerlink" title="重点解释"></a>重点解释</h3><p><strong>1. <code>_GLIBCXX_NODISCARD</code></strong></p>
+<p><strong><code>_GLIBCXX_NODISCARD</code></strong> 是一个宏，通常定义在 **libstdc++**（GNU的C++标准库实现）中，用于指示编译器不要忽略函数的返回值。具体来说，它通常被定义为 <strong>C++17</strong> 引入的 <code>[[nodiscard]]</code> 属性，或者对应的编译器特定属性。</p>
+<ul>
+<li><p><strong><code>[[nodiscard]]</code> 属性</strong>：这是C++17引入的一个属性，用于标记函数的返回值不应该被忽略。如果调用该函数的返回值被忽略，编译器会发出警告。例如：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[[nodiscard]] <span class="function"><span class="type">int</span> <span class="title">compute</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="number">42</span>; &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">example</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="built_in">compute</span>(); <span class="comment">// 编译器会发出警告，因为返回值被忽略</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li><p><strong>在<code>_GLIBCXX_NODISCARD</code>中的作用</strong>：通过使用这个宏，<code>forward</code>函数的设计者告诉编译器和使用者：调用 <code>forward</code> 时，返回值不应该被忽略，因为它在转发参数时起到了关键作用。如果返回值被忽略，可能会导致意想不到的行为或性能问题。</p>
+</li>
+</ul>
+<p><strong>总结</strong>：<code>_GLIBCXX_NODISCARD</code> 确保使用 <code>forward</code> 时，返回的转发结果不会被无意中忽略，增强代码的安全性和正确性。</p>
+<p><strong>2. <code>constexpr</code></strong></p>
+<p><strong><code>constexpr</code></strong> 是C++11引入的一个关键字，用于指示一个函数或变量可以在编译时求值。</p>
+<ul>
+<li><strong>在函数中的作用</strong>：<ul>
+<li><strong>编译时计算</strong>：<code>constexpr</code> 函数可以在编译时被求值，如果传入的参数也都是编译时常量。</li>
+<li><strong>优化性能</strong>：通过在编译时进行计算，可以减少运行时的开销，提高程序的性能。</li>
+</ul>
+</li>
+<li><strong>在 <code>forward</code> 函数中的作用</strong>：<ul>
+<li><strong>高效实现</strong>：<code>forward</code> 是一个轻量级的操作，通常涉及简单的静态类型转换（如 <code>static_cast</code>）。将其定义为 <code>constexpr</code> 允许编译器在可能的情况下在编译时完成这些转换，从而避免不必要的运行时开销。</li>
+<li><strong>支持常量表达式</strong>：如果在编译时上下文中使用 <code>forward</code>，例如在 <code>constexpr</code> 函数中，它能够在编译时正确地转发参数。</li>
+</ul>
+</li>
+</ul>
+<p><strong>总结</strong>：<code>constexpr</code> 使得 <code>forward</code> 函数能够在编译时进行优化，同时确保在运行时不引入额外的开销。</p>
+<p><strong>3. <code>remove_reference</code>作用</strong></p>
+<p>源码分析</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> _Tp&gt;</span><br><span class="line">  <span class="keyword">struct</span> <span class="title class_">remove_reference</span></span><br><span class="line">  &#123; <span class="keyword">using</span> type = _Tp; &#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> _Tp&gt;</span><br><span class="line">  <span class="keyword">struct</span> <span class="title class_">remove_reference</span>&lt;_Tp&amp;&gt;</span><br><span class="line">  &#123; <span class="keyword">using</span> type = _Tp; &#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> _Tp&gt;</span><br><span class="line">  <span class="keyword">struct</span> <span class="title class_">remove_reference</span>&lt;_Tp&amp;&amp;&gt;</span><br><span class="line">  &#123; <span class="keyword">using</span> type = _Tp; &#125;;</span><br></pre></td></tr></table></figure>
+
+<p>根据模板就近匹配规则，会按照最相似的方式进行匹配，优先匹配特例化版本，比如</p>
+<p><code>remove_reference&lt;int&gt;</code> 会调用第一个版本</p>
+<p><code>remove_reference&lt;int&amp;&gt;</code>会调用第二个版本(特例化)</p>
+<p><code>remove_reference&lt;int&amp;&amp;&gt;</code>会调用第三个版本</p>
+<p>所以我们对比这三个版本</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">remove_reference&lt;<span class="type">int</span>&gt;::type;</span><br><span class="line">remove_reference&lt;<span class="type">int</span>&amp;&gt;::type;</span><br><span class="line">remove_reference&lt;<span class="type">int</span>&amp;&amp;&gt;::type;</span><br></pre></td></tr></table></figure>
+
+<p>这三个版本的type都为int，这样达到了去引用的效果。</p>
+<p>所以带入</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typename</span> std::remove_reference&lt;_Tp&gt;::type&amp; <span class="type">__t</span></span><br></pre></td></tr></table></figure>
+
+<p>我们可以指导__t一定是个左值引用类型。</p>
+<p><strong>原样转发内幕</strong></p>
+<p>此时我们考虑对一个左值引用类型(int&amp; )参数执行forward函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> _Tp&gt;</span></span><br><span class="line"><span class="function">    _GLIBCXX_NODISCARD</span></span><br><span class="line"><span class="function">    <span class="keyword">constexpr</span> _Tp&amp;&amp;</span></span><br><span class="line"><span class="function">    <span class="title">forward</span><span class="params">(<span class="keyword">typename</span> std::remove_reference&lt;_Tp&gt;::type&amp; <span class="type">__t</span>)</span> <span class="keyword">noexcept</span></span></span><br><span class="line"><span class="function">    </span>&#123; <span class="keyword">return</span> <span class="built_in">static_cast</span>&lt;_Tp&amp;&amp;&gt;(<span class="type">__t</span>); &#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>函数各部分解释</strong>：</p>
+<ul>
+<li>**模板参数 <code>typename _Tp</code>**： 定义了一个模板类型参数 <code>_Tp</code>，表示要转发的类型。</li>
+<li>**<code>typename std::remove_reference&lt;_Tp&gt;::type&amp; __t</code>**： 使用 <code>std::remove_reference</code> 去除 <code>_Tp</code> 的引用性质，然后以左值引用的形式接受参数。</li>
+<li>**<code>static_cast&lt;_Tp&amp;&amp;&gt;(__t)</code>**： 通过 <code>static_cast</code> 将参数转换为 <code>_Tp</code> 类型的右值引用。这是实现完美转发的关键步骤，使得被转发的参数保留其原有的值类别。</li>
+<li>**<code>noexcept</code>**： 指明函数不会抛出异常，有助于编译器进行优化，并提高代码的异常安全性。</li>
+</ul>
+<p>__t为int&amp;类型，TP被实例化为int&amp;,  通过引用折叠</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span>&amp; std::forward&lt;<span class="type">int</span>&amp;&gt;(arg)</span><br></pre></td></tr></table></figure>
+
+<p>达到了原样转发的目的。</p>
+<p>**模板参数 <code>typename _Tp</code>**： 定义了一个模板类型参数 <code>_Tp</code>，表示要转发的类型。</p>
+<p>同样我们分析右值引用类型原样转发原理</p>
+<p><strong>返回右值引用版本</strong></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> _Tp&gt;</span></span><br><span class="line"><span class="function">  _GLIBCXX_NODISCARD</span></span><br><span class="line"><span class="function">  <span class="keyword">constexpr</span> _Tp&amp;&amp;</span></span><br><span class="line"><span class="function">  <span class="title">forward</span><span class="params">(<span class="keyword">typename</span> std::remove_reference&lt;_Tp&gt;::type&amp;&amp; <span class="type">__t</span>)</span> <span class="keyword">noexcept</span></span></span><br><span class="line"><span class="function">  </span>&#123;</span><br><span class="line">    <span class="built_in">static_assert</span>(!std::is_lvalue_reference&lt;_Tp&gt;::value,</span><br><span class="line"> <span class="string">&quot;std::forward must not be used to convert an rvalue to an lvalue&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">static_cast</span>&lt;_Tp&amp;&amp;&gt;(<span class="type">__t</span>);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里限制了不能将右值引用转化为左值引用。</p>
+<p><code>__t</code>是右值引用类型，当我们执行如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span>&amp;&amp; forward&lt;<span class="type">int</span>&amp;&amp;&gt;(args)</span><br></pre></td></tr></table></figure>
+
+<p><code>_Tp</code>被实例化为<code>int&amp;&amp;</code>, 返回类型通过折叠变为<code>int&amp;&amp;</code> , 参数<code>__t</code>变为<code>int&amp;&amp;</code>类型</p>
+<h2 id="6-move源码解析"><a href="#6-move源码解析" class="headerlink" title="6. move源码解析"></a>6. move源码解析</h2><p><code>std::move</code>源码</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> _Tp&gt;</span><br><span class="line">  _GLIBCXX_NODISCARD</span><br><span class="line">  <span class="keyword">constexpr</span> <span class="keyword">typename</span> std::remove_reference&lt;_Tp&gt;::<span class="function">type&amp;&amp;</span></span><br><span class="line"><span class="function">  <span class="title">move</span><span class="params">(_Tp&amp;&amp; <span class="type">__t</span>)</span> <span class="keyword">noexcept</span></span></span><br><span class="line"><span class="function">  </span>&#123; <span class="keyword">return</span> <span class="keyword">static_cast</span>&lt;<span class="keyword">typename</span> std::remove_reference&lt;_Tp&gt;::type&amp;&amp;&gt;(<span class="type">__t</span>); &#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到move的实现很简单，无论<code>__t</code>是左值引用还是右值引用，都会通过</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static_cast</span>&lt;<span class="keyword">typename</span> std::remove_reference&lt;_Tp&gt;::type&amp;&amp;&gt;(<span class="type">__t</span>)</span><br></pre></td></tr></table></figure>
+
+<p>强制转换为去除引用的type, 再加上<code>&amp;&amp;</code>的类型，也就是具体的右值引用类型。</p>
+<h2 id="7-总结"><a href="#7-总结" class="headerlink" title="7. 总结"></a>7. 总结</h2><ul>
+<li><strong>左值与右值</strong>：理解值类别是掌握C++移动语义、资源管理和高效编程的基础。左值代表具有持久存储的对象，而右值通常是临时对象。</li>
+<li><strong>模板万能引用（转发引用）</strong>：通过<code>T&amp;&amp;</code>形式的模板参数，可以统一处理左值和右值，适用于泛型编程中的参数传递。引用折叠规则决定了<code>T&amp;&amp;</code>在不同上下文中的解析方式。</li>
+<li><strong>类型推导</strong>：编译器根据实参自动推导模板参数类型，涉及引用类型时需要理解引用折叠规则和类型推导的细节。</li>
+<li><strong>原样转发（Perfect Forwarding）</strong>：结合模板万能引用和<code>std::forward</code>，确保在泛型函数中将参数以其原有值类别传递给目标函数，避免不必要的拷贝，提升代码效率和灵活性。</li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/%E9%9B%B6%E5%9F%BA%E7%A1%80C/" rel="tag"># 零基础C++</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2025/02/08/AI01/" rel="next" title="DeepSeek-R1本地部署知识库">
+                <i class="fa fa-chevron-left"></i> DeepSeek-R1本地部署知识库
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2025/03/01/cppbase33/" rel="prev" title="零基础C++(33) 单例模式演变">
+                零基础C++(33) 单例模式演变 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">370</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">21</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/secondtonone1" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/wang-wu-chen-32/activities" target="_blank" title="ZhiHu">
+                    
+                      <i class="fa fa-fw fa-ZhiHu"></i>ZhiHu</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%B7%A6%E5%80%BC%E4%B8%8E%E5%8F%B3%E5%80%BC"><span class="nav-number">1.</span> <span class="nav-text">1. 左值与右值</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E5%AE%9A%E4%B9%89%E4%B8%8E%E5%88%86%E7%B1%BB"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 定义与分类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E7%A4%BA%E4%BE%8B%E4%BB%A3%E7%A0%81"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 示例代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E7%B1%BB%E5%9E%8B%E5%88%A4%E6%96%AD%E5%B7%A5%E5%85%B7"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 类型判断工具</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">1.4.</span> <span class="nav-text">1.4 应用场景</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%A8%A1%E6%9D%BF%E4%B8%87%E8%83%BD%E5%BC%95%E7%94%A8%EF%BC%88%E8%BD%AC%E5%8F%91%E5%BC%95%E7%94%A8%EF%BC%89"><span class="nav-number">2.</span> <span class="nav-text">2. 模板万能引用（转发引用）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%AE%9A%E4%B9%89%E4%B8%8E%E7%89%B9%E6%80%A7"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 定义与特性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%BC%95%E7%94%A8%E6%8A%98%E5%8F%A0%E8%A7%84%E5%88%99"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 引用折叠规则</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%85%B3%E9%94%AE%E7%82%B9%EF%BC%9A"><span class="nav-number">2.2.1.</span> <span class="nav-text">关键点：</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E7%A4%BA%E4%BE%8B%E4%BB%A3%E7%A0%81"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 示例代码</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%B1%BB%E5%9E%8B%E6%8E%A8%E5%AF%BC%EF%BC%88Type-Deduction%EF%BC%89"><span class="nav-number">3.</span> <span class="nav-text">3. 类型推导（Type Deduction）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E7%B1%BB%E5%9E%8B%E6%8E%A8%E5%AF%BC%E8%A7%84%E5%88%99"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 类型推导规则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E4%B8%8E%E5%BC%95%E7%94%A8%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 与引用的关系</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E7%A4%BA%E4%BE%8B%E4%BB%A3%E7%A0%81"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 示例代码</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%8E%9F%E6%A0%B7%E8%BD%AC%E5%8F%91%EF%BC%88Perfect-Forwarding%EF%BC%89"><span class="nav-number">4.</span> <span class="nav-text">4. 原样转发（Perfect Forwarding）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%AE%9A%E4%B9%89%E4%B8%8E%E4%BD%9C%E7%94%A8"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 定义与作用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 实现原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E5%8E%9F%E6%A0%B7%E8%BD%AC%E5%8F%91"><span class="nav-number">4.3.</span> <span class="nav-text">4.3 为什么需要原样转发</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E7%A4%BA%E4%BE%8B%E4%BB%A3%E7%A0%81"><span class="nav-number">4.4.</span> <span class="nav-text">4.4 示例代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-5-%E6%B3%9B%E5%9E%8B%E5%B7%A5%E5%8E%82%E5%87%BD%E6%95%B0%E7%A4%BA%E4%BE%8B"><span class="nav-number">4.5.</span> <span class="nav-text">4.5 泛型工厂函数示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-6-%E9%81%BF%E5%85%8D%E4%B8%8D%E5%BF%85%E8%A6%81%E7%9A%84%E6%8B%B7%E8%B4%9D"><span class="nav-number">4.6.</span> <span class="nav-text">4.6 避免不必要的拷贝</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-forward%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90"><span class="nav-number">5.</span> <span class="nav-text">5. forward源码剖析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%87%8D%E7%82%B9%E8%A7%A3%E9%87%8A"><span class="nav-number">5.1.</span> <span class="nav-text">重点解释</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-move%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90"><span class="nav-number">6.</span> <span class="nav-text">6. move源码解析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-%E6%80%BB%E7%BB%93"><span class="nav-number">7.</span> <span class="nav-text">7. 总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">恋恋风辰</span>
+
+  
+  
+ 
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">本站访客数<span id="busuanzi_value_site_uv"></span>人</span>
+ 
+ 
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
